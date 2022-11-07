@@ -25,7 +25,26 @@ TODO
 
 ## Development
 
-### Getting started
-TODO
+### References
 
 See instructions for tonic: https://github.com/hyperium/tonic#getting-started
+
+### Getting started
+
+#### Setup
+
+Install rustup and execute the commands from `sdks/rust`.
+
+#### Build
+
+Prepare the environment and build the Rust project:
+
+```
+./build.sh
+```
+
+#### Test
+TODO
+
+#### Style
+TODO
