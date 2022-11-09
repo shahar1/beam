@@ -20,7 +20,9 @@
 
 fn main() {
     tonic_build::configure()
-        .out_dir("src/apache_beam/proto")
+        .build_client(true)
+        .build_server(true)
+        .include_file("mod.rs")
         .compile(
             &[
                 "src/beam_protos/pipeline/src/main/proto/org/apache/beam/model/pipeline/v1/endpoints.proto",

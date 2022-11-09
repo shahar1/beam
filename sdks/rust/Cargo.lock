@@ -709,6 +709,7 @@ dependencies = [
  "futures-core",
  "futures-util",
  "prost",
+ "prost-types",
  "rand 0.7.3",
  "serde",
  "serde_json",

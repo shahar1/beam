@@ -19,10 +19,16 @@
 name = "rust_sdk"
 version = "0.1.0"
 edition = "2021"
+default-run = "external_worker_service"
+
+[[bin]]
+name = "external_worker_service"
+path = "src/apache_beam/worker/external_worker_service.rs"
 
 [dependencies]
 tonic = "0.8"
 prost = "0.11"
+prost-types = "0.11"
 futures-core = "0.3"
 futures-util = "0.3"
 tokio = { version = "1.0", features = ["rt-multi-thread", "macros", "sync", "time"] }
