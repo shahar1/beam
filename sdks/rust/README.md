@@ -35,6 +35,18 @@ See instructions for tonic: https://github.com/hyperium/tonic#getting-started
 
 Install rustup and execute the commands from `sdks/rust`.
 
+Install clippy
+
+```
+rustup component add clippy
+```
+
+Install rustfmt
+
+```
+rustup component add rustfmt
+```
+
 #### Build
 
 Prepare the environment and build the Rust project:
