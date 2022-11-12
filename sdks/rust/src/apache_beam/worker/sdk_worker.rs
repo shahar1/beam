@@ -16,29 +16,39 @@
  * limitations under the License.
  */
 
-#![allow(clippy::derive_partial_eq_without_eq, clippy::enum_variant_names)]
-mod beam_protos {
-  tonic::include_proto!("protos");
+use std::collections::HashMap;
 
-  pub use org::apache::beam::model::fn_execution::v1 as fn_execution;
-  pub use org::apache::beam::model::expansion::v1 as expansion;
-  pub use org::apache::beam::model::interactive::v1 as interactive;
-  pub use org::apache::beam::model::job_management::v1 as job_management;
-  pub use org::apache::beam::model::pipeline::v1 as pipeline;  
+#[derive(Debug)]
+pub struct Worker {
+  id: String,
+  endpoints: WorkerEndpoints,
+  // TODO: review placeholder
+  options: HashMap<String, String>,
 }
 
-pub mod apache_beam;
+impl Worker {
+  pub fn new(id: String, endpoints: WorkerEndpoints) -> Self {
+    Self {
+      id,
+      endpoints,
+      options: HashMap::new(),
+    }
+  }
 
-use tokio::net;
+  pub fn stop(&mut self) {
+    unimplemented!()
+  }
+}
 
-pub use worker::external_worker_service::ExternalWorkerPool;
-use apache_beam::worker;
+#[derive(Debug)]
+pub struct WorkerEndpoints {
+  control_endpoint_url: Option<String>,
+}
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-  let address = net::lookup_host("localhost:5555").await?.next().unwrap();
-  
-  ExternalWorkerPool::new(address).start().await?;
-
-  Ok(())
+impl WorkerEndpoints {
+  pub fn new(control_endpoint_url: Option<String>) -> Self {
+    Self {
+      control_endpoint_url,
+    }
+  }
 }
