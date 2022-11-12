@@ -19,26 +19,19 @@
 name = "rust_sdk"
 version = "0.1.0"
 edition = "2021"
+default-run = "main"
 
-# TODO: convert external worker service into binary
-# [[bin]]
-# name = "external_worker_service"
-# path = "src/apache_beam/worker/external_worker_service.rs"
+[[bin]]
+name = "main"
+path = "src/main.rs"
+
+[workspace]
+members = [
+  "proto",
+  "worker",
+]
 
 [dependencies]
-tonic = "0.8"
-prost = "0.11"
-prost-types = "0.11"
-futures-core = "0.3"
-futures-util = "0.3"
-tokio = { version = "1.0", features = ["rt-multi-thread", "macros", "sync", "time"] }
-tokio-util = "0.7.4"
-tokio-stream = "0.1"
+worker = { path = "worker" }
 
-async-stream = "0.2"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-rand = "0.7"
-
-[build-dependencies]
-tonic-build = "0.8"
+tokio = { version = "1.0" }

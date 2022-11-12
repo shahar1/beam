@@ -16,29 +16,15 @@
  * limitations under the License.
  */
 
-#![allow(clippy::derive_partial_eq_without_eq, clippy::enum_variant_names)]
-mod beam_protos {
-  tonic::include_proto!("protos");
-
-  pub use org::apache::beam::model::fn_execution::v1 as fn_execution;
-  pub use org::apache::beam::model::expansion::v1 as expansion;
-  pub use org::apache::beam::model::interactive::v1 as interactive;
-  pub use org::apache::beam::model::job_management::v1 as job_management;
-  pub use org::apache::beam::model::pipeline::v1 as pipeline;  
-}
-
-pub mod apache_beam;
+use worker::ExternalWorkerPool;
 
 use tokio::net;
 
-pub use worker::external_worker_service::ExternalWorkerPool;
-use apache_beam::worker;
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-  let address = net::lookup_host("localhost:5555").await?.next().unwrap();
-  
-  ExternalWorkerPool::new(address).start().await?;
+    let address = net::lookup_host("localhost:5555").await?.next().unwrap();
 
-  Ok(())
+    ExternalWorkerPool::new(address).start().await?;
+
+    Ok(())
 }

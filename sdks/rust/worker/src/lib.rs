@@ -16,39 +16,7 @@
  * limitations under the License.
  */
 
-use std::collections::HashMap;
+mod external_worker_service;
+mod sdk_worker;
 
-#[derive(Debug)]
-pub struct Worker {
-  id: String,
-  endpoints: WorkerEndpoints,
-  // TODO: review placeholder
-  options: HashMap<String, String>,
-}
-
-impl Worker {
-  pub fn new(id: String, endpoints: WorkerEndpoints) -> Self {
-    Self {
-      id,
-      endpoints,
-      options: HashMap::new(),
-    }
-  }
-
-  pub fn stop(&mut self) {
-    unimplemented!()
-  }
-}
-
-#[derive(Debug)]
-pub struct WorkerEndpoints {
-  control_endpoint_url: Option<String>,
-}
-
-impl WorkerEndpoints {
-  pub fn new(control_endpoint_url: Option<String>) -> Self {
-    Self {
-      control_endpoint_url,
-    }
-  }
-}
+pub use external_worker_service::ExternalWorkerPool;
