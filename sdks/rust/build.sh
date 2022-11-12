@@ -25,4 +25,7 @@ rm -r beam_protos/
 mkdir beam_protos
 cp -r ../../../model beam_protos
 cd ..
-cargo build
+
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test
+cargo fmt --all -- --check
