@@ -18,13 +18,9 @@
 
 use worker::ExternalWorkerPool;
 
-use tokio::net;
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let address = net::lookup_host("localhost:5555").await?.next().unwrap();
-
-    ExternalWorkerPool::new(address).start().await?;
+    ExternalWorkerPool::new("127.0.0.1", 5555).start().await?;
 
     Ok(())
 }

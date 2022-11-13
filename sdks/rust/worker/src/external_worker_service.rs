@@ -21,7 +21,6 @@ use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use tokio::net;
 use tokio_util::sync::CancellationToken;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
@@ -52,12 +51,14 @@ impl BeamFnExternalWorkerPool for BeamFnExternalWorkerPoolService {
         let control_endpoint_url = req.control_endpoint.as_ref().map(|t| t.url.clone());
 
         // TODO: review cloning
+        let new_worker = Worker::new(
+            req.worker_id.clone(),
+            WorkerEndpoints::new(control_endpoint_url),
+        );
+        
         _workers.insert(
             req.worker_id.clone(),
-            Worker::new(
-                req.worker_id.clone(),
-                WorkerEndpoints::new(control_endpoint_url),
-            ),
+            new_worker,
         );
 
         Ok(Response::new(StartWorkerResponse::default()))
@@ -87,9 +88,11 @@ pub struct ExternalWorkerPool {
 }
 
 impl ExternalWorkerPool {
-    pub fn new(address: SocketAddr) -> Self {
+    pub fn new(ip: &str, port: u16) -> Self {
+        let parsed_ip = ip.parse().expect("Invalid IP address");
+
         Self {
-            address,
+            address: SocketAddr::new(parsed_ip, port),
             cancellation_token: CancellationToken::new(),
         }
     }
