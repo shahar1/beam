@@ -23,6 +23,7 @@ edition = "2021"
 [dependencies]
 proto = { path = "../proto" }
 
+http = "0.2.8"
 tonic = "0.8"
 futures-core = "0.3"
 futures-util = "0.3"

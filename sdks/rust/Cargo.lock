@@ -1140,6 +1140,7 @@ dependencies = [
  "async-stream 0.2.1",
  "futures-core",
  "futures-util",
+ "http",
  "proto",
  "rand 0.7.3",
  "serde",

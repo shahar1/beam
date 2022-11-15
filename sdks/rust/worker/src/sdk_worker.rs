@@ -17,6 +17,11 @@
  */
 
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
+use http::Uri;
+use tokio::sync::RwLock;
+use tonic::transport::Channel;
 
 use proto::beam::fn_execution::{
     beam_fn_control_client::BeamFnControlClient, InstructionRequest, InstructionResponse,
@@ -30,24 +35,32 @@ pub struct Worker {
     endpoints: WorkerEndpoints,
     // TODO: review placeholder
     options: HashMap<String, String>,
-    // control_client: BeamFnControlClient<tonic::transport::Channel>,
+    control_client: Arc<BeamFnControlClient<Channel>>,
 }
 
 impl Worker {
-    pub fn new(id: String, endpoints: WorkerEndpoints) -> Self {
-        Self {
+    pub async fn new(id: String, endpoints: WorkerEndpoints) -> Mutex<Self> {
+        // TODO: parse URIs in the endpoint struct
+        let channel = Channel::builder(endpoints.get_endpoint().parse::<Uri>().unwrap())
+            .connect()
+            .await
+            .expect("Failed to connect to worker");
+
+        Mutex::new(Self {
             id,
             endpoints,
             options: HashMap::new(),
-        }
+            control_client: Arc::new(BeamFnControlClient::new(channel)),
+        })
     }
 
+    // TODO
     pub fn stop(&mut self) {
         unimplemented!()
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct WorkerEndpoints {
     control_endpoint_url: Option<String>,
 }
@@ -57,5 +70,9 @@ impl WorkerEndpoints {
         Self {
             control_endpoint_url,
         }
+    }
+
+    pub fn get_endpoint(&self) -> &str {
+        self.control_endpoint_url.as_ref().unwrap()
     }
 }

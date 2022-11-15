@@ -21,6 +21,7 @@ use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
@@ -36,7 +37,7 @@ use proto::beam::fn_execution::{
 
 #[derive(Debug)]
 struct BeamFnExternalWorkerPoolService {
-    workers: Arc<Mutex<HashMap<String, Worker>>>,
+    workers: Arc<RwLock<HashMap<String, Mutex<Worker>>>>,
 }
 
 #[tonic::async_trait]
@@ -45,16 +46,17 @@ impl BeamFnExternalWorkerPool for BeamFnExternalWorkerPoolService {
         &self,
         request: Request<StartWorkerRequest>,
     ) -> Result<Response<StartWorkerResponse>, Status> {
-        let mut _workers = self.workers.lock().unwrap();
-
+        let workers_guard = Arc::clone(&self.workers);
+        let mut _workers = workers_guard.write().await;
+        
         let req = &request.get_ref();
         let control_endpoint_url = req.control_endpoint.as_ref().map(|t| t.url.clone());
 
-        // TODO: review cloning
+        // TODO: review cloning + error handling
         let new_worker = Worker::new(
             req.worker_id.clone(),
             WorkerEndpoints::new(control_endpoint_url),
-        );
+        ).await;
         
         _workers.insert(
             req.worker_id.clone(),
@@ -68,15 +70,17 @@ impl BeamFnExternalWorkerPool for BeamFnExternalWorkerPoolService {
         &self,
         request: Request<StopWorkerRequest>,
     ) -> Result<Response<StopWorkerResponse>, Status> {
-        let mut _workers = self.workers.lock().unwrap();
+        let workers_guard = Arc::clone(&self.workers);
+        let mut _workers = workers_guard.write().await;
 
         let req = &request.get_ref();
         let worker_id = &req.worker_id.to_owned();
 
-        if let Some(w) = _workers.get_mut(worker_id) {
-            w.stop();
+        if let Some(w) = _workers.get(worker_id) {
+            w.lock().unwrap().stop();
             _workers.remove(worker_id);
         };
+
 
         Ok(Response::new(StopWorkerResponse::default()))
     }
@@ -102,7 +106,7 @@ impl ExternalWorkerPool {
         println!("Starting loopback workers at {}", self.address);
 
         let svc = BeamFnExternalWorkerPoolServer::new(BeamFnExternalWorkerPoolService {
-            workers: Arc::new(Mutex::new(HashMap::new())),
+            workers: Arc::new(RwLock::new(HashMap::new())),
         });
 
         Server::builder()
