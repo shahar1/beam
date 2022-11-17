@@ -16,7 +16,9 @@
  * limitations under the License.
  */
 
+mod data;
 mod external_worker_service;
+mod operators;
 mod sdk_worker;
 
 pub use external_worker_service::ExternalWorkerPool;

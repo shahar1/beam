@@ -1141,6 +1141,7 @@ dependencies = [
  "futures-core",
  "futures-util",
  "http",
+ "once_cell",
  "proto",
  "rand 0.7.3",
  "serde",

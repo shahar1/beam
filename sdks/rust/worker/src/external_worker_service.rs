@@ -48,20 +48,17 @@ impl BeamFnExternalWorkerPool for BeamFnExternalWorkerPoolService {
     ) -> Result<Response<StartWorkerResponse>, Status> {
         let workers_guard = Arc::clone(&self.workers);
         let mut _workers = workers_guard.write().await;
-        
+
         let req = &request.get_ref();
         let control_endpoint_url = req.control_endpoint.as_ref().map(|t| t.url.clone());
 
-        // TODO: review cloning + error handling
         let new_worker = Worker::new(
             req.worker_id.clone(),
             WorkerEndpoints::new(control_endpoint_url),
-        ).await;
-        
-        _workers.insert(
-            req.worker_id.clone(),
-            new_worker,
-        );
+        )
+        .await;
+
+        _workers.insert(req.worker_id.clone(), new_worker);
 
         Ok(Response::new(StartWorkerResponse::default()))
     }
@@ -80,7 +77,6 @@ impl BeamFnExternalWorkerPool for BeamFnExternalWorkerPoolService {
             w.lock().unwrap().stop();
             _workers.remove(worker_id);
         };
-
 
         Ok(Response::new(StopWorkerResponse::default()))
     }

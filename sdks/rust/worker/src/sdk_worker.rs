@@ -20,7 +20,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use http::Uri;
-use tokio::sync::RwLock;
 use tonic::transport::Channel;
 
 use proto::beam::fn_execution::{
@@ -29,11 +28,12 @@ use proto::beam::fn_execution::{
     ProcessBundleSplitResponse,
 };
 
+use crate::operators::{create_operator, IOperator, OperatorContext, Receiver};
+
 #[derive(Debug)]
 pub struct Worker {
     id: String,
     endpoints: WorkerEndpoints,
-    // TODO: review placeholder
     options: HashMap<String, String>,
     control_client: Arc<BeamFnControlClient<Channel>>,
 }
@@ -75,4 +75,11 @@ impl WorkerEndpoints {
     pub fn get_endpoint(&self) -> &str {
         self.control_endpoint_url.as_ref().unwrap()
     }
+}
+
+#[derive(Debug)]
+pub struct BundleProcessor {
+    descriptor: ProcessBundleDescriptor,
+    topologically_ordered_operators: Vec<Box<dyn IOperator>>,
+    operators: HashMap<String, Box<dyn IOperator>>,
 }

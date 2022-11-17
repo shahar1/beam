@@ -27,7 +27,7 @@ TODO
 
 ### References
 
-See instructions for tonic: https://github.com/hyperium/tonic#getting-started
+Guidelines: https://rust-lang.github.io/api-guidelines/about.html
 
 ### Getting started
 
