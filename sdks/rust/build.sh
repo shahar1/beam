@@ -22,8 +22,7 @@
 
 cd proto
 rm -r beam_protos/
-mkdir beam_protos
-cp -r ../../../model beam_protos
+cp -r ../../../model/ beam_protos
 cd ..
 
 # TODO: set build to fail on warnings when code is ready
