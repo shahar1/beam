@@ -16,24 +16,9 @@
 #
 
 [package]
-name = "rust_sdk"
+name = "core"
 version = "0.1.0"
 edition = "2021"
-default-run = "main"
-
-[[bin]]
-name = "main"
-path = "src/main.rs"
-
-[workspace]
-members = [
-  "beam_core",
-  "internals",
-  "proto",
-  "worker",
-]
 
 [dependencies]
-worker = { path = "worker" }
-
-tokio = { version = "1.0" }
+proto = { path = "../proto" }
