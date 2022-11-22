@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-const IMPULSE_BUFFER:String = String::from("impulse");
+const IMPULSE_BUFFER:&str = "impulse";
 
 const DATA_INPUT_URN:&str = "beam:runner:source:v1";
 const DATA_OUTPUT_URN:&str = "beam:runner:sink:v1";
