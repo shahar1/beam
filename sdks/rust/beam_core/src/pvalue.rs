@@ -22,6 +22,8 @@ use std::sync::Mutex;
 use internals::urns;
 use proto::beam::pipeline as proto_pipeline;
 
+const _CODER_ID_PREFIX: &'static str = "coder_";
+
 // TODO: use something better...
 pub fn get_pcollection_name() -> String {
     use rand::Rng;
@@ -81,6 +83,8 @@ pub enum PType {
 
 pub struct Pipeline {
     proto: Mutex<proto_pipeline::Pipeline>,
+
+    coder_counter: usize,
 }
 
 impl Pipeline {
@@ -102,7 +106,26 @@ impl Pipeline {
         // and/or switch to async mutex
         Pipeline {
             proto: Mutex::new(proto),
+            coder_counter: 0,
         }
+    }
+
+    pub fn register_coder(&mut self, coder_proto: proto_pipeline::Coder) -> String {
+        let mut pipeline_proto = self.proto.lock().unwrap();
+
+        let coders = &mut pipeline_proto.components.as_mut().unwrap().coders;
+
+        for (key, val) in coders.iter() {
+            if *val == coder_proto {
+                return key.clone();
+            }
+        }
+
+        self.coder_counter += 1;
+        let new_coder_id = format!("{}{}", _CODER_ID_PREFIX, self.coder_counter);
+        coders.insert(new_coder_id.clone(), coder_proto);
+
+        new_coder_id
     }
 }
 
@@ -194,14 +217,14 @@ impl DoFn {
     }
 }
 
-    pub struct Runner {
-    pipeline: Pipeline
+pub struct Runner {
+    pipeline: Pipeline,
 }
 
 impl Runner {
     pub fn new() -> Self {
         Self {
-            pipeline: Pipeline::new()
+            pipeline: Pipeline::new(),
         }
     }
 
