@@ -16,9 +16,12 @@
 #
 
 [package]
-name = "core"
+name = "beam_core"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+internals = { path = "../internals" }
 proto = { path = "../proto" }
+
+rand = "0.7"

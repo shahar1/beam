@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-const IMPULSE_BUFFER:&str = "impulse";
+pub const IMPULSE_BUFFER: &[u8] = "impulse".as_bytes();
 
-const DATA_INPUT_URN:&str = "beam:runner:source:v1";
-const DATA_OUTPUT_URN:&str = "beam:runner:sink:v1";
-const IDENTITY_DOFN_URN:&str = "beam:dofn:identity:0.1";
+pub const DATA_INPUT_URN: &str = "beam:runner:source:v1";
+pub const DATA_OUTPUT_URN: &str = "beam:runner:sink:v1";
+pub const IDENTITY_DOFN_URN: &str = "beam:dofn:identity:0.1";

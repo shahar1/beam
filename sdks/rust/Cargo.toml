@@ -34,6 +34,8 @@ members = [
 ]
 
 [dependencies]
+beam_core = { path = "beam_core" }
+internals = { path = "internals" }
 worker = { path = "worker" }
 
 tokio = { version = "1.0" }
