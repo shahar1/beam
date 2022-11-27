@@ -22,3 +22,6 @@ edition = "2021"
 
 [dependencies]
 proto = { path = "../proto" }
+
+serde = "1.0.147"
+serde_yaml = "0.9.14"
