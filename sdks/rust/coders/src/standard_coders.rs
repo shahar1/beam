@@ -18,9 +18,9 @@
 
 use std::collections::HashMap;
 
-const BYTES_CODER_URN: &str = "beam:coder:bytes:v1";
-const KV_CODER_URN: &str = "beam:coder:kvcoder:v1";
-const ITERABLE_CODER_URN: &str = "beam:coder:iterable:v1";
+pub const BYTES_CODER_URN: &str = "beam:coder:bytes:v1";
+pub const KV_CODER_URN: &str = "beam:coder:kvcoder:v1";
+pub const ITERABLE_CODER_URN: &str = "beam:coder:iterable:v1";
 
 #[derive(Clone)]
 pub enum CoderType {
@@ -69,6 +69,8 @@ impl Default for CoderRegistry {
     }
 }
 
+/// This is the base interface for coders, which are responsible in Apache Beam to encode and decode
+///  elements of a PCollection.
 pub trait Coder {
     fn get_coder_type(&self) -> CoderType;
 

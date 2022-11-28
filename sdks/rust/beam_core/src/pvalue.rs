@@ -19,6 +19,7 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
+use coders::standard_coders::{BytesCoder, Coder};
 use internals::urns;
 use proto::beam::pipeline as proto_pipeline;
 
@@ -83,8 +84,9 @@ pub enum PType {
 
 pub struct Pipeline {
     proto: Mutex<proto_pipeline::Pipeline>,
+    coders: Mutex<HashMap<String, Box<dyn Coder>>>,
 
-    coder_counter: usize,
+    coder_counter: Mutex<usize>,
 }
 
 impl Pipeline {
@@ -102,15 +104,17 @@ impl Pipeline {
             requirements: Vec::with_capacity(0),
         };
 
-        // TODO: maybe lock individual components instead of the entire proto
-        // and/or switch to async mutex
         Pipeline {
+            // TODO: maybe lock individual components instead of the entire proto
+            // and/or switch to async mutex
             proto: Mutex::new(proto),
-            coder_counter: 0,
+            // TODO: try to refactor to RwLock
+            coders: Mutex::new(HashMap::new()),
+            coder_counter: Mutex::new(0),
         }
     }
 
-    pub fn register_coder(&mut self, coder_proto: proto_pipeline::Coder) -> String {
+    pub fn register_coder(&self, coder_proto: proto_pipeline::Coder) -> String {
         let mut pipeline_proto = self.proto.lock().unwrap();
 
         let coders = &mut pipeline_proto.components.as_mut().unwrap().coders;
@@ -121,8 +125,9 @@ impl Pipeline {
             }
         }
 
-        self.coder_counter += 1;
-        let new_coder_id = format!("{}{}", _CODER_ID_PREFIX, self.coder_counter);
+        let mut coder_counter = self.coder_counter.lock().unwrap();
+        *coder_counter += 1;
+        let new_coder_id = format!("{}{}", _CODER_ID_PREFIX, *coder_counter);
         coders.insert(new_coder_id.clone(), coder_proto);
 
         new_coder_id
@@ -166,6 +171,18 @@ impl PTransform for Impulse {
 
         let pcoll_name = get_pcollection_name();
 
+        let coder_id = input.pipeline.register_coder(proto_pipeline::Coder {
+            spec: Some(proto_pipeline::FunctionSpec {
+                urn: String::from(coders::standard_coders::BYTES_CODER_URN),
+                payload: Vec::with_capacity(0),
+            }),
+            component_coder_ids: Vec::with_capacity(0),
+        });
+
+        let mut coders = input.pipeline.coders.lock().unwrap();
+        coders.insert(coder_id, Box::new(BytesCoder::new()));
+        drop(coders);
+
         let output_proto = proto_pipeline::PCollection {
             unique_name: pcoll_name.clone(),
             coder_id: "placeholder".to_string(),
@@ -196,6 +213,8 @@ impl PTransform for Impulse {
             .unwrap()
             .transforms
             .insert(impulse_proto.unique_name.clone(), impulse_proto);
+
+        drop(pipeline_proto);
 
         PValue::new(PType::PCollection, pcoll_name, output_proto, input.pipeline)
     }
@@ -233,14 +252,14 @@ impl Runner {
 
         let output_proto = proto_pipeline::PCollection {
             unique_name: pcoll_name.clone(),
-            coder_id: "placeholder".to_string(),
+            coder_id: String::with_capacity(0),
             is_bounded: proto_pipeline::is_bounded::Enum::Bounded as i32,
             windowing_strategy_id: "placeholder".to_string(),
             display_data: Vec::with_capacity(0),
         };
 
         let impulse_proto = proto_pipeline::PTransform {
-            unique_name: "impulse".to_string(),
+            unique_name: "root".to_string(),
             spec: None,
             subtransforms: Vec::with_capacity(0),
             inputs: HashMap::with_capacity(0),
@@ -260,6 +279,12 @@ impl Runner {
             .insert(impulse_proto.unique_name.clone(), impulse_proto);
 
         PValue::<'a>::new(PType::PCollection, pcoll_name, output_proto, &self.pipeline)
+    }
+}
+
+impl Default for Runner {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
