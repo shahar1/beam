@@ -257,7 +257,7 @@ mod tests {
                 let encoded = coder.encode_to_bytes(obj);
                 let decoded = coder.decode_to_bytes(expected_encoded.as_str().unwrap().as_bytes());
                 let expected_enc = expected_encoded.as_str().unwrap().as_bytes();
-                let expected_dec = expected_encoded.as_str().unwrap().as_bytes();
+                let expected_dec = original.as_str().unwrap().as_bytes();
                 (encoded, decoded, expected_enc, expected_dec)
             }
             _ => unimplemented!(),
