@@ -34,6 +34,7 @@ pub fn get_pcollection_name() -> String {
     format!("ref_PCollection_{}", bad_id)
 }
 
+#[derive(Clone)]
 pub struct PValue<'a> {
     ptype: PType,
     name: String,
@@ -74,7 +75,7 @@ impl<'a> PValue<'a> {
 
 // Anonymous sum types would probably be better, if/when they become
 // available. https://github.com/rust-lang/rfcs/issues/294
-#[derive(Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PType {
     Root,
     PCollection,
@@ -86,7 +87,9 @@ pub struct Pipeline {
     proto: Mutex<proto_pipeline::Pipeline>,
     coders: Mutex<HashMap<String, Box<dyn Coder>>>,
 
+    // TODO: get rid of one or both of these
     coder_counter: Mutex<usize>,
+    coder_proto_counter: Mutex<usize>,
 }
 
 impl Pipeline {
@@ -111,24 +114,44 @@ impl Pipeline {
             // TODO: try to refactor to RwLock
             coders: Mutex::new(HashMap::new()),
             coder_counter: Mutex::new(0),
+            coder_proto_counter: Mutex::new(0),
         }
     }
 
-    pub fn register_coder(&self, coder_proto: proto_pipeline::Coder) -> String {
-        let mut pipeline_proto = self.proto.lock().unwrap();
+    // TODO: don't required an eagerly constructed coder as argument
+    pub fn register_coder(&self, coder: Box<dyn Coder>) -> String {
+        let mut coders = self.coders.lock().unwrap();
 
-        let coders = &mut pipeline_proto.components.as_mut().unwrap().coders;
-
-        for (key, val) in coders.iter() {
-            if *val == coder_proto {
-                return key.clone();
+        for (coder_id, stored_coder) in coders.iter() {
+            if stored_coder.get_coder_type() == coder.get_coder_type() {
+                return coder_id.clone();
             }
         }
 
         let mut coder_counter = self.coder_counter.lock().unwrap();
         *coder_counter += 1;
         let new_coder_id = format!("{}{}", _CODER_ID_PREFIX, *coder_counter);
-        coders.insert(new_coder_id.clone(), coder_proto);
+        coders.insert(new_coder_id.clone(), coder);
+
+        new_coder_id
+    }
+
+    // TODO: review need for separate function vs register_coder
+    pub fn register_coder_proto(&self, coder_proto: proto_pipeline::Coder) -> String {
+        let mut pipeline_proto = self.proto.lock().unwrap();
+
+        let proto_coders = &mut pipeline_proto.components.as_mut().unwrap().coders;
+
+        for (coder_id, coder) in proto_coders.iter() {
+            if *coder == coder_proto {
+                return coder_id.clone();
+            }
+        }
+
+        let mut coder_counter = self.coder_proto_counter.lock().unwrap();
+        *coder_counter += 1;
+        let new_coder_id = format!("{}{}", _CODER_ID_PREFIX, *coder_counter);
+        proto_coders.insert(new_coder_id.clone(), coder_proto);
 
         new_coder_id
     }
@@ -161,6 +184,14 @@ pub struct Impulse {
     urn: &'static str,
 }
 
+impl Impulse {
+    pub fn new() -> Self {
+        Self {
+            urn: "beam:transform:impulse:v1",
+        }
+    }
+}
+
 impl PTransform for Impulse {
     fn expand(mut self, input: PValue) -> PValue {
         assert!(*input.get_type() == PType::Root);
@@ -171,7 +202,7 @@ impl PTransform for Impulse {
 
         let pcoll_name = get_pcollection_name();
 
-        let coder_id = input.pipeline.register_coder(proto_pipeline::Coder {
+        let coder_id = input.pipeline.register_coder_proto(proto_pipeline::Coder {
             spec: Some(proto_pipeline::FunctionSpec {
                 urn: String::from(coders::standard_coders::BYTES_CODER_URN),
                 payload: Vec::with_capacity(0),
@@ -179,9 +210,7 @@ impl PTransform for Impulse {
             component_coder_ids: Vec::with_capacity(0),
         });
 
-        let mut coders = input.pipeline.coders.lock().unwrap();
-        coders.insert(coder_id, Box::new(BytesCoder::new()));
-        drop(coders);
+        input.pipeline.register_coder(Box::new(BytesCoder::new()));
 
         let output_proto = proto_pipeline::PCollection {
             unique_name: pcoll_name.clone(),
@@ -220,6 +249,12 @@ impl PTransform for Impulse {
     }
 }
 
+impl Default for Impulse {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct DoFn;
 
 impl DoFn {
@@ -250,9 +285,19 @@ impl Runner {
     pub fn run<'a>(&'a self) -> PValue {
         let pcoll_name = get_pcollection_name();
 
+        let proto_coder_id = self.pipeline.register_coder_proto(proto_pipeline::Coder {
+            spec: Some(proto_pipeline::FunctionSpec {
+                urn: String::from(coders::standard_coders::BYTES_CODER_URN),
+                payload: Vec::with_capacity(0),
+            }),
+            component_coder_ids: Vec::with_capacity(0),
+        });
+
+        self.pipeline.register_coder(Box::new(BytesCoder::new()));
+
         let output_proto = proto_pipeline::PCollection {
             unique_name: pcoll_name.clone(),
-            coder_id: String::with_capacity(0),
+            coder_id: proto_coder_id,
             is_bounded: proto_pipeline::is_bounded::Enum::Bounded as i32,
             windowing_strategy_id: "placeholder".to_string(),
             display_data: Vec::with_capacity(0),
@@ -278,7 +323,7 @@ impl Runner {
             .transforms
             .insert(impulse_proto.unique_name.clone(), impulse_proto);
 
-        PValue::<'a>::new(PType::PCollection, pcoll_name, output_proto, &self.pipeline)
+        PValue::<'a>::new(PType::Root, pcoll_name, output_proto, &self.pipeline)
     }
 }
 
@@ -290,13 +335,27 @@ impl Default for Runner {
 
 #[cfg(test)]
 mod tests {
+    use coders::standard_coders::CoderType;
+
     use super::*;
 
     #[test]
-    fn run_basic_ptransform() {
+    fn run_impulse_expansion() {
         let runner = Runner::new();
-        runner.run();
 
-        assert_eq!(1, 1);
+        let root = runner.run();
+        let root_clone = root.clone();
+
+        let pcoll = root.apply(Impulse::new());
+
+        let pipeline_coders = runner.pipeline.coders.lock().unwrap();
+        let coder = pipeline_coders
+            .get(&root_clone.pcoll_proto.coder_id)
+            .unwrap();
+
+        assert_eq!(*pcoll.get_type(), PType::PCollection);
+
+        // TODO: enable full comparison between the actual coders
+        assert_eq!(coder.get_coder_type(), CoderType::BytesCoder);
     }
 }

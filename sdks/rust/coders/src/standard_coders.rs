@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 pub const BYTES_CODER_URN: &str = "beam:coder:bytes:v1";
 pub const KV_CODER_URN: &str = "beam:coder:kvcoder:v1";
 pub const ITERABLE_CODER_URN: &str = "beam:coder:iterable:v1";
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CoderType {
     BytesCoder,
     KVCoder,
@@ -83,6 +83,15 @@ pub trait Coder {
     }
 }
 
+// TODO: create macro for Debug implementations
+impl fmt::Debug for dyn Coder {
+    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+        o.debug_struct("Coder")
+            .field("type", &self.get_coder_type())
+            .finish()
+    }
+}
+
 pub struct BytesCoder {
     urn: &'static str,
     coder_type: CoderType,
@@ -97,12 +106,6 @@ impl BytesCoder {
     }
 }
 
-impl Default for BytesCoder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Coder for BytesCoder {
     fn get_coder_type(&self) -> CoderType {
         CoderType::BytesCoder
@@ -114,6 +117,19 @@ impl Coder for BytesCoder {
 
     fn decode_to_bytes<'a>(&'a self, bytes: &'a [u8]) -> &[u8] {
         bytes
+    }
+}
+impl Default for BytesCoder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl fmt::Debug for BytesCoder {
+    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+        o.debug_struct("BytesCoder")
+            .field("urn", &self.urn)
+            .finish()
     }
 }
 
