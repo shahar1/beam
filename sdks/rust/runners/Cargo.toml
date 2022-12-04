@@ -16,32 +16,11 @@
 #
 
 [package]
-name = "rust_sdk"
+name = "runners"
 version = "0.1.0"
 edition = "2021"
-default-run = "main"
-
-[[bin]]
-name = "main"
-path = "src/main.rs"
-
-[workspace]
-members = [
-  "beam_core",
-  "coders",
-  "internals",
-  "proto",
-  "runners",
-  "transforms",
-  "worker",
-]
 
 [dependencies]
-beam_core = { path = "beam_core" }
-coders = { path = "coders" }
-internals = { path = "internals" }
-runners = { path = "runners" }
-transforms = { path = "transforms" }
-worker = { path = "worker" }
-
-tokio = { version = "1.0" }
+beam_core = { path = "../beam_core" }
+coders = { path = "../coders" }
+proto = { path = "../proto" }

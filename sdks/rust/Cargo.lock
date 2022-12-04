@@ -739,13 +739,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "runners"
+version = "0.1.0"
+dependencies = [
+ "beam_core",
+ "coders",
+ "proto",
+]
+
+[[package]]
 name = "rust_sdk"
 version = "0.1.0"
 dependencies = [
  "beam_core",
  "coders",
  "internals",
+ "runners",
  "tokio",
+ "transforms",
  "worker",
 ]
 
@@ -1069,6 +1080,17 @@ checksum = "97d095ae15e245a057c8e8451bab9b3ee1e1f68e9ba2b4fbc18d0ac5237835f2"
 dependencies = [
  "pin-project",
  "tracing",
+]
+
+[[package]]
+name = "transforms"
+version = "0.1.0"
+dependencies = [
+ "beam_core",
+ "coders",
+ "internals",
+ "proto",
+ "runners",
 ]
 
 [[package]]

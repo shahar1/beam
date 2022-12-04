@@ -18,10 +18,9 @@
 
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Mutex, Arc};
 
 use coders::standard_coders::{BytesCoder, CoderI};
-use internals::urns;
 use proto::beam::pipeline as proto_pipeline;
 
 const _CODER_ID_PREFIX: &str = "coder_";
@@ -36,19 +35,19 @@ pub fn get_pcollection_name() -> String {
 }
 
 #[derive(Clone)]
-pub struct PValue<'a> {
+pub struct PValue {
     ptype: PType,
     name: String,
     pcoll_proto: proto_pipeline::PCollection,
-    pipeline: &'a Pipeline,
+    pipeline: Arc<Pipeline>,
 }
 
-impl<'a> PValue<'a> {
+impl PValue {
     pub fn new(
         ptype: PType,
         name: String,
         pcoll_proto: proto_pipeline::PCollection,
-        pipeline: &'a Pipeline,
+        pipeline: Arc<Pipeline>,
     ) -> Self {
         Self {
             ptype,
@@ -58,18 +57,34 @@ impl<'a> PValue<'a> {
         }
     }
 
+    pub fn register_pipeline_coder<'a, C: CoderI<E> + 'a, E>(&self, coder: Box<dyn Any + 'a>) -> TypeId {
+        self.pipeline.register_coder::<C, E>(coder)
+    }
+
+    pub fn register_pipeline_coder_proto(&self, coder_proto: proto_pipeline::Coder) -> String {
+        self.pipeline.register_coder_proto(coder_proto)
+    }
+
+    pub fn register_pipeline_proto_transform(&self, transform: proto_pipeline::PTransform) {
+        self.pipeline.register_proto_transform(transform)
+    }
+
+    pub fn get_pipeline_arc(&self) -> Arc<Pipeline> {
+        self.pipeline.clone()
+    }
+
     pub fn get_type(&self) -> &PType {
         &self.ptype
     }
 
-    fn apply<F>(self, transform: F) -> PValue<'a>
+    pub fn apply<F>(self, transform: F) -> PValue
     where
         F: PTransform + Sized,
     {
         transform.expand(self)
     }
 
-    fn map(&self, callable: impl Fn() -> PValue<'a>) -> PValue {
+    pub fn map(&self, callable: impl Fn() -> PValue) -> PValue {
         unimplemented!()
     }
 }
@@ -118,16 +133,17 @@ impl<'a> Pipeline {
         }
     }
 
-    // TODO: revisit this for the long term and make it more consistent in the
-    // short term (e.g. a Box input will mess up the type for now)
-    fn get_concrete_type_id(trait_obj: &dyn Any) -> TypeId {
-        (*trait_obj).type_id()
+    pub fn get_coder<C: CoderI<E> + Clone + 'static, E>(&self, coder_type: &TypeId) -> C {
+        let pipeline_coders = self.coders.lock().unwrap();
+
+        let coder = pipeline_coders.get(coder_type).unwrap();
+        coder.downcast_ref::<C>().unwrap().clone()
     }
 
     pub fn register_coder<C: CoderI<E> + 'a, E>(&self, coder: Box<dyn Any + 'a>) -> TypeId {
         let mut coders = self.coders.lock().unwrap();
         let concrete_coder = coder.downcast_ref::<C>().unwrap();
-        let concrete_coder_type_id = Pipeline::get_concrete_type_id(concrete_coder);
+        let concrete_coder_type_id = concrete_coder.type_id();
 
         for registered_type_id in coders.keys() {
             if *registered_type_id == concrete_coder_type_id {
@@ -159,6 +175,17 @@ impl<'a> Pipeline {
 
         new_coder_id
     }
+
+    pub fn register_proto_transform(&self, transform: proto_pipeline::PTransform) {
+        let mut pipeline_proto = self.proto.lock().unwrap();
+
+        pipeline_proto
+            .components
+            .as_mut()
+            .unwrap()
+            .transforms
+            .insert(transform.unique_name.clone(), transform);
+    }
 }
 
 impl Default for Pipeline {
@@ -166,7 +193,6 @@ impl Default for Pipeline {
         Self::new()
     }
 }
-
 pub trait PTransform {
     fn expand(self, input: PValue) -> PValue
     where
@@ -181,190 +207,5 @@ pub trait PTransform {
             }
             _ => unimplemented!(),
         }
-    }
-}
-
-pub struct Impulse {
-    urn: &'static str,
-}
-
-impl Impulse {
-    pub fn new() -> Self {
-        Self {
-            urn: "beam:transform:impulse:v1",
-        }
-    }
-}
-
-impl PTransform for Impulse {
-    fn expand(mut self, input: PValue) -> PValue {
-        assert!(*input.get_type() == PType::Root);
-
-        // TODO: move this elsewhere?
-        // TODO: import value from StandardPTransforms_Primitives in proto.pipelines
-        self.urn = "beam:transform:impulse:v1";
-
-        let pcoll_name = get_pcollection_name();
-
-        let coder_id = input.pipeline.register_coder_proto(proto_pipeline::Coder {
-            spec: Some(proto_pipeline::FunctionSpec {
-                urn: String::from(coders::standard_coders::BYTES_CODER_URN),
-                payload: Vec::with_capacity(0),
-            }),
-            component_coder_ids: Vec::with_capacity(0),
-        });
-
-        input
-            .pipeline
-            .register_coder::<BytesCoder, Vec<u8>>(Box::new(BytesCoder::new()));
-        // .register_coder(Coder::Bytes(BytesCoder::new()));
-
-        let output_proto = proto_pipeline::PCollection {
-            unique_name: pcoll_name.clone(),
-            coder_id: "placeholder".to_string(),
-            is_bounded: proto_pipeline::is_bounded::Enum::Bounded as i32,
-            windowing_strategy_id: "placeholder".to_string(),
-            display_data: Vec::with_capacity(0),
-        };
-
-        let impulse_proto = proto_pipeline::PTransform {
-            unique_name: "impulse".to_string(),
-            spec: Some(proto_pipeline::FunctionSpec {
-                urn: String::from(urns::DATA_INPUT_URN),
-                payload: urns::IMPULSE_BUFFER.to_vec(),
-            }),
-            subtransforms: Vec::with_capacity(0),
-            inputs: HashMap::with_capacity(0),
-            outputs: HashMap::from([("out".to_string(), pcoll_name.clone())]),
-            display_data: Vec::with_capacity(0),
-            environment_id: "".to_string(),
-            annotations: HashMap::with_capacity(0),
-        };
-
-        let mut pipeline_proto = input.pipeline.proto.lock().unwrap();
-
-        pipeline_proto
-            .components
-            .as_mut()
-            .unwrap()
-            .transforms
-            .insert(impulse_proto.unique_name.clone(), impulse_proto);
-
-        drop(pipeline_proto);
-
-        PValue::new(PType::PCollection, pcoll_name, output_proto, input.pipeline)
-    }
-}
-
-impl Default for Impulse {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-pub struct DoFn;
-
-impl DoFn {
-    pub fn process() {
-        unimplemented!()
-    }
-
-    pub fn start_bundle() {
-        unimplemented!()
-    }
-
-    pub fn finish_bundle() {
-        unimplemented!()
-    }
-}
-
-pub struct Runner {
-    pipeline: Pipeline,
-}
-
-impl Runner {
-    pub fn new() -> Self {
-        Self {
-            pipeline: Pipeline::new(),
-        }
-    }
-
-    pub fn run<'a>(&'a self) -> PValue {
-        let pcoll_name = get_pcollection_name();
-
-        let proto_coder_id = self.pipeline.register_coder_proto(proto_pipeline::Coder {
-            spec: Some(proto_pipeline::FunctionSpec {
-                urn: String::from(coders::standard_coders::BYTES_CODER_URN),
-                payload: Vec::with_capacity(0),
-            }),
-            component_coder_ids: Vec::with_capacity(0),
-        });
-
-        self.pipeline
-            .register_coder::<BytesCoder, Vec<u8>>(Box::new(BytesCoder::new()));
-
-        let output_proto = proto_pipeline::PCollection {
-            unique_name: pcoll_name.clone(),
-            coder_id: proto_coder_id,
-            is_bounded: proto_pipeline::is_bounded::Enum::Bounded as i32,
-            windowing_strategy_id: "placeholder".to_string(),
-            display_data: Vec::with_capacity(0),
-        };
-
-        let impulse_proto = proto_pipeline::PTransform {
-            unique_name: "root".to_string(),
-            spec: None,
-            subtransforms: Vec::with_capacity(0),
-            inputs: HashMap::with_capacity(0),
-            outputs: HashMap::from([("out".to_string(), pcoll_name.clone())]),
-            display_data: Vec::with_capacity(0),
-            environment_id: "".to_string(),
-            annotations: HashMap::with_capacity(0),
-        };
-
-        let mut pipeline_proto = self.pipeline.proto.lock().unwrap();
-
-        pipeline_proto
-            .components
-            .as_mut()
-            .unwrap()
-            .transforms
-            .insert(impulse_proto.unique_name.clone(), impulse_proto);
-
-        PValue::<'a>::new(PType::Root, pcoll_name, output_proto, &self.pipeline)
-    }
-}
-
-impl Default for Runner {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn run_impulse_expansion() {
-        let runner = Runner::new();
-        let root = runner.run();
-        let pcoll = root.apply(Impulse::new());
-
-        // TODO: test proto coders
-        // let pipeline_proto = runner.pipeline.proto.lock().unwrap();
-        // let proto_coders = pipeline_proto.components.unwrap().coders;
-        // let coder = *proto_coders
-        //     .get(&root_clone.pcoll_proto.coder_id)
-        //     .unwrap();
-
-        let bytes_coder_type = Pipeline::get_concrete_type_id(&BytesCoder::new());
-
-        let pipeline_coders = runner.pipeline.coders.lock().unwrap();
-
-        let coder = pipeline_coders.get(&bytes_coder_type).unwrap().as_ref();
-
-        assert_eq!(*pcoll.get_type(), PType::PCollection);
-        assert_eq!(coder.type_id(), bytes_coder_type);
     }
 }
