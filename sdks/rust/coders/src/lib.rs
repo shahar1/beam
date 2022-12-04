@@ -17,3 +17,6 @@
  */
 
 pub mod standard_coders;
+
+#[macro_use]
+extern crate strum_macros;

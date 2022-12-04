@@ -16,49 +16,38 @@
  * limitations under the License.
  */
 
-use std::{collections::HashMap, fmt};
+use std::marker::PhantomData;
+use std::{any::Any, collections::HashMap, fmt};
 
 pub const BYTES_CODER_URN: &str = "beam:coder:bytes:v1";
 pub const KV_CODER_URN: &str = "beam:coder:kvcoder:v1";
 pub const ITERABLE_CODER_URN: &str = "beam:coder:iterable:v1";
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum CoderType {
-    BytesCoder,
-    KVCoder,
-    IterableCoder,
-    PlaceholderCoder,
-}
-
 pub struct CoderRegistry {
-    internal_registry: HashMap<&'static str, CoderType>,
+    internal_registry: HashMap<&'static str, CoderTypeDiscriminants>,
 }
 
 impl CoderRegistry {
     pub fn new() -> Self {
-        let internal_registry: HashMap<&'static str, CoderType> = HashMap::from([
-            (BYTES_CODER_URN, CoderType::BytesCoder),
-            (KV_CODER_URN, CoderType::KVCoder),
-            (ITERABLE_CODER_URN, CoderType::IterableCoder),
+        let internal_registry: HashMap<&'static str, CoderTypeDiscriminants> = HashMap::from([
+            (BYTES_CODER_URN, CoderTypeDiscriminants::Bytes),
+            (KV_CODER_URN, CoderTypeDiscriminants::KV),
+            (ITERABLE_CODER_URN, CoderTypeDiscriminants::Iterable),
         ]);
 
         Self { internal_registry }
     }
 
-    pub fn get_coder(&self, urn: &str) -> Box<dyn Coder> {
+    pub fn get_coder_type(&self, urn: &str) -> &CoderTypeDiscriminants {
         let coder_type = self
             .internal_registry
             .get(urn)
             .unwrap_or_else(|| panic!("No coder type registered for URN {urn}"));
-        let coder = match coder_type {
-            CoderType::BytesCoder => BytesCoder::new(),
-            _ => unimplemented!(),
-        };
 
-        Box::new(coder)
+        coder_type
     }
 
-    pub fn register(&mut self, urn: &'static str, coder_type: CoderType) {
+    pub fn register(&mut self, urn: &'static str, coder_type: CoderTypeDiscriminants) {
         self.internal_registry.insert(urn, coder_type);
     }
 }
@@ -69,56 +58,63 @@ impl Default for CoderRegistry {
     }
 }
 
+#[derive(Clone, EnumDiscriminants)]
+pub enum CoderType {
+    Bytes,
+    Iterable,
+    KV,
+    Placeholder,
+}
+
+// TODO: create and use separate AnyCoder trait instead of Any
+// ...
+
 /// This is the base interface for coders, which are responsible in Apache Beam to encode and decode
 ///  elements of a PCollection.
-pub trait Coder {
-    fn get_coder_type(&self) -> CoderType;
+pub trait CoderI<T> {
+    fn get_coder_type(&self) -> &CoderTypeDiscriminants;
 
-    fn encode_to_bytes<'a>(&'a self, element: &'a [u8]) -> &[u8] {
-        panic!("Invalid operation for this type of coder");
-    }
+    fn decode(&self, bytes: Vec<u8>) -> T;
 
-    fn decode_to_bytes<'a>(&'a self, bytes: &'a [u8]) -> &[u8] {
-        panic!("Invalid operation for this type of coder");
-    }
+    fn encode(&self, element: T) -> Vec<u8>;
+
+    // TODO: only used temporarily for coder testing, should be moved elsewhere
+    fn parse_yaml_value(&self, value: &serde_yaml::Value) -> T;
 }
 
-// TODO: create macro for Debug implementations
-impl fmt::Debug for dyn Coder {
-    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
-        o.debug_struct("Coder")
-            .field("type", &self.get_coder_type())
-            .finish()
-    }
-}
-
+#[derive(Clone)]
 pub struct BytesCoder {
+    coder_type: CoderTypeDiscriminants,
     urn: &'static str,
-    coder_type: CoderType,
 }
 
 impl BytesCoder {
     pub fn new() -> Self {
         BytesCoder {
-            coder_type: CoderType::BytesCoder,
+            coder_type: CoderTypeDiscriminants::Bytes,
             urn: BYTES_CODER_URN,
         }
     }
 }
 
-impl Coder for BytesCoder {
-    fn get_coder_type(&self) -> CoderType {
-        CoderType::BytesCoder
+impl CoderI<Vec<u8>> for BytesCoder {
+    fn get_coder_type(&self) -> &CoderTypeDiscriminants {
+        &self.coder_type
     }
 
-    fn encode_to_bytes<'a>(&'a self, element: &'a [u8]) -> &[u8] {
+    fn encode(&self, element: Vec<u8>) -> Vec<u8> {
         element
     }
 
-    fn decode_to_bytes<'a>(&'a self, bytes: &'a [u8]) -> &[u8] {
+    fn decode(&self, bytes: Vec<u8>) -> Vec<u8> {
         bytes
     }
+
+    fn parse_yaml_value(&self, value: &serde_yaml::Value) -> Vec<u8> {
+        value.as_str().unwrap().as_bytes().to_vec()
+    }
 }
+
 impl Default for BytesCoder {
     fn default() -> Self {
         Self::new()
@@ -133,58 +129,83 @@ impl fmt::Debug for BytesCoder {
     }
 }
 
-// pub struct KVCoder {
-//     urn: &'static str,
-//     coder_type: CoderType,
-//     key_coder_type: CoderType,
-//     value_coder_type: CoderType,
-// }
+#[derive(Clone)]
+pub struct KV<K, V> {
+    k: PhantomData<K>,
+    v: PhantomData<V>,
+}
 
-// impl KVCoder {
-//     pub fn new() -> Self {
-//         KVCoder {
-//             urn: KV_CODER_URN,
-//             key_coder_type: CoderType::PlaceholderCoder,
-//             value_coder_type: CoderType::PlaceholderCoder,
-//         }
-//     }
-// }
+impl<K, V> KV<K, V> {
+    pub fn new() -> Self {
+        KV {
+            k: PhantomData::default(),
+            v: PhantomData::default(),
+        }
+    }
+}
 
-// impl Default for KVCoder {
-//     fn default() -> Self {
-//         Self::new()
-//     }
-// }
+#[derive(Clone)]
+pub struct KVCoder<KV> {
+    coder_type: CoderTypeDiscriminants,
+    urn: &'static str,
 
-// impl Coder for KVCoder {
-// }
+    phantom: PhantomData<KV>,
+}
 
-// pub struct IterableCoder {
-//     coder_type: CoderType,
-//     element_coder_type: CoderType,
-//     urn: &'static str,
-// }
+impl<K, V> CoderI<KV<K, V>> for KVCoder<KV<K, V>> {
+    fn get_coder_type(&self) -> &CoderTypeDiscriminants {
+        &self.coder_type
+    }
 
-// impl IterableCoder {
-//     pub fn new() -> Self {
-//         IterableCoder {
-//             urn: ITERABLE_CODER_URN,
-//             element_coder_type: CoderType::PlaceholderCoder,
-//         }
-//     }
-// }
+    fn encode(&self, element: KV<K, V>) -> Vec<u8> {
+        Vec::new()
+    }
 
-// impl Default for IterableCoder {
-//     fn default() -> Self {
-//         Self::new()
-//     }
-// }
+    fn decode(&self, bytes: Vec<u8>) -> KV<K, V> {
+        KV::new()
+    }
 
-// impl Coder for IterableCoder {
-// }
+    fn parse_yaml_value(&self, value: &serde_yaml::Value) -> KV<K, V> {
+        unimplemented!()
+    }
+}
+
+#[derive(Clone)]
+pub struct IterableCoder<T> {
+    coder_type: CoderTypeDiscriminants,
+    urn: &'static str,
+
+    phantom: PhantomData<T>,
+}
+
+pub struct Iterable<T> {
+    phantom: PhantomData<T>,
+}
+
+impl<T> CoderI<Iterable<T>> for IterableCoder<T> {
+    fn get_coder_type(&self) -> &CoderTypeDiscriminants {
+        &self.coder_type
+    }
+
+    fn encode(&self, element: Iterable<T>) -> Vec<u8> {
+        Vec::new()
+    }
+
+    fn decode(&self, bytes: Vec<u8>) -> Iterable<T> {
+        Iterable {
+            phantom: PhantomData,
+        }
+    }
+
+    fn parse_yaml_value(&self, value: &serde_yaml::Value) -> Iterable<T> {
+        unimplemented!()
+    }
+}
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use super::*;
 
     use serde::Deserialize;
@@ -251,35 +272,59 @@ mod tests {
                 continue;
             }
 
-            let coder = coder_registry.get_coder(urn);
+            let coder_type = coder_registry.get_coder_type(urn);
             let nested = false;
-            run_unnested(coder, nested, &spec);
+
+            // TODO: generalize
+            match coder_type {
+                CoderTypeDiscriminants::Bytes => {
+                    let c = BytesCoder::new();
+                    run_unnested::<BytesCoder, Vec<u8>>(&c, nested, &spec);
+                }
+                _ => unimplemented!(),
+            }
         }
     }
 
-    fn run_unnested(coder: Box<dyn Coder>, _nested: bool, spec: &Value) {
+    fn run_unnested<'a, C, E>(coder: &(dyn Any + 'a), _nested: bool, spec: &Value)
+    where
+        C: CoderI<E> + 'a,
+        E: Clone + std::fmt::Debug + PartialEq,
+    {
         let examples = spec.get("examples").unwrap().as_mapping().unwrap();
 
         for (expected, original) in examples.iter() {
-            run_case(&coder, expected, original);
+            run_case::<C, E>(coder, expected, original);
         }
     }
 
-    fn run_case<'a>(coder: &Box<dyn Coder>, expected_encoded: &'a Value, original: &'a Value) {
-        let res = match coder.get_coder_type() {
-            // TODO: refactor
-            CoderType::BytesCoder => {
-                let obj = original.as_str().unwrap().as_bytes();
-                let encoded = coder.encode_to_bytes(obj);
-                let decoded = coder.decode_to_bytes(expected_encoded.as_str().unwrap().as_bytes());
-                let expected_enc = expected_encoded.as_str().unwrap().as_bytes();
-                let expected_dec = original.as_str().unwrap().as_bytes();
-                (encoded, decoded, expected_enc, expected_dec)
+    fn run_case<'a, C, E>(coder: &(dyn Any + 'a), expected_encoded: &Value, original: &Value)
+    where
+        C: CoderI<E> + 'a,
+        E: Clone + std::fmt::Debug + PartialEq,
+    {
+        let c: &C = coder.downcast_ref::<C>().unwrap();
+
+        let expected_enc = expected_encoded.as_str().unwrap().as_bytes().to_vec();
+
+        // TODO: generalize
+        let res = match c.get_coder_type() {
+            &CoderTypeDiscriminants::Bytes => {
+                let expected_dec = c.parse_yaml_value(original);
+                let decoded = c.decode(expected_enc.clone());
+                let encoded = c.encode(expected_dec.clone());
+                (encoded, decoded, expected_dec)
             }
             _ => unimplemented!(),
         };
 
-        let (encoded, decoded, expected_enc, expected_dec) = res;
+        let (encoded, decoded, expected_dec) = res;
+
+        println!("\n---------\nCoder type: {:?}", c.get_coder_type());
+        println!(
+            "\nExpected encoded: {:?}\nGenerated encoded: {:?}\n\nExpected decoded: {:?}\nGenerated decoded: {:?}",
+            encoded, decoded, expected_dec, expected_dec
+        );
 
         assert_eq!(encoded, expected_enc);
         assert_eq!(decoded, expected_dec);

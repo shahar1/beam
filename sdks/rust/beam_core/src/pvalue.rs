@@ -16,14 +16,15 @@
  * limitations under the License.
  */
 
+use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use coders::standard_coders::{BytesCoder, Coder};
+use coders::standard_coders::{BytesCoder, CoderI};
 use internals::urns;
 use proto::beam::pipeline as proto_pipeline;
 
-const _CODER_ID_PREFIX: &'static str = "coder_";
+const _CODER_ID_PREFIX: &str = "coder_";
 
 // TODO: use something better...
 pub fn get_pcollection_name() -> String {
@@ -75,6 +76,7 @@ impl<'a> PValue<'a> {
 
 // Anonymous sum types would probably be better, if/when they become
 // available. https://github.com/rust-lang/rfcs/issues/294
+// TODO: use strum discriminants on PValues instead of this
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PType {
     Root,
@@ -85,14 +87,13 @@ pub enum PType {
 
 pub struct Pipeline {
     proto: Mutex<proto_pipeline::Pipeline>,
-    coders: Mutex<HashMap<String, Box<dyn Coder>>>,
+    // TODO: use AnyCoder instead of Any
+    coders: Mutex<HashMap<TypeId, Box<dyn Any>>>,
 
-    // TODO: get rid of one or both of these
-    coder_counter: Mutex<usize>,
     coder_proto_counter: Mutex<usize>,
 }
 
-impl Pipeline {
+impl<'a> Pipeline {
     pub fn new() -> Self {
         let proto = proto_pipeline::Pipeline {
             components: Some(proto_pipeline::Components {
@@ -113,27 +114,30 @@ impl Pipeline {
             proto: Mutex::new(proto),
             // TODO: try to refactor to RwLock
             coders: Mutex::new(HashMap::new()),
-            coder_counter: Mutex::new(0),
             coder_proto_counter: Mutex::new(0),
         }
     }
 
-    // TODO: don't required an eagerly constructed coder as argument
-    pub fn register_coder(&self, coder: Box<dyn Coder>) -> String {
-        let mut coders = self.coders.lock().unwrap();
+    // TODO: revisit this for the long term and make it more consistent in the
+    // short term (e.g. a Box input will mess up the type for now)
+    fn get_concrete_type_id(trait_obj: &dyn Any) -> TypeId {
+        (*trait_obj).type_id()
+    }
 
-        for (coder_id, stored_coder) in coders.iter() {
-            if stored_coder.get_coder_type() == coder.get_coder_type() {
-                return coder_id.clone();
+    pub fn register_coder<C: CoderI<E> + 'a, E>(&self, coder: Box<dyn Any + 'a>) -> TypeId {
+        let mut coders = self.coders.lock().unwrap();
+        let concrete_coder = coder.downcast_ref::<C>().unwrap();
+        let concrete_coder_type_id = Pipeline::get_concrete_type_id(concrete_coder);
+
+        for registered_type_id in coders.keys() {
+            if *registered_type_id == concrete_coder_type_id {
+                return *registered_type_id;
             }
         }
 
-        let mut coder_counter = self.coder_counter.lock().unwrap();
-        *coder_counter += 1;
-        let new_coder_id = format!("{}{}", _CODER_ID_PREFIX, *coder_counter);
-        coders.insert(new_coder_id.clone(), coder);
+        coders.insert(concrete_coder_type_id, coder);
 
-        new_coder_id
+        concrete_coder_type_id
     }
 
     // TODO: review need for separate function vs register_coder
@@ -210,7 +214,10 @@ impl PTransform for Impulse {
             component_coder_ids: Vec::with_capacity(0),
         });
 
-        input.pipeline.register_coder(Box::new(BytesCoder::new()));
+        input
+            .pipeline
+            .register_coder::<BytesCoder, Vec<u8>>(Box::new(BytesCoder::new()));
+        // .register_coder(Coder::Bytes(BytesCoder::new()));
 
         let output_proto = proto_pipeline::PCollection {
             unique_name: pcoll_name.clone(),
@@ -293,7 +300,8 @@ impl Runner {
             component_coder_ids: Vec::with_capacity(0),
         });
 
-        self.pipeline.register_coder(Box::new(BytesCoder::new()));
+        self.pipeline
+            .register_coder::<BytesCoder, Vec<u8>>(Box::new(BytesCoder::new()));
 
         let output_proto = proto_pipeline::PCollection {
             unique_name: pcoll_name.clone(),
@@ -335,27 +343,28 @@ impl Default for Runner {
 
 #[cfg(test)]
 mod tests {
-    use coders::standard_coders::CoderType;
-
     use super::*;
 
     #[test]
     fn run_impulse_expansion() {
         let runner = Runner::new();
-
         let root = runner.run();
-        let root_clone = root.clone();
-
         let pcoll = root.apply(Impulse::new());
 
+        // TODO: test proto coders
+        // let pipeline_proto = runner.pipeline.proto.lock().unwrap();
+        // let proto_coders = pipeline_proto.components.unwrap().coders;
+        // let coder = *proto_coders
+        //     .get(&root_clone.pcoll_proto.coder_id)
+        //     .unwrap();
+
+        let bytes_coder_type = Pipeline::get_concrete_type_id(&BytesCoder::new());
+
         let pipeline_coders = runner.pipeline.coders.lock().unwrap();
-        let coder = pipeline_coders
-            .get(&root_clone.pcoll_proto.coder_id)
-            .unwrap();
+
+        let coder = pipeline_coders.get(&bytes_coder_type).unwrap().as_ref();
 
         assert_eq!(*pcoll.get_type(), PType::PCollection);
-
-        // TODO: enable full comparison between the actual coders
-        assert_eq!(coder.get_coder_type(), CoderType::BytesCoder);
+        assert_eq!(coder.type_id(), bytes_coder_type);
     }
 }

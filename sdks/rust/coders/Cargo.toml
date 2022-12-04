@@ -25,3 +25,4 @@ proto = { path = "../proto" }
 
 serde = "1.0.147"
 serde_yaml = "0.9.14"
+strum_macros = "0.24"
