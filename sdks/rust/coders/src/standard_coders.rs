@@ -16,12 +16,24 @@
  * limitations under the License.
  */
 
-use std::any::Any;
+// TODO: make separate required_coders file
+
+//! These are the coders necessary for encoding the data types required by
+//! the Apache Beam model. They provide standardized ways of encode data for
+//! communication between the runner, the Beam workers, and the user's code.
+//! For example for any aggregations the runner and the SDK need to agree on
+//! the encoding of key-value pairs; so that the SDK will encode keys properly,
+//! and the runner will be able to group elements of the
+//! same key together.
+//!
+//! The formal specifications for these coders can be found in
+//! model/pipeline/src/main/proto/beam_runner_api.proto
+
+use std::io::{self, Read, Write};
 use std::marker::PhantomData;
 use std::{collections::HashMap, fmt};
 
 use crate::coders::Context;
-use bytes::buf::{Reader, Writer};
 
 pub const BYTES_CODER_URN: &str = "beam:coder:bytes:v1";
 pub const KV_CODER_URN: &str = "beam:coder:kvcoder:v1";
@@ -78,14 +90,22 @@ pub enum CoderType {
 pub trait CoderI<T> {
     fn get_coder_type(&self) -> &CoderTypeDiscriminants;
 
-    fn encode(&self, element: T, writer: Writer<&mut [u8]>, context: &Context) -> Vec<u8>;
+    /// Encode an element into a stream of bytes
+    fn encode(
+        &self,
+        element: T,
+        writer: &mut dyn Write,
+        context: &Context,
+    ) -> Result<usize, io::Error>;
 
-    fn decode(&self, bytes: Vec<u8>, reader: Reader<&[u8]>, context: &Context) -> T;
+    /// Decode an element from an incoming stream of bytes
+    fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<T, io::Error>;
 
     // TODO: only used temporarily for coder testing, should be moved elsewhere
     fn parse_yaml_value(&self, value: &serde_yaml::Value) -> T;
 }
 
+/// Coder for byte-array data types
 #[derive(Clone)]
 pub struct BytesCoder {
     coder_type: CoderTypeDiscriminants,
@@ -106,12 +126,69 @@ impl CoderI<Vec<u8>> for BytesCoder {
         &self.coder_type
     }
 
-    fn encode(&self, element: Vec<u8>, writer: Writer<&mut [u8]>, context: &Context) -> Vec<u8> {
-        element
+    /// Encode the input element (a byte-string) into the output byte stream from `writer`.
+    /// If context is `NeedsDelimiters`, the byte string is encoded prefixed with a
+    /// varint representing its length.
+    ///
+    /// If the context is `WholeStream`, the byte string is encoded as-is.
+    fn encode(
+        &self,
+        element: Vec<u8>,
+        writer: &mut dyn Write,
+        context: &Context,
+    ) -> Result<usize, io::Error> {
+        match context {
+            // TODO: write to the buffer ignoring the preceding bytes that would
+            // be used as a u32 to represent a delimiter (when that functionality
+            // gets implemented)
+            Context::WholeStream => writer.write(&element),
+            Context::NeedsDelimiters => writer.write(&element),
+        }
     }
 
-    fn decode(&self, bytes: Vec<u8>, reader: Reader<&[u8]>, context: &Context) -> Vec<u8> {
-        bytes
+    /// Decode the input byte stream into a byte array.
+    /// If context is `NeedsDelimiters`, the first bytes will be interpreted as a var-int32 encoding
+    /// the length of the data.
+    ///
+    /// If the context is `WholeStream`, the whole input stream is decoded as-is.
+    fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<Vec<u8>, io::Error> {
+        match context {
+            Context::WholeStream => {
+                let mut buf: Vec<u8> = Vec::new();
+                reader.read_to_end(&mut buf)?;
+                Ok(buf)
+            }
+            // TODO: interpret the preceding bytes in the buffer as a u32 flag
+            // and use that value as a length delimiter (whenever it gets
+            // implemented)
+            Context::NeedsDelimiters => {
+                unimplemented!()
+
+                // // Read initial bytes as u32
+                // let length = ...
+
+                // let mut buf: Vec<u8> = Vec::new();
+
+                // // Read as many bytes as possible (or should it fail if there
+                // // are fewer bytes available than length?)
+                // let mut num_bytes_read = 0;
+                // for b in reader.bytes() {
+                //     if num_bytes_read == length || b.is_err() {
+                //         break;
+                //     }
+
+                //     buf.push(b.unwrap());
+                //     num_bytes_read += 1;
+                // }
+
+                // use std::io::ErrorKind;
+                // if num_bytes_read == 0 {
+                //     return Err(io::Error::from(ErrorKind::UnexpectedEof));
+                // }
+
+                // Ok(buf)
+            }
+        }
     }
 
     fn parse_yaml_value(&self, value: &serde_yaml::Value) -> Vec<u8> {
@@ -148,6 +225,7 @@ impl<K, V> KV<K, V> {
     }
 }
 
+/// A coder for a key-value pair
 #[derive(Clone)]
 pub struct KVCoder<KV> {
     coder_type: CoderTypeDiscriminants,
@@ -161,12 +239,21 @@ impl<K, V> CoderI<KV<K, V>> for KVCoder<KV<K, V>> {
         &self.coder_type
     }
 
-    fn encode(&self, element: KV<K, V>, writer: Writer<&mut [u8]>, context: &Context) -> Vec<u8> {
-        Vec::new()
+    /// Encode the input element (a key-value pair) into a byte output stream. They key and value are encoded one after the
+    /// other (first key, then value). The key is encoded with `Context::NeedsDelimiters`, while the value is encoded with
+    /// the input context of the `KVCoder`.
+    fn encode(
+        &self,
+        element: KV<K, V>,
+        writer: &mut dyn Write,
+        context: &Context,
+    ) -> Result<usize, io::Error> {
+        unimplemented!()
     }
 
-    fn decode(&self, bytes: Vec<u8>, reader: Reader<&[u8]>, context: &Context) -> KV<K, V> {
-        KV::new()
+    /// Decode the input byte stream into a `KV` element
+    fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<KV<K, V>, io::Error> {
+        unimplemented!()
     }
 
     fn parse_yaml_value(&self, value: &serde_yaml::Value) -> KV<K, V> {
@@ -174,6 +261,7 @@ impl<K, V> CoderI<KV<K, V>> for KVCoder<KV<K, V>> {
     }
 }
 
+/// A coder for a 'list' or a series of elements of the same type
 #[derive(Clone)]
 pub struct IterableCoder<T> {
     coder_type: CoderTypeDiscriminants,
@@ -191,19 +279,26 @@ impl<T> CoderI<Iterable<T>> for IterableCoder<T> {
         &self.coder_type
     }
 
+    /// Encode the input iterable into a byte output stream. Elements can be encoded in two different ways:
+    ///
+    /// - If the length of the input iterable is known a-priori, then the length is encoded with a 32-bit
+    ///     fixed-length integer.
+    /// - If the length of the input iterable is not known a-priori, then a 32-bit integer with a value
+    ///     of `-1` is encoded in the first position (instead of the length), and
+    ///
+    /// Then, each element is encoded individually in `Context::NeedsDelimiters`.
     fn encode(
         &self,
         element: Iterable<T>,
-        writer: Writer<&mut [u8]>,
+        writer: &mut dyn Write,
         context: &Context,
-    ) -> Vec<u8> {
-        Vec::new()
+    ) -> Result<usize, io::Error> {
+        unimplemented!()
     }
 
-    fn decode(&self, bytes: Vec<u8>, reader: Reader<&[u8]>, context: &Context) -> Iterable<T> {
-        Iterable {
-            phantom: PhantomData,
-        }
+    /// Decode the input byte stream into a `Iterable` element
+    fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<Iterable<T>, io::Error> {
+        unimplemented!()
     }
 
     fn parse_yaml_value(&self, value: &serde_yaml::Value) -> Iterable<T> {
@@ -213,9 +308,9 @@ impl<T> CoderI<Iterable<T>> for IterableCoder<T> {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
     use super::*;
+
+    use std::any::Any;
 
     use bytes::{Buf, BufMut};
     use serde::Deserialize;
@@ -304,6 +399,7 @@ mod tests {
         let examples = spec.get("examples").unwrap().as_mapping().unwrap();
 
         for (expected, original) in examples.iter() {
+            // TODO: test coders for both Context types
             run_case::<C, E>(coder, expected, original);
         }
     }
@@ -315,27 +411,25 @@ mod tests {
     {
         let c: &C = coder.downcast_ref::<C>().unwrap();
 
-        let expected_enc = expected_encoded.as_str().unwrap().as_bytes();
+        let expected_enc = expected_encoded.as_str().unwrap().as_bytes().to_vec();
 
-        let write_buffer: &mut [u8];
-        let mut dummy_str = "".to_string();
-        unsafe {
-            write_buffer = dummy_str.as_bytes_mut();
-        }
-        let writer: Writer<&mut [u8]> = write_buffer.writer();
+        let mut writer = vec![].writer();
+        let mut reader = expected_enc.reader();
 
-        let reader = expected_enc.reader();
-
-        // TODO: revisit when context gets implemented
-        let context = Context::NeedsDelimiters;
+        // TODO: revisit when context gets fully implemented
+        let context = Context::WholeStream;
 
         // TODO: generalize
         let res = match c.get_coder_type() {
             &CoderTypeDiscriminants::Bytes => {
                 let expected_dec = c.parse_yaml_value(original);
 
-                let decoded = c.decode(expected_enc.to_vec().clone(), reader, &context);
-                let encoded = c.encode(expected_dec.clone(), writer, &context);
+                c.encode(expected_dec.clone(), &mut writer, &context)
+                    .unwrap();
+                let encoded = writer.into_inner();
+
+                let decoded = c.decode(&mut reader, &context).unwrap();
+
                 (encoded, decoded, expected_dec)
             }
             _ => unimplemented!(),
@@ -346,10 +440,10 @@ mod tests {
         println!("\n---------\nCoder type: {:?}", c.get_coder_type());
         println!(
             "\nExpected encoded: {:?}\nGenerated encoded: {:?}\n\nExpected decoded: {:?}\nGenerated decoded: {:?}",
-            encoded, decoded, expected_dec, expected_dec
+            expected_enc.as_slice(), encoded, expected_dec, decoded
         );
 
-        assert_eq!(encoded, expected_enc);
+        assert_eq!(encoded, expected_enc.as_slice());
         assert_eq!(decoded, expected_dec);
     }
 }
