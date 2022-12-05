@@ -23,6 +23,7 @@ edition = "2021"
 [dependencies]
 proto = { path = "../proto" }
 
+bytes = "1.3.0"
 serde = "1.0.147"
 serde_yaml = "0.9.14"
 strum_macros = "0.24"

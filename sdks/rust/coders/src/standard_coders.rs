@@ -16,8 +16,12 @@
  * limitations under the License.
  */
 
+use std::any::Any;
 use std::marker::PhantomData;
-use std::{any::Any, collections::HashMap, fmt};
+use std::{collections::HashMap, fmt};
+
+use crate::coders::Context;
+use bytes::buf::{Reader, Writer};
 
 pub const BYTES_CODER_URN: &str = "beam:coder:bytes:v1";
 pub const KV_CODER_URN: &str = "beam:coder:kvcoder:v1";
@@ -74,9 +78,9 @@ pub enum CoderType {
 pub trait CoderI<T> {
     fn get_coder_type(&self) -> &CoderTypeDiscriminants;
 
-    fn decode(&self, bytes: Vec<u8>) -> T;
+    fn encode(&self, element: T, writer: Writer<&mut [u8]>, context: &Context) -> Vec<u8>;
 
-    fn encode(&self, element: T) -> Vec<u8>;
+    fn decode(&self, bytes: Vec<u8>, reader: Reader<&[u8]>, context: &Context) -> T;
 
     // TODO: only used temporarily for coder testing, should be moved elsewhere
     fn parse_yaml_value(&self, value: &serde_yaml::Value) -> T;
@@ -102,11 +106,11 @@ impl CoderI<Vec<u8>> for BytesCoder {
         &self.coder_type
     }
 
-    fn encode(&self, element: Vec<u8>) -> Vec<u8> {
+    fn encode(&self, element: Vec<u8>, writer: Writer<&mut [u8]>, context: &Context) -> Vec<u8> {
         element
     }
 
-    fn decode(&self, bytes: Vec<u8>) -> Vec<u8> {
+    fn decode(&self, bytes: Vec<u8>, reader: Reader<&[u8]>, context: &Context) -> Vec<u8> {
         bytes
     }
 
@@ -157,11 +161,11 @@ impl<K, V> CoderI<KV<K, V>> for KVCoder<KV<K, V>> {
         &self.coder_type
     }
 
-    fn encode(&self, element: KV<K, V>) -> Vec<u8> {
+    fn encode(&self, element: KV<K, V>, writer: Writer<&mut [u8]>, context: &Context) -> Vec<u8> {
         Vec::new()
     }
 
-    fn decode(&self, bytes: Vec<u8>) -> KV<K, V> {
+    fn decode(&self, bytes: Vec<u8>, reader: Reader<&[u8]>, context: &Context) -> KV<K, V> {
         KV::new()
     }
 
@@ -187,11 +191,16 @@ impl<T> CoderI<Iterable<T>> for IterableCoder<T> {
         &self.coder_type
     }
 
-    fn encode(&self, element: Iterable<T>) -> Vec<u8> {
+    fn encode(
+        &self,
+        element: Iterable<T>,
+        writer: Writer<&mut [u8]>,
+        context: &Context,
+    ) -> Vec<u8> {
         Vec::new()
     }
 
-    fn decode(&self, bytes: Vec<u8>) -> Iterable<T> {
+    fn decode(&self, bytes: Vec<u8>, reader: Reader<&[u8]>, context: &Context) -> Iterable<T> {
         Iterable {
             phantom: PhantomData,
         }
@@ -208,6 +217,7 @@ mod tests {
 
     use super::*;
 
+    use bytes::{Buf, BufMut};
     use serde::Deserialize;
     use serde_yaml::{Deserializer, Value};
 
@@ -305,14 +315,27 @@ mod tests {
     {
         let c: &C = coder.downcast_ref::<C>().unwrap();
 
-        let expected_enc = expected_encoded.as_str().unwrap().as_bytes().to_vec();
+        let expected_enc = expected_encoded.as_str().unwrap().as_bytes();
+
+        let write_buffer: &mut [u8];
+        let mut dummy_str = "".to_string();
+        unsafe {
+            write_buffer = dummy_str.as_bytes_mut();
+        }
+        let writer: Writer<&mut [u8]> = write_buffer.writer();
+
+        let reader = expected_enc.reader();
+
+        // TODO: revisit when context gets implemented
+        let context = Context::NeedsDelimiters;
 
         // TODO: generalize
         let res = match c.get_coder_type() {
             &CoderTypeDiscriminants::Bytes => {
                 let expected_dec = c.parse_yaml_value(original);
-                let decoded = c.decode(expected_enc.clone());
-                let encoded = c.encode(expected_dec.clone());
+
+                let decoded = c.decode(expected_enc.to_vec().clone(), reader, &context);
+                let encoded = c.encode(expected_dec.clone(), writer, &context);
                 (encoded, decoded, expected_dec)
             }
             _ => unimplemented!(),

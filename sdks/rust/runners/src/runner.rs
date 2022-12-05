@@ -19,7 +19,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use beam_core::pvalue::{Pipeline, PType, PValue, get_pcollection_name};
+use beam_core::pvalue::{get_pcollection_name, PType, PValue, Pipeline};
 use coders::standard_coders::BytesCoder;
 use proto::beam::pipeline as proto_pipeline;
 

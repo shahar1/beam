@@ -16,8 +16,16 @@
  * limitations under the License.
  */
 
-pub mod coders;
-pub mod standard_coders;
+/// The context for encoding a PCollection element.
+/// For example, for strings of utf8 characters or bytes, `WholeStream` encoding means
+/// that the string will be encoded as-is; while `NeedsDelimiter` encoding means that the
+/// string will be encoded prefixed with its length.
+pub enum Context {
+    /// Whole stream encoding/decoding means that the encoding/decoding function does not need to worry about
+    /// delimiting the start and end of the current element in the stream of bytes.
+    WholeStream,
 
-#[macro_use]
-extern crate strum_macros;
+    /// Needs-delimiters encoding means that the encoding of data must be such that when decoding,
+    /// the coder is able to stop decoding data at the end of the current element.
+    NeedsDelimiters,
+}

@@ -18,7 +18,7 @@
 
 use std::collections::HashMap;
 
-use beam_core::pvalue::{PTransform, PValue, PType, get_pcollection_name};
+use beam_core::pvalue::{get_pcollection_name, PTransform, PType, PValue};
 use coders::standard_coders::BytesCoder;
 use internals::urns;
 use proto::beam::pipeline as proto_pipeline;
@@ -53,8 +53,7 @@ impl PTransform for Impulse {
             component_coder_ids: Vec::with_capacity(0),
         });
 
-        input
-            .register_pipeline_coder::<BytesCoder, Vec<u8>>(Box::new(BytesCoder::new()));
+        input.register_pipeline_coder::<BytesCoder, Vec<u8>>(Box::new(BytesCoder::new()));
 
         let output_proto = proto_pipeline::PCollection {
             unique_name: pcoll_name.clone(),
@@ -80,7 +79,12 @@ impl PTransform for Impulse {
 
         input.register_pipeline_proto_transform(impulse_proto);
 
-        PValue::new(PType::PCollection, pcoll_name, output_proto, input.get_pipeline_arc())
+        PValue::new(
+            PType::PCollection,
+            pcoll_name,
+            output_proto,
+            input.get_pipeline_arc(),
+        )
     }
 }
 
@@ -111,7 +115,9 @@ mod tests {
         //     .unwrap();
 
         let bytes_coder_type_id = BytesCoder::new().type_id();
-        let coder = runner.get_pipeline_arc().get_coder::<BytesCoder, Vec<u8>>(&bytes_coder_type_id);
+        let coder = runner
+            .get_pipeline_arc()
+            .get_coder::<BytesCoder, Vec<u8>>(&bytes_coder_type_id);
 
         assert_eq!(*pcoll.get_type(), PType::PCollection);
         assert_eq!(coder.type_id(), bytes_coder_type_id);

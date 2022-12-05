@@ -18,7 +18,7 @@
 
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
-use std::sync::{Mutex, Arc};
+use std::sync::{Arc, Mutex};
 
 use coders::standard_coders::{BytesCoder, CoderI};
 use proto::beam::pipeline as proto_pipeline;
@@ -57,7 +57,10 @@ impl PValue {
         }
     }
 
-    pub fn register_pipeline_coder<'a, C: CoderI<E> + 'a, E>(&self, coder: Box<dyn Any + 'a>) -> TypeId {
+    pub fn register_pipeline_coder<'a, C: CoderI<E> + 'a, E>(
+        &self,
+        coder: Box<dyn Any + 'a>,
+    ) -> TypeId {
         self.pipeline.register_coder::<C, E>(coder)
     }
 
