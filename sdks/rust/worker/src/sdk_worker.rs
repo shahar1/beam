@@ -17,10 +17,11 @@
  */
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 
 use http::Uri;
 use proto::beam::pipeline::PTransform;
+use serde_json;
 use tonic::transport::Channel;
 
 use proto::beam::fn_execution::{
@@ -89,13 +90,11 @@ impl WorkerEndpoints {
 #[derive(Debug)]
 pub struct BundleProcessor {
     descriptor: ProcessBundleDescriptor,
-
-    creation_ordered_operators: Mutex<Vec<Operator>>,
+    creation_ordered_operators: Vec<Operator>,
     topologically_ordered_operators: Vec<Operator>,
-    operators: Mutex<HashMap<String, Operator>>,
-    receivers: Mutex<HashMap<String, Receiver>>,
-    consumers: Mutex<HashMap<String, Vec<String>>>,
-
+    operators: RwLock<HashMap<String, Operator>>,
+    receivers: RwLock<HashMap<String, Receiver>>,
+    consumers: RwLock<HashMap<String, Vec<String>>>,
     current_bundle_id: Option<String>,
 }
 
@@ -122,11 +121,12 @@ impl BundleProcessor {
 
         let mut _instance = Self {
             descriptor: descriptor.clone(),
-            creation_ordered_operators: Mutex::new(Vec::new()),
+            creation_ordered_operators: Vec::new(),
             topologically_ordered_operators: Vec::new(),
-            operators: Mutex::new(HashMap::new()),
-            receivers: Mutex::new(HashMap::new()),
-            consumers: Mutex::new(consumers),
+            operators: RwLock::new(HashMap::new()),
+            receivers: RwLock::new(HashMap::new()),
+            consumers: RwLock::new(consumers),
+
             current_bundle_id: None,
         };
 
@@ -147,48 +147,75 @@ impl BundleProcessor {
     }
 
     pub fn get_receiver(&self, pcollection_id: String) -> Receiver {
-        let mut receivers = self.receivers.lock().unwrap();
-        let consumers = self.consumers.lock().unwrap();
+        let receivers = self.receivers.read().unwrap();
 
-        receivers.entry(pcollection_id.clone()).or_insert_with(|| {
-            let pcoll_operators: Vec<Operator> = match consumers.get(&pcollection_id) {
-                Some(v) => {
-                    let mut oprs = Vec::new();
-                    for transform_id in v {
-                        oprs.push(self.get_operator(transform_id.clone()))
+        let receiver = match receivers.get(&pcollection_id) {
+            Some(rec) => {
+                rec.clone()
+            },
+            None => {
+                drop(receivers);
+
+                let consumers = self.consumers.read().unwrap();
+
+                let pcoll_operators: Vec<Operator> = match consumers.get(&pcollection_id) {
+                    Some(v) => {
+                        let mut oprs = Vec::new();
+                        for transform_id in v {
+                            oprs.push(self.get_operator(transform_id.clone()))
+                        }
+                        oprs
                     }
-                    oprs
-                }
-                None => Vec::new(),
-            };
+                    None => Vec::new(),
+                };
 
-            Receiver::new(pcoll_operators)
-        });
-        receivers[&pcollection_id].clone()
+                drop(consumers);
+
+                let receiver = Receiver::new(pcoll_operators);
+
+                let mut receivers = self.receivers.write().unwrap();
+                receivers.insert(pcollection_id.clone(), receiver);
+                receivers[&pcollection_id].clone()
+            }
+        };
+
+        receiver
     }
 
     pub fn get_operator(&self, transform_id: String) -> Operator {
-        let mut operators = self.operators.lock().unwrap();
-        let get_receiver = |pcollection_id: String| self.get_receiver(pcollection_id);
+        let get_receiver = |pcollection_id: String| {self.get_receiver(pcollection_id)};
 
-        operators.entry(transform_id.clone()).or_insert_with(|| {
-            create_operator(
+        let operators = self.operators.read().unwrap();
+
+        let operator_opt = operators.get(&transform_id);
+        
+        if operator_opt.is_some() {
+            let operator = operator_opt.unwrap().clone();
+            
+            drop(operators);
+            
+            return operator;
+        }
+        else {
+            drop(operators);
+
+            let op = create_operator(
                 &transform_id,
                 OperatorContext {
                     descriptor: &self.descriptor,
                     get_receiver: Box::new(get_receiver),
                 },
-            )
-        });
+            );
 
-        let mut creation_ordered_operators = self.creation_ordered_operators.lock().unwrap();
-        creation_ordered_operators.push(operators[&transform_id].clone());
+            let mut operators = self.operators.write().unwrap();
+            operators.insert(transform_id.clone(), op);
 
-        operators[&transform_id].clone()
+            return operators[&transform_id].clone();
+        }
     }
 
     fn create_topologically_ordered_operators(&mut self) {
-        let creation_ordered = self.creation_ordered_operators.lock().unwrap().clone();
+        let creation_ordered = self.creation_ordered_operators.clone();
         self.topologically_ordered_operators = creation_ordered.into_iter().rev().collect();
     }
 }
@@ -202,6 +229,62 @@ fn is_primitive(transform: &PTransform) -> bool {
 mod tests {
     use super::*;
 
+    use internals::urns;
+    use proto::beam::pipeline::FunctionSpec;
+
+    fn make_ptransform(
+        urn: &'static str,
+        inputs: HashMap<String, String>,
+        outputs: HashMap<String, String>,
+        payload: Vec<u8>,
+    ) -> PTransform {
+        PTransform {
+            unique_name: "".to_string(),
+            spec: Some(FunctionSpec {
+                urn: urn.to_string(),
+                payload,
+            }),
+            subtransforms: Vec::with_capacity(0),
+            inputs,
+            outputs,
+            display_data: Vec::with_capacity(0),
+            environment_id: "".to_string(),
+            annotations: HashMap::with_capacity(0),
+        }
+    }
+
     #[test]
-    fn test_operator_construction() {}
+    fn test_operator_construction() {
+        let descriptor = ProcessBundleDescriptor {
+            id: "".to_string(),
+            // Note the inverted order should still be resolved correctly
+            transforms: HashMap::from([
+                ("y".to_string(), make_ptransform(
+                    urns::RECORDING_URN,
+                    HashMap::from([("input".to_string(), "pc1".to_string())]),
+                    HashMap::from([("out".to_string(), "pc2".to_string())]),
+                    Vec::with_capacity(0))),
+                ("z".to_string(), make_ptransform(
+                    urns::RECORDING_URN,
+                    HashMap::from([("input".to_string(), "pc2".to_string())]),
+                    HashMap::with_capacity(0),
+                    Vec::with_capacity(0))),
+                ("x".to_string(), make_ptransform(
+                    urns::CREATE_URN,
+                    HashMap::with_capacity(0),
+                    HashMap::from([("out".to_string(), "pc1".to_string())]),
+                    serde_json::to_vec(&["a", "b", "c"]).unwrap())),
+            ]),
+            pcollections: HashMap::with_capacity(0),
+            windowing_strategies: HashMap::with_capacity(0),
+            coders: HashMap::with_capacity(0),
+            environments: HashMap::with_capacity(0),
+            state_api_service_descriptor: None,
+            timer_api_service_descriptor: None,
+        };
+
+        let processor = BundleProcessor::new(
+            descriptor, &[urns::CREATE_URN]
+        );
+    }
 }

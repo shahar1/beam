@@ -22,3 +22,6 @@ mod operators;
 mod sdk_worker;
 
 pub use external_worker_service::ExternalWorkerPool;
+
+#[macro_use]
+extern crate strum_macros;

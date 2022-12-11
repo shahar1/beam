@@ -23,34 +23,51 @@ use std::sync::Mutex;
 
 use once_cell::sync::Lazy;
 
+use internals::urns;
 use proto::beam::fn_execution::{ProcessBundleDescriptor, RemoteGrpcPort};
 use proto::beam::pipeline::PTransform;
 
 use crate::data::MultiplexingDataChannel;
 
-type OperatorMap = HashMap<String, Box<dyn IOperator + Send + Sync>>;
+type OperatorMap = HashMap<&'static str, OperatorDataDiscriminants>;
 
 static OPERATORS_BY_URN: Lazy<Mutex<OperatorMap>> = Lazy::new(|| {
-    let m: OperatorMap = HashMap::new();
+    // TODO: these will have to be parameterized depending on things such as the runner used
+    let m: OperatorMap = HashMap::from([
+        // Test operators
+        (urns::CREATE_URN, OperatorDataDiscriminants::Create),
+        (urns::RECORDING_URN, OperatorDataDiscriminants::Recording),
+        (urns::PARTITION_URN, OperatorDataDiscriminants::Partitioning),
+
+        // Production operators
+        (urns::DATA_INPUT_URN, OperatorDataDiscriminants::DataSource),
+    ]);
+
     Mutex::new(m)
 });
 
 #[derive(Clone, fmt::Debug)]
 pub struct Operator {
     data: OperatorData,
+    op_type: OperatorDataDiscriminants,
     receivers: Vec<Receiver>,
 }
-
-#[derive(Clone, fmt::Debug)]
+#[derive(Clone, fmt::Debug, EnumDiscriminants)]
 pub enum OperatorData {
+    // Test operators
     Create(CreateOperator),
     Recording(RecordingOperator),
+    Partitioning,
+
+    // Production operators
+    DataSource,
+
+    Placeholder,
 }
 
 #[derive(Clone, fmt::Debug)]
 pub struct CreateOperator {
-    // TODO: placeholder for Any
-    data: String,
+    data: Vec<u8>,
 }
 
 #[derive(Clone, fmt::Debug)]
@@ -60,30 +77,45 @@ pub struct RecordingOperator {
 }
 
 pub fn create_operator(transform_id: &str, context: OperatorContext) -> Operator {
-    unimplemented!()
+    let descriptor: &ProcessBundleDescriptor = context.descriptor;
 
-    // let transform = context
-    //     .descriptor
-    //     .transforms
-    //     .get(transform_id)
-    //     .expect("Transform ID not found");
+    let transform = descriptor
+        .transforms
+        .get(transform_id)
+        .expect("Transform ID not found");
 
-    // for pcoll_id in transform.outputs.values() {
-    //     (context.get_receiver)(pcoll_id.clone());
-    // }
+    for pcoll_id in transform.outputs.values() {
+        (context.get_receiver)(pcoll_id.clone());
+    }
 
-    // let operators_by_urn = OPERATORS_BY_URN.lock().unwrap();
+    let operators_by_urn = OPERATORS_BY_URN.lock().unwrap();
 
-    // let spec = transform
-    //     .spec
-    //     .as_ref()
-    //     .unwrap_or_else(|| panic!("Transform {} has no spec", transform_id));
+    let spec = transform
+        .spec
+        .as_ref()
+        .unwrap_or_else(|| panic!("Transform {} has no spec", transform_id));
+    
+    let op_discriminant = operators_by_urn
+        .get(spec.urn.as_str())
+        .unwrap_or_else(|| panic!("Unknown transform type: {}", spec.urn));
 
-    // let op = operators_by_urn
-    //     .get(&spec.urn)
-    //     .unwrap_or_else(|| panic!("Unknown transform type: {}", spec.urn));
-
-    // op.new_op(transform_id, transform, &context)
+    match op_discriminant {
+        OperatorDataDiscriminants::Create => {
+            Operator {
+                data: OperatorData::Placeholder,
+                op_type: OperatorDataDiscriminants::Create,
+                receivers: Vec::new(),
+            }
+        },
+        OperatorDataDiscriminants::Recording => {
+            Operator {
+                data: OperatorData::Placeholder,
+                op_type: OperatorDataDiscriminants::Create,
+                receivers: Vec::new(),
+            }
+        },
+        _ => unimplemented!()
+    }
 }
 
 #[allow(clippy::new_ret_no_self)]
