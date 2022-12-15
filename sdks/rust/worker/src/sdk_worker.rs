@@ -17,6 +17,7 @@
  */
 
 use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::sync::{Arc, Mutex, RwLock};
 
 use http::Uri;
@@ -30,7 +31,7 @@ use proto::beam::fn_execution::{
     ProcessBundleSplitResponse,
 };
 
-use crate::operators::{create_operator, Operator, OperatorContext, Receiver};
+use crate::operators::{create_operator, Operator, OperatorContext, OperatorI, Receiver};
 
 #[derive(Debug)]
 pub struct Worker {
@@ -45,14 +46,14 @@ pub struct Worker {
 }
 
 impl Worker {
-    pub async fn new(id: String, endpoints: WorkerEndpoints) -> Mutex<Self> {
+    pub async fn new(id: String, endpoints: WorkerEndpoints) -> Arc<Mutex<Worker>> {
         // TODO: parse URIs in the endpoint struct
         let channel = Channel::builder(endpoints.get_endpoint().parse::<Uri>().unwrap())
             .connect()
             .await
             .expect("Failed to connect to worker");
 
-        Mutex::new(Self {
+        Arc::new(Mutex::new(Self {
             control_client: Arc::new(BeamFnControlClient::new(channel)),
 
             process_bundle_descriptors: HashMap::new(),
@@ -61,7 +62,7 @@ impl Worker {
             id,
             endpoints,
             options: HashMap::new(),
-        })
+        }))
     }
 
     // TODO
@@ -89,17 +90,19 @@ impl WorkerEndpoints {
 
 #[derive(Debug)]
 pub struct BundleProcessor {
-    descriptor: ProcessBundleDescriptor,
-    creation_ordered_operators: Vec<Operator>,
-    topologically_ordered_operators: Vec<Operator>,
+    descriptor: Arc<ProcessBundleDescriptor>,
+    creation_ordered_operators: Mutex<Vec<Operator>>,
+    topologically_ordered_operators: RwLock<Vec<Operator>>,
+
     operators: RwLock<HashMap<String, Operator>>,
     receivers: RwLock<HashMap<String, Receiver>>,
     consumers: RwLock<HashMap<String, Vec<String>>>,
+
     current_bundle_id: Option<String>,
 }
 
 impl BundleProcessor {
-    pub fn new(descriptor: ProcessBundleDescriptor, root_urns: &[&'static str]) -> Self {
+    pub fn new(descriptor: Arc<ProcessBundleDescriptor>, root_urns: &[&'static str]) -> Arc<Self> {
         let mut consumers: HashMap<String, Vec<String>> = HashMap::new();
         for (transform_id, ptransform) in descriptor.transforms.iter() {
             if is_primitive(ptransform) {
@@ -119,16 +122,15 @@ impl BundleProcessor {
             }
         }
 
-        let mut _instance = Self {
+        let mut _instance = Arc::new(Self {
             descriptor: descriptor.clone(),
-            creation_ordered_operators: Vec::new(),
-            topologically_ordered_operators: Vec::new(),
+            creation_ordered_operators: Mutex::new(Vec::new()),
+            topologically_ordered_operators: RwLock::new(Vec::new()),
             operators: RwLock::new(HashMap::new()),
             receivers: RwLock::new(HashMap::new()),
             consumers: RwLock::new(consumers),
-
             current_bundle_id: None,
-        };
+        });
 
         descriptor
             .transforms
@@ -136,7 +138,7 @@ impl BundleProcessor {
             .for_each(|(transform_id, transform)| {
                 if let Some(spec) = &transform.spec {
                     if root_urns.contains(&spec.urn.as_str()) {
-                        _instance.get_operator(transform_id.clone());
+                        BundleProcessor::get_operator(_instance.clone(), transform_id.clone());
                     }
                 }
             });
@@ -146,34 +148,34 @@ impl BundleProcessor {
         _instance
     }
 
-    pub fn get_receiver(&self, pcollection_id: String) -> Receiver {
-        let receivers = self.receivers.read().unwrap();
+    // TODO: the bundle processors are being be passed around by value as parameters
+    // to avoid closures with temp references in an async context. However, this
+    // should be revisited later.
+    fn get_receiver(bundle_processor: Arc<BundleProcessor>, pcollection_id: String) -> Receiver {
+        let receivers = bundle_processor.receivers.read().unwrap();
 
         let receiver = match receivers.get(&pcollection_id) {
-            Some(rec) => {
-                rec.clone()
-            },
+            Some(rec) => rec.clone(),
             None => {
-                drop(receivers);
-
-                let consumers = self.consumers.read().unwrap();
+                let consumers = bundle_processor.consumers.read().unwrap();
 
                 let pcoll_operators: Vec<Operator> = match consumers.get(&pcollection_id) {
                     Some(v) => {
+                        drop(receivers);
+
                         let mut oprs = Vec::new();
                         for transform_id in v {
-                            oprs.push(self.get_operator(transform_id.clone()))
+                            let cl = bundle_processor.clone();
+                            oprs.push(BundleProcessor::get_operator(cl, transform_id.clone()))
                         }
                         oprs
                     }
                     None => Vec::new(),
                 };
 
-                drop(consumers);
-
                 let receiver = Receiver::new(pcoll_operators);
 
-                let mut receivers = self.receivers.write().unwrap();
+                let mut receivers = bundle_processor.receivers.write().unwrap();
                 receivers.insert(pcollection_id.clone(), receiver);
                 receivers[&pcollection_id].clone()
             }
@@ -182,41 +184,59 @@ impl BundleProcessor {
         receiver
     }
 
-    pub fn get_operator(&self, transform_id: String) -> Operator {
-        let get_receiver = |pcollection_id: String| {self.get_receiver(pcollection_id)};
+    fn get_operator(bundle_processor: Arc<BundleProcessor>, transform_id: String) -> Operator {
+        let get_receiver = |b: Arc<BundleProcessor>, pcollection_id: String| {
+            BundleProcessor::get_receiver(b, pcollection_id)
+        };
 
-        let operators = self.operators.read().unwrap();
+        let operators = bundle_processor.operators.read().unwrap();
 
         let operator_opt = operators.get(&transform_id);
-        
+
         if operator_opt.is_some() {
-            let operator = operator_opt.unwrap().clone();
-            
-            drop(operators);
-            
-            return operator;
-        }
-        else {
+            operator_opt.unwrap().clone()
+        } else {
+            let descriptor = bundle_processor.descriptor.clone();
             drop(operators);
 
             let op = create_operator(
                 &transform_id,
                 OperatorContext {
-                    descriptor: &self.descriptor,
+                    descriptor,
                     get_receiver: Box::new(get_receiver),
+
+                    bundle_processor: bundle_processor.clone(),
                 },
             );
 
-            let mut operators = self.operators.write().unwrap();
+            let mut operators = bundle_processor.operators.write().unwrap();
             operators.insert(transform_id.clone(), op);
 
-            return operators[&transform_id].clone();
+            let mut creation_ordered_operators =
+                bundle_processor.creation_ordered_operators.lock().unwrap();
+            creation_ordered_operators.push(operators[&transform_id].clone());
+
+            operators[&transform_id].clone()
         }
     }
 
-    fn create_topologically_ordered_operators(&mut self) {
-        let creation_ordered = self.creation_ordered_operators.clone();
-        self.topologically_ordered_operators = creation_ordered.into_iter().rev().collect();
+    fn create_topologically_ordered_operators(&self) {
+        let creation_ordered = self.creation_ordered_operators.lock().unwrap();
+
+        let mut instance_operators = self.topologically_ordered_operators.write().unwrap();
+
+        creation_ordered.iter().rev().for_each(|op: &Operator| {
+            instance_operators.push(op.clone());
+        });
+    }
+
+    pub fn process(&mut self, instruction_id: String) {
+        self.current_bundle_id = Some(instruction_id);
+
+        let topologically_ordered_operators = self.topologically_ordered_operators.read().unwrap();
+        for o in topologically_ordered_operators.iter().rev() {
+            o.start_bundle();
+        }
     }
 }
 
@@ -259,21 +279,33 @@ mod tests {
             id: "".to_string(),
             // Note the inverted order should still be resolved correctly
             transforms: HashMap::from([
-                ("y".to_string(), make_ptransform(
-                    urns::RECORDING_URN,
-                    HashMap::from([("input".to_string(), "pc1".to_string())]),
-                    HashMap::from([("out".to_string(), "pc2".to_string())]),
-                    Vec::with_capacity(0))),
-                ("z".to_string(), make_ptransform(
-                    urns::RECORDING_URN,
-                    HashMap::from([("input".to_string(), "pc2".to_string())]),
-                    HashMap::with_capacity(0),
-                    Vec::with_capacity(0))),
-                ("x".to_string(), make_ptransform(
-                    urns::CREATE_URN,
-                    HashMap::with_capacity(0),
-                    HashMap::from([("out".to_string(), "pc1".to_string())]),
-                    serde_json::to_vec(&["a", "b", "c"]).unwrap())),
+                (
+                    "y".to_string(),
+                    make_ptransform(
+                        urns::RECORDING_URN,
+                        HashMap::from([("input".to_string(), "pc1".to_string())]),
+                        HashMap::from([("out".to_string(), "pc2".to_string())]),
+                        Vec::with_capacity(0),
+                    ),
+                ),
+                (
+                    "z".to_string(),
+                    make_ptransform(
+                        urns::RECORDING_URN,
+                        HashMap::from([("input".to_string(), "pc2".to_string())]),
+                        HashMap::with_capacity(0),
+                        Vec::with_capacity(0),
+                    ),
+                ),
+                (
+                    "x".to_string(),
+                    make_ptransform(
+                        urns::CREATE_URN,
+                        HashMap::with_capacity(0),
+                        HashMap::from([("out".to_string(), "pc1".to_string())]),
+                        serde_json::to_vec(&["a", "b", "c"]).unwrap(),
+                    ),
+                ),
             ]),
             pcollections: HashMap::with_capacity(0),
             windowing_strategies: HashMap::with_capacity(0),
@@ -283,8 +315,6 @@ mod tests {
             timer_api_service_descriptor: None,
         };
 
-        let processor = BundleProcessor::new(
-            descriptor, &[urns::CREATE_URN]
-        );
+        let processor = BundleProcessor::new(Arc::new(descriptor), &[urns::CREATE_URN]);
     }
 }

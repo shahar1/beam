@@ -19,7 +19,7 @@
 use std::any::Any;
 use std::collections::HashMap;
 use std::fmt;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use once_cell::sync::Lazy;
 
@@ -28,32 +28,45 @@ use proto::beam::fn_execution::{ProcessBundleDescriptor, RemoteGrpcPort};
 use proto::beam::pipeline::PTransform;
 
 use crate::data::MultiplexingDataChannel;
+use crate::sdk_worker::BundleProcessor;
 
-type OperatorMap = HashMap<&'static str, OperatorDataDiscriminants>;
+type OperatorMap = HashMap<&'static str, OperatorDiscriminants>;
 
 static OPERATORS_BY_URN: Lazy<Mutex<OperatorMap>> = Lazy::new(|| {
     // TODO: these will have to be parameterized depending on things such as the runner used
     let m: OperatorMap = HashMap::from([
         // Test operators
-        (urns::CREATE_URN, OperatorDataDiscriminants::Create),
-        (urns::RECORDING_URN, OperatorDataDiscriminants::Recording),
-        (urns::PARTITION_URN, OperatorDataDiscriminants::Partitioning),
-
+        (urns::CREATE_URN, OperatorDiscriminants::Create),
+        (urns::RECORDING_URN, OperatorDiscriminants::Recording),
+        (urns::PARTITION_URN, OperatorDiscriminants::Partitioning),
         // Production operators
-        (urns::DATA_INPUT_URN, OperatorDataDiscriminants::DataSource),
+        (urns::DATA_INPUT_URN, OperatorDiscriminants::DataSource),
     ]);
 
     Mutex::new(m)
 });
 
-#[derive(Clone, fmt::Debug)]
-pub struct Operator {
-    data: OperatorData,
-    op_type: OperatorDataDiscriminants,
-    receivers: Vec<Receiver>,
+pub trait OperatorI {
+    fn new(
+        transform_id: Arc<String>,
+        transform: Arc<PTransform>,
+        context: Arc<OperatorContext>,
+        operator_discriminant: Arc<OperatorDiscriminants>,
+    ) -> Self
+    where
+        Self: Sized;
+
+    fn start_bundle(&self);
+
+    fn process(&self, wvalue: &WindowedValue);
+
+    fn finish_bundle(&self) {
+        unimplemented!()
+    }
 }
+
 #[derive(Clone, fmt::Debug, EnumDiscriminants)]
-pub enum OperatorData {
+pub enum Operator {
     // Test operators
     Create(CreateOperator),
     Recording(RecordingOperator),
@@ -65,19 +78,127 @@ pub enum OperatorData {
     Placeholder,
 }
 
-#[derive(Clone, fmt::Debug)]
+impl OperatorI for Operator {
+    fn new(
+        transform_id: Arc<String>,
+        transform: Arc<PTransform>,
+        context: Arc<OperatorContext>,
+        operator_discriminant: Arc<OperatorDiscriminants>,
+    ) -> Self {
+        match operator_discriminant.as_ref() {
+            OperatorDiscriminants::Create => Operator::Create(CreateOperator::new(
+                transform_id,
+                transform,
+                context,
+                operator_discriminant,
+            )),
+            _ => unimplemented!(),
+        }
+    }
+
+    fn start_bundle(&self) {
+        match self {
+            Operator::Create(create_op) => create_op.start_bundle(),
+            Operator::Recording(recording_op) => recording_op.start_bundle(),
+            _ => unimplemented!(),
+        };
+    }
+
+    fn process(&self, wvalue: &WindowedValue) {
+        match self {
+            Operator::Create(create_op) => {
+                unimplemented!()
+                // create_op.process()
+            }
+            Operator::Recording(recording_op) => {
+                unimplemented!()
+                // recording_op.process()
+            }
+            _ => unimplemented!(),
+        };
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct CreateOperator {
+    transform_id: Arc<String>,
+    transform: Arc<PTransform>,
+    context: Arc<OperatorContext>,
+    operator_discriminant: Arc<OperatorDiscriminants>,
+
     data: Vec<u8>,
 }
 
-#[derive(Clone, fmt::Debug)]
+impl OperatorI for CreateOperator {
+    fn new(
+        transform_id: Arc<String>,
+        transform: Arc<PTransform>,
+        context: Arc<OperatorContext>,
+        operator_discriminant: Arc<OperatorDiscriminants>,
+    ) -> Self {
+        let data = transform
+            .as_ref()
+            .spec
+            .as_ref()
+            .expect("No spec found for transform")
+            .payload
+            .clone();
+
+        Self {
+            transform_id,
+            transform,
+            context,
+            operator_discriminant,
+            data,
+        }
+    }
+
+    fn start_bundle(&self) {
+        unimplemented!()
+    }
+
+    fn process(&self, wvalue: &WindowedValue) {
+        unimplemented!()
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct RecordingOperator {
+    transform_id: Arc<String>,
+    transform: Arc<PTransform>,
+    context: Arc<OperatorContext>,
+    operator_discriminant: Arc<OperatorDiscriminants>,
+
     log: Vec<String>,
-    transform_id: String,
+}
+
+impl OperatorI for RecordingOperator {
+    fn new(
+        transform_id: Arc<String>,
+        transform: Arc<PTransform>,
+        context: Arc<OperatorContext>,
+        operator_discriminant: Arc<OperatorDiscriminants>,
+    ) -> Self {
+        Self {
+            transform_id,
+            transform,
+            context,
+            operator_discriminant: operator_discriminant,
+            log: Vec::new(),
+        }
+    }
+
+    fn start_bundle(&self) {
+        unimplemented!()
+    }
+
+    fn process(&self, wvalue: &WindowedValue) {
+        unimplemented!()
+    }
 }
 
 pub fn create_operator(transform_id: &str, context: OperatorContext) -> Operator {
-    let descriptor: &ProcessBundleDescriptor = context.descriptor;
+    let descriptor: &ProcessBundleDescriptor = context.descriptor.as_ref();
 
     let transform = descriptor
         .transforms
@@ -85,7 +206,7 @@ pub fn create_operator(transform_id: &str, context: OperatorContext) -> Operator
         .expect("Transform ID not found");
 
     for pcoll_id in transform.outputs.values() {
-        (context.get_receiver)(pcoll_id.clone());
+        (context.get_receiver)(context.bundle_processor.clone(), pcoll_id.clone());
     }
 
     let operators_by_urn = OPERATORS_BY_URN.lock().unwrap();
@@ -94,49 +215,15 @@ pub fn create_operator(transform_id: &str, context: OperatorContext) -> Operator
         .spec
         .as_ref()
         .unwrap_or_else(|| panic!("Transform {} has no spec", transform_id));
-    
+
     let op_discriminant = operators_by_urn
         .get(spec.urn.as_str())
         .unwrap_or_else(|| panic!("Unknown transform type: {}", spec.urn));
 
     match op_discriminant {
-        OperatorDataDiscriminants::Create => {
-            Operator {
-                data: OperatorData::Placeholder,
-                op_type: OperatorDataDiscriminants::Create,
-                receivers: Vec::new(),
-            }
-        },
-        OperatorDataDiscriminants::Recording => {
-            Operator {
-                data: OperatorData::Placeholder,
-                op_type: OperatorDataDiscriminants::Create,
-                receivers: Vec::new(),
-            }
-        },
-        _ => unimplemented!()
-    }
-}
-
-#[allow(clippy::new_ret_no_self)]
-pub trait IOperator: Send {
-    fn new_op(
-        &self,
-        transform_id: &str,
-        transform: &PTransform,
-        context: &OperatorContext,
-    ) -> Box<dyn IOperator>;
-
-    fn start_bundle(&self);
-
-    fn process(&self, wvalue: &WindowedValue);
-
-    fn finish_bundle(&self);
-}
-
-impl fmt::Debug for dyn IOperator {
-    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
-        o.debug_tuple("IOperator").finish()
+        OperatorDiscriminants::Create => Operator::Placeholder,
+        OperatorDiscriminants::Recording => Operator::Placeholder,
+        _ => unimplemented!(),
     }
 }
 
@@ -150,23 +237,34 @@ impl Receiver {
         Receiver { operators }
     }
 
-    // pub fn receive(&self, wvalue: &WindowedValue) {
-    //     for op in &self.operators {
-    //         op.process(wvalue);
-    //     }
-    // }
+    pub fn receive(&self, wvalue: &WindowedValue) {
+        for op in &self.operators {
+            op.process(wvalue);
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct WindowedValue {
-    value: Box<dyn Any>,
+    // TODO: placeholder for Any
+    value: Vec<u8>,
 }
 
-pub struct OperatorContext<'bundle_processor> {
-    pub descriptor: &'bundle_processor ProcessBundleDescriptor,
-    pub get_receiver: Box<dyn Fn(String) -> Receiver + 'bundle_processor>,
+pub struct OperatorContext {
+    pub descriptor: Arc<ProcessBundleDescriptor>,
+    pub get_receiver: Box<dyn Fn(Arc<BundleProcessor>, String) -> Receiver + Send + Sync>,
     // get_data_channel: fn(&str) -> MultiplexingDataChannel,
     // get_bundle_id: String,
+    pub bundle_processor: Arc<BundleProcessor>,
+}
+
+impl fmt::Debug for OperatorContext {
+    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+        o.debug_struct("OperatorContext")
+            .field("descriptor", &self.descriptor)
+            .field("bundle_processor", &self.bundle_processor)
+            .finish()
+    }
 }
 
 // ******* Operator definitions *******

@@ -37,7 +37,7 @@ use proto::beam::fn_execution::{
 
 #[derive(Debug)]
 struct BeamFnExternalWorkerPoolService {
-    workers: Arc<RwLock<HashMap<String, Mutex<Worker>>>>,
+    workers: Arc<RwLock<HashMap<String, Arc<Mutex<Worker>>>>>,
 }
 
 #[tonic::async_trait]
