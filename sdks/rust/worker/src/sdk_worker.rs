@@ -17,12 +17,10 @@
  */
 
 use std::collections::HashMap;
-use std::marker::PhantomData;
 use std::sync::{Arc, Mutex, RwLock};
 
 use http::Uri;
 use proto::beam::pipeline::PTransform;
-use serde_json;
 use tonic::transport::Channel;
 
 use proto::beam::fn_execution::{
@@ -91,14 +89,14 @@ impl WorkerEndpoints {
 #[derive(Debug)]
 pub struct BundleProcessor {
     descriptor: Arc<ProcessBundleDescriptor>,
-    creation_ordered_operators: Mutex<Vec<Operator>>,
-    topologically_ordered_operators: RwLock<Vec<Operator>>,
+    creation_ordered_operators: Mutex<Vec<Arc<Operator>>>,
+    topologically_ordered_operators: RwLock<Vec<Arc<Operator>>>,
 
-    operators: RwLock<HashMap<String, Operator>>,
-    receivers: RwLock<HashMap<String, Receiver>>,
+    operators: RwLock<HashMap<String, Arc<Operator>>>,
+    receivers: RwLock<HashMap<String, Arc<Receiver>>>,
     consumers: RwLock<HashMap<String, Vec<String>>>,
 
-    current_bundle_id: Option<String>,
+    current_bundle_id: Mutex<Option<String>>,
 }
 
 impl BundleProcessor {
@@ -129,7 +127,7 @@ impl BundleProcessor {
             operators: RwLock::new(HashMap::new()),
             receivers: RwLock::new(HashMap::new()),
             consumers: RwLock::new(consumers),
-            current_bundle_id: None,
+            current_bundle_id: Mutex::new(None),
         });
 
         descriptor
@@ -151,7 +149,10 @@ impl BundleProcessor {
     // TODO: the bundle processors are being be passed around by value as parameters
     // to avoid closures with temp references in an async context. However, this
     // should be revisited later.
-    fn get_receiver(bundle_processor: Arc<BundleProcessor>, pcollection_id: String) -> Receiver {
+    fn get_receiver(
+        bundle_processor: Arc<BundleProcessor>,
+        pcollection_id: String,
+    ) -> Arc<Receiver> {
         let receivers = bundle_processor.receivers.read().unwrap();
 
         let receiver = match receivers.get(&pcollection_id) {
@@ -159,7 +160,7 @@ impl BundleProcessor {
             None => {
                 let consumers = bundle_processor.consumers.read().unwrap();
 
-                let pcoll_operators: Vec<Operator> = match consumers.get(&pcollection_id) {
+                let pcoll_operators: Vec<Arc<Operator>> = match consumers.get(&pcollection_id) {
                     Some(v) => {
                         drop(receivers);
 
@@ -176,7 +177,7 @@ impl BundleProcessor {
                 let receiver = Receiver::new(pcoll_operators);
 
                 let mut receivers = bundle_processor.receivers.write().unwrap();
-                receivers.insert(pcollection_id.clone(), receiver);
+                receivers.insert(pcollection_id.clone(), Arc::new(receiver));
                 receivers[&pcollection_id].clone()
             }
         };
@@ -184,7 +185,7 @@ impl BundleProcessor {
         receiver
     }
 
-    fn get_operator(bundle_processor: Arc<BundleProcessor>, transform_id: String) -> Operator {
+    fn get_operator(bundle_processor: Arc<BundleProcessor>, transform_id: String) -> Arc<Operator> {
         let get_receiver = |b: Arc<BundleProcessor>, pcollection_id: String| {
             BundleProcessor::get_receiver(b, pcollection_id)
         };
@@ -201,16 +202,16 @@ impl BundleProcessor {
 
             let op = create_operator(
                 &transform_id,
-                OperatorContext {
+                Arc::new(OperatorContext {
                     descriptor,
                     get_receiver: Box::new(get_receiver),
 
                     bundle_processor: bundle_processor.clone(),
-                },
+                }),
             );
 
             let mut operators = bundle_processor.operators.write().unwrap();
-            operators.insert(transform_id.clone(), op);
+            operators.insert(transform_id.clone(), Arc::new(op));
 
             let mut creation_ordered_operators =
                 bundle_processor.creation_ordered_operators.lock().unwrap();
@@ -225,17 +226,26 @@ impl BundleProcessor {
 
         let mut instance_operators = self.topologically_ordered_operators.write().unwrap();
 
-        creation_ordered.iter().rev().for_each(|op: &Operator| {
-            instance_operators.push(op.clone());
-        });
+        creation_ordered
+            .iter()
+            .rev()
+            .for_each(|op: &Arc<Operator>| {
+                instance_operators.push(op.clone());
+            });
     }
 
-    pub fn process(&mut self, instruction_id: String) {
-        self.current_bundle_id = Some(instruction_id);
+    pub fn process(&self, instruction_id: String) {
+        let mut current_bundle_id = self.current_bundle_id.lock().unwrap();
+        current_bundle_id.replace(instruction_id);
+        drop(current_bundle_id);
 
         let topologically_ordered_operators = self.topologically_ordered_operators.read().unwrap();
         for o in topologically_ordered_operators.iter().rev() {
             o.start_bundle();
+        }
+
+        for o in topologically_ordered_operators.iter() {
+            o.finish_bundle();
         }
     }
 }
@@ -249,8 +259,12 @@ fn is_primitive(transform: &PTransform) -> bool {
 mod tests {
     use super::*;
 
+    use serde_json;
+
     use internals::urns;
     use proto::beam::pipeline::FunctionSpec;
+
+    use crate::test_utils::{reset_log, RECORDING_OPERATOR_LOGS};
 
     fn make_ptransform(
         urn: &'static str,
@@ -315,6 +329,33 @@ mod tests {
             timer_api_service_descriptor: None,
         };
 
+        unsafe {
+            reset_log();
+        }
+
         let processor = BundleProcessor::new(Arc::new(descriptor), &[urns::CREATE_URN]);
+
+        processor.process("bundle_id".to_string());
+
+        unsafe {
+            let log = RECORDING_OPERATOR_LOGS.lock().unwrap();
+            let _log: &Vec<String> = log.as_ref();
+
+            assert_eq!(
+                *_log,
+                Vec::from([
+                    "z.start_bundle()",
+                    "y.start_bundle()",
+                    "y.process(String(\"a\"))",
+                    "z.process(String(\"a\"))",
+                    "y.process(String(\"b\"))",
+                    "z.process(String(\"b\"))",
+                    "y.process(String(\"c\"))",
+                    "z.process(String(\"c\"))",
+                    "y.finish_bundle()",
+                    "z.finish_bundle()",
+                ])
+            );
+        }
     }
 }

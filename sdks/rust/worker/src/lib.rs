@@ -25,3 +25,14 @@ pub use external_worker_service::ExternalWorkerPool;
 
 #[macro_use]
 extern crate strum_macros;
+
+mod test_utils {
+    use std::sync::Mutex;
+
+    pub static mut RECORDING_OPERATOR_LOGS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+
+    pub unsafe fn reset_log() {
+        let mut log = RECORDING_OPERATOR_LOGS.lock().unwrap();
+        *log.as_mut() = Vec::new();
+    }
+}
