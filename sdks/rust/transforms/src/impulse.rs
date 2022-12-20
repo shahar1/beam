@@ -98,12 +98,12 @@ impl Default for Impulse {
 mod tests {
     use super::*;
 
-    use runners::runner::Runner;
+    use runners::runner::PlaceholderRunner;
     use std::any::Any;
 
     #[test]
     fn run_impulse_expansion() {
-        let runner = Runner::new();
+        let runner = PlaceholderRunner::new();
         let root = runner.run();
         let pcoll = root.apply(Impulse::new());
 

@@ -108,7 +108,7 @@ impl BundleProcessor {
                     .inputs
                     .values()
                     .for_each(|pcollection_id: &String| {
-                        if (consumers.get(pcollection_id).is_none()) {
+                        if consumers.get(pcollection_id).is_none() {
                             consumers.insert(pcollection_id.clone(), Vec::new());
                         }
 

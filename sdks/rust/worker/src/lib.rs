@@ -19,9 +19,9 @@
 mod data;
 mod external_worker_service;
 mod operators;
-mod sdk_worker;
 
 pub use external_worker_service::ExternalWorkerPool;
+pub mod sdk_worker;
 
 #[macro_use]
 extern crate strum_macros;

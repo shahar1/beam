@@ -57,9 +57,46 @@ impl PValue {
         }
     }
 
+    pub fn new_root(pipeline: Arc<Pipeline>) -> Self {
+        let pcoll_name = "root".to_string();
+
+        let proto_coder_id = pipeline.register_coder_proto(proto_pipeline::Coder {
+            spec: Some(proto_pipeline::FunctionSpec {
+                urn: String::from(coders::standard_coders::BYTES_CODER_URN),
+                payload: Vec::with_capacity(0),
+            }),
+            component_coder_ids: Vec::with_capacity(0),
+        });
+
+        pipeline.register_coder::<BytesCoder, Vec<u8>>(Box::new(BytesCoder::new()));
+
+        let output_proto = proto_pipeline::PCollection {
+            unique_name: pcoll_name.clone(),
+            coder_id: proto_coder_id,
+            is_bounded: proto_pipeline::is_bounded::Enum::Bounded as i32,
+            windowing_strategy_id: "placeholder".to_string(),
+            display_data: Vec::with_capacity(0),
+        };
+
+        let impulse_proto = proto_pipeline::PTransform {
+            unique_name: "root".to_string(),
+            spec: None,
+            subtransforms: Vec::with_capacity(0),
+            inputs: HashMap::with_capacity(0),
+            outputs: HashMap::from([("out".to_string(), pcoll_name.clone())]),
+            display_data: Vec::with_capacity(0),
+            environment_id: "".to_string(),
+            annotations: HashMap::with_capacity(0),
+        };
+
+        pipeline.register_proto_transform(impulse_proto);
+
+        PValue::new(PType::Root, pcoll_name, output_proto, pipeline.clone())
+    }
+
     pub fn register_pipeline_coder<'a, C: CoderI<E> + 'a, E>(
         &self,
-        coder: Box<dyn Any + 'a>,
+        coder: Box<dyn Any + Send + 'a>,
     ) -> TypeId {
         self.pipeline.register_coder::<C, E>(coder)
     }
@@ -106,7 +143,7 @@ pub enum PType {
 pub struct Pipeline {
     proto: Mutex<proto_pipeline::Pipeline>,
     // TODO: use AnyCoder instead of Any
-    coders: Mutex<HashMap<TypeId, Box<dyn Any>>>,
+    coders: Mutex<HashMap<TypeId, Box<dyn Any + Send>>>,
 
     coder_proto_counter: Mutex<usize>,
 }
@@ -136,6 +173,10 @@ impl<'a> Pipeline {
         }
     }
 
+    pub fn get_proto(&self) -> Arc<Mutex<proto_pipeline::Pipeline>> {
+        unimplemented!()
+    }
+
     pub fn get_coder<C: CoderI<E> + Clone + 'static, E>(&self, coder_type: &TypeId) -> C {
         let pipeline_coders = self.coders.lock().unwrap();
 
@@ -143,7 +184,7 @@ impl<'a> Pipeline {
         coder.downcast_ref::<C>().unwrap().clone()
     }
 
-    pub fn register_coder<C: CoderI<E> + 'a, E>(&self, coder: Box<dyn Any + 'a>) -> TypeId {
+    pub fn register_coder<C: CoderI<E> + 'a, E>(&self, coder: Box<dyn Any + Send + 'a>) -> TypeId {
         let mut coders = self.coders.lock().unwrap();
         let concrete_coder = coder.downcast_ref::<C>().unwrap();
         let concrete_coder_type_id = concrete_coder.type_id();

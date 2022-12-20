@@ -16,18 +16,56 @@
  * limitations under the License.
  */
 
-use std::collections::HashMap;
-use std::sync::Arc;
+use futures::future::Future;
+use std::{collections::HashMap, pin::Pin, sync::Arc, sync::Mutex};
+
+use async_trait::async_trait;
 
 use beam_core::pvalue::{get_pcollection_name, PType, PValue, Pipeline};
 use coders::standard_coders::BytesCoder;
 use proto::beam::pipeline as proto_pipeline;
 
-pub struct Runner {
+pub type Task = Pin<Box<dyn Future<Output = ()> + Send>>;
+
+// TODO: implement PipelineResult
+
+/// A Runner is the object that takes a pipeline definition and actually
+/// executes, e.g. locally or on a distributed system.
+#[async_trait]
+pub trait RunnerI {
+    /// Runs the transform.
+    /// Resolves to an instance of PipelineResult when the pipeline completes.
+    /// Use run_async() to execute the pipeline in the background.
+    async fn run<F>(&self, pipeline: F)
+    where
+        F: FnOnce(PValue) -> Task + Send,
+    {
+        self.run_async(pipeline).await;
+    }
+
+    /// run_async() is the asynchronous version of run(), does not wait until
+    /// pipeline finishes. Use the returned PipelineResult to query job
+    /// status.
+    async fn run_async<F>(&self, pipeline: F)
+    where
+        F: FnOnce(PValue) -> Task + Send,
+    {
+        let p = Arc::new(Pipeline::new());
+        let root = PValue::new_root(p.clone());
+
+        (pipeline)(root).await;
+        self.run_pipeline(p.get_proto());
+    }
+
+    fn run_pipeline(&self, pipeline: Arc<Mutex<proto_pipeline::Pipeline>>) -> Task;
+}
+
+// TODO: remove this temporary runner
+pub struct PlaceholderRunner {
     pipeline: Arc<Pipeline>,
 }
 
-impl Runner {
+impl PlaceholderRunner {
     pub fn new() -> Self {
         Self {
             pipeline: Arc::new(Pipeline::new()),
@@ -77,7 +115,7 @@ impl Runner {
     }
 }
 
-impl Default for Runner {
+impl Default for PlaceholderRunner {
     fn default() -> Self {
         Self::new()
     }

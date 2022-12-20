@@ -24,3 +24,9 @@ edition = "2021"
 beam_core = { path = "../beam_core" }
 coders = { path = "../coders" }
 proto = { path = "../proto" }
+worker = { path = "../worker" }
+
+# Suggested by the compiler itself due to: https://github.com/rust-lang/rust/issues/91611
+async-trait = "0.1.60"
+futures = "0.3.25"
+tokio = { version = "1.0", features = ["rt-multi-thread", "macros", "sync", "time"] }
