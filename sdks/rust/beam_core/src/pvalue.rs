@@ -18,7 +18,9 @@
 
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+
+use std::sync::Mutex;
 
 use coders::standard_coders::{BytesCoder, CoderI};
 use proto::beam::pipeline as proto_pipeline;
@@ -91,7 +93,7 @@ impl PValue {
 
         pipeline.register_proto_transform(impulse_proto);
 
-        PValue::new(PType::Root, pcoll_name, output_proto, pipeline.clone())
+        PValue::new(PType::Root, pcoll_name, output_proto, pipeline)
     }
 
     pub fn register_pipeline_coder<'a, C: CoderI<E> + 'a, E>(
@@ -119,7 +121,7 @@ impl PValue {
 
     pub fn apply<F>(self, transform: F) -> PValue
     where
-        F: PTransform + Sized,
+        F: PTransform + Send,
     {
         transform.expand(self)
     }
@@ -141,7 +143,7 @@ pub enum PType {
 }
 
 pub struct Pipeline {
-    proto: Mutex<proto_pipeline::Pipeline>,
+    proto: Arc<Mutex<proto_pipeline::Pipeline>>,
     // TODO: use AnyCoder instead of Any
     coders: Mutex<HashMap<TypeId, Box<dyn Any + Send>>>,
 
@@ -164,17 +166,15 @@ impl<'a> Pipeline {
         };
 
         Pipeline {
-            // TODO: maybe lock individual components instead of the entire proto
-            // and/or switch to async mutex
-            proto: Mutex::new(proto),
+            proto: Arc::new(Mutex::new(proto)),
             // TODO: try to refactor to RwLock
             coders: Mutex::new(HashMap::new()),
             coder_proto_counter: Mutex::new(0),
         }
     }
 
-    pub fn get_proto(&self) -> Arc<Mutex<proto_pipeline::Pipeline>> {
-        unimplemented!()
+    pub fn get_proto(&self) -> Arc<std::sync::Mutex<proto_pipeline::Pipeline>> {
+        self.proto.clone()
     }
 
     pub fn get_coder<C: CoderI<E> + Clone + 'static, E>(&self, coder_type: &TypeId) -> C {
@@ -237,6 +237,7 @@ impl Default for Pipeline {
         Self::new()
     }
 }
+
 pub trait PTransform {
     fn expand(self, input: PValue) -> PValue
     where

@@ -39,7 +39,7 @@ impl PTransform for Impulse {
     fn expand(mut self, input: PValue) -> PValue {
         assert!(*input.get_type() == PType::Root);
 
-        // TODO: move this elsewhere?
+        // TODO: move this elsewhere
         // TODO: import value from StandardPTransforms_Primitives in proto.pipelines
         self.urn = "beam:transform:impulse:v1";
 
@@ -91,35 +91,5 @@ impl PTransform for Impulse {
 impl Default for Impulse {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use runners::runner::PlaceholderRunner;
-    use std::any::Any;
-
-    #[test]
-    fn run_impulse_expansion() {
-        let runner = PlaceholderRunner::new();
-        let root = runner.run();
-        let pcoll = root.apply(Impulse::new());
-
-        // TODO: test proto coders
-        // let pipeline_proto = runner.pipeline.proto.lock().unwrap();
-        // let proto_coders = pipeline_proto.components.unwrap().coders;
-        // let coder = *proto_coders
-        //     .get(&root_clone.pcoll_proto.coder_id)
-        //     .unwrap();
-
-        let bytes_coder_type_id = BytesCoder::new().type_id();
-        let coder = runner
-            .get_pipeline_arc()
-            .get_coder::<BytesCoder, Vec<u8>>(&bytes_coder_type_id);
-
-        assert_eq!(*pcoll.get_type(), PType::PCollection);
-        assert_eq!(coder.type_id(), bytes_coder_type_id);
     }
 }

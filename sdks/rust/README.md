@@ -37,13 +37,13 @@ The Rust SDK leans heavily on the Typescript SDK as a reference given its modern
 
 ### Current state and roadmap
 
-We are currently in a very early stage, and the focus at the moment is to achieve a minimally functional end-to-end execution. Much work still remains in the following areas:
+We are currently in a very early stage, with a minimally functional end-to-end execution for the simplest possible pipeline. Much work still remains in the following areas:
 
 - User-facing API: a minimal structure is in place just to kick things off, but it still lacks some basic definitions and will be revisited a bit later into the implementation.
 - Transforms: the pipelines can use a minimally functional Impulse transform to initiate execution. An initial map + ParDo implementation would be the next logical step. Additional features such as windowing and side inputs are still a bit far into the future.
-- Coders: we currently have a testable early version of BytesCoder. New coders will be added as necessary to achieve a minimal end-to-end execution, and the remaining coders will be added afterwards.
-- Worker: the initial worker implementation is currently underway, which aims to have basic operator construction and bundle processing.
-- Runners: an early async DirectRunner implementation will be started as soon as the initial worker implementation is concluded.
+- Coders: we currently have a testable early version of BytesCoder. New coders will be added gradually as required by new transforms.
+- Worker: the workers are currently able to perform basic operator construction and bundle processing using mock operators. The first production operators will be added soon.
+- Runners: an early async DirectRunner implementation is in place to ensure that all modules succesfully run in an end-to-end execution within an asynchronous context. Work on production runners will begin when a few additional transforms (and their pre-requisites) have been implemented.
 
 #### Additional TODOs
 
@@ -57,6 +57,7 @@ There are many other tasks remaining, but the core of the above modules will be 
 - Create Docker container for SDK execution.
 - Increase test coverage.
 - Verify and improve performance overall.
+- Organize module structure.
 - Use macros to avoid some of the boilerplate code.
 - Incorporate linting and testing into the build.
 - Add documentation in code and later on in user guides.

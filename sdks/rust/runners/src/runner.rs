@@ -17,12 +17,11 @@
  */
 
 use futures::future::Future;
-use std::{collections::HashMap, pin::Pin, sync::Arc, sync::Mutex};
+use std::{pin::Pin, sync::Arc};
 
 use async_trait::async_trait;
 
-use beam_core::pvalue::{get_pcollection_name, PType, PValue, Pipeline};
-use coders::standard_coders::BytesCoder;
+use beam_core::pvalue::{PValue, Pipeline};
 use proto::beam::pipeline as proto_pipeline;
 
 pub type Task = Pin<Box<dyn Future<Output = ()> + Send>>;
@@ -33,12 +32,14 @@ pub type Task = Pin<Box<dyn Future<Output = ()> + Send>>;
 /// executes, e.g. locally or on a distributed system.
 #[async_trait]
 pub trait RunnerI {
+    fn new() -> Self;
+
     /// Runs the transform.
     /// Resolves to an instance of PipelineResult when the pipeline completes.
     /// Use run_async() to execute the pipeline in the background.
     async fn run<F>(&self, pipeline: F)
     where
-        F: FnOnce(PValue) -> Task + Send,
+        F: FnOnce(PValue) -> PValue + Send,
     {
         self.run_async(pipeline).await;
     }
@@ -48,75 +49,14 @@ pub trait RunnerI {
     /// status.
     async fn run_async<F>(&self, pipeline: F)
     where
-        F: FnOnce(PValue) -> Task + Send,
+        F: FnOnce(PValue) -> PValue + Send,
     {
         let p = Arc::new(Pipeline::new());
         let root = PValue::new_root(p.clone());
 
-        (pipeline)(root).await;
-        self.run_pipeline(p.get_proto());
+        (pipeline)(root);
+        self.run_pipeline(p.get_proto()).await;
     }
 
-    fn run_pipeline(&self, pipeline: Arc<Mutex<proto_pipeline::Pipeline>>) -> Task;
-}
-
-// TODO: remove this temporary runner
-pub struct PlaceholderRunner {
-    pipeline: Arc<Pipeline>,
-}
-
-impl PlaceholderRunner {
-    pub fn new() -> Self {
-        Self {
-            pipeline: Arc::new(Pipeline::new()),
-        }
-    }
-
-    pub fn get_pipeline_arc(&self) -> Arc<Pipeline> {
-        self.pipeline.clone()
-    }
-
-    pub fn run<'a>(&'a self) -> PValue {
-        let pcoll_name = get_pcollection_name();
-
-        let proto_coder_id = self.pipeline.register_coder_proto(proto_pipeline::Coder {
-            spec: Some(proto_pipeline::FunctionSpec {
-                urn: String::from(coders::standard_coders::BYTES_CODER_URN),
-                payload: Vec::with_capacity(0),
-            }),
-            component_coder_ids: Vec::with_capacity(0),
-        });
-
-        self.pipeline
-            .register_coder::<BytesCoder, Vec<u8>>(Box::new(BytesCoder::new()));
-
-        let output_proto = proto_pipeline::PCollection {
-            unique_name: pcoll_name.clone(),
-            coder_id: proto_coder_id,
-            is_bounded: proto_pipeline::is_bounded::Enum::Bounded as i32,
-            windowing_strategy_id: "placeholder".to_string(),
-            display_data: Vec::with_capacity(0),
-        };
-
-        let impulse_proto = proto_pipeline::PTransform {
-            unique_name: "root".to_string(),
-            spec: None,
-            subtransforms: Vec::with_capacity(0),
-            inputs: HashMap::with_capacity(0),
-            outputs: HashMap::from([("out".to_string(), pcoll_name.clone())]),
-            display_data: Vec::with_capacity(0),
-            environment_id: "".to_string(),
-            annotations: HashMap::with_capacity(0),
-        };
-
-        self.pipeline.register_proto_transform(impulse_proto);
-
-        PValue::new(PType::Root, pcoll_name, output_proto, self.pipeline.clone())
-    }
-}
-
-impl Default for PlaceholderRunner {
-    fn default() -> Self {
-        Self::new()
-    }
+    async fn run_pipeline(&self, pipeline: Arc<std::sync::Mutex<proto_pipeline::Pipeline>>);
 }

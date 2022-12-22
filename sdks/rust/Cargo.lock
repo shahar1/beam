@@ -122,10 +122,12 @@ checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
 name = "beam_core"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "coders",
  "internals",
  "proto",
  "rand 0.7.3",
+ "tokio",
 ]
 
 [[package]]
@@ -1128,11 +1130,13 @@ dependencies = [
 name = "transforms"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "beam_core",
  "coders",
  "internals",
  "proto",
  "runners",
+ "tokio",
 ]
 
 [[package]]

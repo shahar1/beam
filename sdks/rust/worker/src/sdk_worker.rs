@@ -234,7 +234,7 @@ impl BundleProcessor {
             });
     }
 
-    pub fn process(&self, instruction_id: String) {
+    pub async fn process(&self, instruction_id: String) {
         let mut current_bundle_id = self.current_bundle_id.lock().unwrap();
         current_bundle_id.replace(instruction_id);
         drop(current_bundle_id);
@@ -287,8 +287,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_operator_construction() {
+    #[tokio::test]
+    async fn test_operator_construction() {
         let descriptor = ProcessBundleDescriptor {
             id: "".to_string(),
             // Note the inverted order should still be resolved correctly
@@ -335,7 +335,7 @@ mod tests {
 
         let processor = BundleProcessor::new(Arc::new(descriptor), &[urns::CREATE_URN]);
 
-        processor.process("bundle_id".to_string());
+        processor.process("bundle_id".to_string()).await;
 
         unsafe {
             let log = RECORDING_OPERATOR_LOGS.lock().unwrap();

@@ -26,3 +26,6 @@ coders = { path = "../coders" }
 internals = { path = "../internals" }
 proto = { path = "../proto" }
 runners = { path = "../runners" }
+
+async-trait = "0.1.60"
+tokio = { version = "1.0", features = ["rt-multi-thread", "macros", "sync", "time"] }
