@@ -51,7 +51,7 @@ There are many other tasks remaining, but the core of the above modules will be 
 
 - Make the SDK more idiomatic for Rust, instead of naively mirroring the Typescript SDK.
 - Refactor to stop the widespread usage of inneficient cloning done to simplify things with the borrow checker early on.
-- Revisit synchronous behavior to prepare for async runners, including things such as the usage of sync (blocking) mutexes instead of the Tokio equivalents.
+- Revisit function signatures and make input parameters less reliant on owned types when possible.
 - Add robust logging.
 - Implement proper error handling.
 - Create Docker container for SDK execution.

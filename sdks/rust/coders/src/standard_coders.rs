@@ -29,15 +29,18 @@
 //! The formal specifications for these coders can be found in
 //! model/pipeline/src/main/proto/beam_runner_api.proto
 
-use std::io::{self, Read, Write};
+use std::io::{self, Read, Write, ErrorKind};
 use std::marker::PhantomData;
 use std::{collections::HashMap, fmt};
 
 use crate::coders::Context;
 
+// TODO: reorganize modules and separate coders by type
 pub const BYTES_CODER_URN: &str = "beam:coder:bytes:v1";
 pub const KV_CODER_URN: &str = "beam:coder:kvcoder:v1";
 pub const ITERABLE_CODER_URN: &str = "beam:coder:iterable:v1";
+
+pub const STR_UTF8_CODER_URN: &str = "beam:coder:string_utf8:v1";
 
 pub struct CoderRegistry {
     internal_registry: HashMap<&'static str, CoderTypeDiscriminants>,
@@ -49,6 +52,7 @@ impl CoderRegistry {
             (BYTES_CODER_URN, CoderTypeDiscriminants::Bytes),
             (KV_CODER_URN, CoderTypeDiscriminants::KV),
             (ITERABLE_CODER_URN, CoderTypeDiscriminants::Iterable),
+            (STR_UTF8_CODER_URN, CoderTypeDiscriminants::StrUtf8),
         ]);
 
         Self { internal_registry }
@@ -79,6 +83,8 @@ pub enum CoderType {
     Bytes,
     Iterable,
     KV,
+    StrUtf8,
+
     Placeholder,
 }
 
@@ -103,6 +109,73 @@ pub trait CoderI<T> {
 
     // TODO: only used temporarily for coder testing, should be moved elsewhere
     fn parse_yaml_value(&self, value: &serde_yaml::Value) -> T;
+}
+
+#[derive(Clone)]
+pub struct StrUtf8Coder {
+    coder_type: CoderTypeDiscriminants,
+    urn: &'static str,
+}
+
+impl StrUtf8Coder {
+    pub fn new() -> Self {
+        Self {
+            coder_type: CoderTypeDiscriminants::StrUtf8,
+            urn: STR_UTF8_CODER_URN,
+        }
+    }
+}
+
+// TODO: fix implementation for unicode values and retest this
+// TODO: accept string references as well?
+impl CoderI<String> for StrUtf8Coder {
+    fn get_coder_type(&self) -> &CoderTypeDiscriminants {
+        &self.coder_type
+    }
+
+    fn encode(
+        &self,
+        element: String,
+        writer: &mut dyn Write,
+        context: &Context,
+    ) -> Result<usize, io::Error> {
+        let bytes = element.as_bytes().to_vec();
+        let coder = BytesCoder::new();
+        coder.encode(bytes, writer, context)
+    }
+
+    fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<String, io::Error> {
+        let coder = BytesCoder::new();
+        let bytes = coder.decode(reader, context)?;
+        
+        let res = String::from_utf8(bytes);
+    
+        //TODO: improve error handling
+        match res {
+            Ok(s) => Ok(s),
+            Err(_) => {
+                Result::Err(io::Error::new(ErrorKind::Other, "Unable to convert bytes to string"))    
+            }
+        }
+    }
+
+    fn parse_yaml_value(&self, value: &serde_yaml::Value) -> String {
+        value.as_str().unwrap().to_string()
+    }
+}
+
+impl Default for StrUtf8Coder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl fmt::Debug for StrUtf8Coder {
+    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+        o.debug_struct("StrUtf8Coder")
+            .field("urn", &self.urn)
+            .finish()
+    }
 }
 
 /// Coder for byte-array data types
@@ -319,6 +392,7 @@ mod tests {
     // TODO: empty this list
     const UNSUPPORTED_CODERS: [&'static str; 15] = [
         "beam:coder:bool:v1",
+        // TODO: fix StrUtf8Coder for unicode values and retest it
         "beam:coder:string_utf8:v1",
         "beam:coder:varint:v1",
         "beam:coder:kv:v1",
@@ -385,6 +459,10 @@ mod tests {
                 CoderTypeDiscriminants::Bytes => {
                     let c = BytesCoder::new();
                     run_unnested::<BytesCoder, Vec<u8>>(&c, nested, &spec);
+                },
+                CoderTypeDiscriminants::StrUtf8 => {
+                    let c = StrUtf8Coder::new();
+                    run_unnested::<StrUtf8Coder, String>(&c, nested, &spec);
                 }
                 _ => unimplemented!(),
             }
@@ -418,24 +496,14 @@ mod tests {
 
         // TODO: revisit when context gets fully implemented
         let context = Context::WholeStream;
+        
+        let expected_dec = c.parse_yaml_value(original);
 
-        // TODO: generalize
-        let res = match c.get_coder_type() {
-            &CoderTypeDiscriminants::Bytes => {
-                let expected_dec = c.parse_yaml_value(original);
+        c.encode(expected_dec.clone(), &mut writer, &context)
+            .unwrap();
+        let encoded = writer.into_inner();
 
-                c.encode(expected_dec.clone(), &mut writer, &context)
-                    .unwrap();
-                let encoded = writer.into_inner();
-
-                let decoded = c.decode(&mut reader, &context).unwrap();
-
-                (encoded, decoded, expected_dec)
-            }
-            _ => unimplemented!(),
-        };
-
-        let (encoded, decoded, expected_dec) = res;
+        let decoded = c.decode(&mut reader, &context).unwrap();
 
         println!("\n---------\nCoder type: {:?}", c.get_coder_type());
         println!(
