@@ -106,9 +106,14 @@ pub trait CoderI<T> {
 
     /// Decode an element from an incoming stream of bytes
     fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<T, io::Error>;
+}
 
-    // TODO: only used temporarily for coder testing, should be moved elsewhere
-    fn parse_yaml_value(&self, value: &serde_yaml::Value) -> T;
+trait CoderTestUtils
+where <Self as CoderTestUtils>::InternalCoderType: Clone +  fmt::Debug
+{
+    type InternalCoderType;
+
+    fn parse_yaml_value(&self, value: &serde_yaml::Value) -> <Self as CoderTestUtils>::InternalCoderType;
 }
 
 #[derive(Clone)]
@@ -158,8 +163,13 @@ impl CoderI<String> for StrUtf8Coder {
             }
         }
     }
+}
 
-    fn parse_yaml_value(&self, value: &serde_yaml::Value) -> String {
+impl CoderTestUtils for StrUtf8Coder
+{
+    type InternalCoderType = String;
+
+    fn parse_yaml_value(&self, value: &serde_yaml::Value) -> <StrUtf8Coder as CoderTestUtils>::InternalCoderType {
         value.as_str().unwrap().to_string()
     }
 }
@@ -264,7 +274,13 @@ impl CoderI<Vec<u8>> for BytesCoder {
         }
     }
 
-    fn parse_yaml_value(&self, value: &serde_yaml::Value) -> Vec<u8> {
+}
+
+impl CoderTestUtils for BytesCoder
+{
+    type InternalCoderType = Vec<u8>;
+
+    fn parse_yaml_value(&self, value: &serde_yaml::Value) -> <BytesCoder as CoderTestUtils>::InternalCoderType {
         value.as_str().unwrap().as_bytes().to_vec()
     }
 }
@@ -283,13 +299,18 @@ impl fmt::Debug for BytesCoder {
     }
 }
 
-#[derive(Clone)]
-pub struct KV<K, V> {
+#[derive(Clone, fmt::Debug)]
+pub struct KV<K, V>
+{
     k: PhantomData<K>,
     v: PhantomData<V>,
 }
 
-impl<K, V> KV<K, V> {
+impl<K, V> KV<K, V> 
+where
+    K: Clone + fmt::Debug,
+    V: Clone + fmt::Debug
+{
     pub fn new() -> Self {
         KV {
             k: PhantomData::default(),
@@ -329,7 +350,16 @@ impl<K, V> CoderI<KV<K, V>> for KVCoder<KV<K, V>> {
         unimplemented!()
     }
 
-    fn parse_yaml_value(&self, value: &serde_yaml::Value) -> KV<K, V> {
+}
+
+impl<K, V> CoderTestUtils for KVCoder<KV<K, V>>
+where
+    K: Clone + fmt::Debug,
+    V: Clone + fmt::Debug
+{
+    type InternalCoderType = KV<K, V>;
+
+    fn parse_yaml_value(&self, value: &serde_yaml::Value) -> <KVCoder<KV<K, V>> as CoderTestUtils>::InternalCoderType {
         unimplemented!()
     }
 }
@@ -374,7 +404,15 @@ impl<T> CoderI<Iterable<T>> for IterableCoder<T> {
         unimplemented!()
     }
 
-    fn parse_yaml_value(&self, value: &serde_yaml::Value) -> Iterable<T> {
+}
+
+impl<T> CoderTestUtils for IterableCoder<T>
+where
+    T: Clone + fmt::Debug
+{
+    type InternalCoderType = T;
+
+    fn parse_yaml_value(&self, value: &serde_yaml::Value) -> <IterableCoder<T> as CoderTestUtils>::InternalCoderType {
         unimplemented!()
     }
 }
@@ -471,7 +509,7 @@ mod tests {
 
     fn run_unnested<'a, C, E>(coder: &(dyn Any + 'a), _nested: bool, spec: &Value)
     where
-        C: CoderI<E> + 'a,
+        C: CoderI<E> + CoderTestUtils + CoderTestUtils<InternalCoderType = E> + 'a,
         E: Clone + std::fmt::Debug + PartialEq,
     {
         let examples = spec.get("examples").unwrap().as_mapping().unwrap();
@@ -484,7 +522,7 @@ mod tests {
 
     fn run_case<'a, C, E>(coder: &(dyn Any + 'a), expected_encoded: &Value, original: &Value)
     where
-        C: CoderI<E> + 'a,
+        C: CoderI<E> + CoderTestUtils + CoderTestUtils<InternalCoderType = E> + 'a,
         E: Clone + std::fmt::Debug + PartialEq,
     {
         let c: &C = coder.downcast_ref::<C>().unwrap();
