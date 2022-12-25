@@ -19,7 +19,7 @@
 use std::collections::HashMap;
 
 use beam_core::pvalue::{get_pcollection_name, PTransform, PType, PValue};
-use coders::standard_coders::BytesCoder;
+use coders::required_coders::BytesCoder;
 use internals::urns;
 use proto::beam::pipeline as proto_pipeline;
 
@@ -47,7 +47,7 @@ impl PTransform for Impulse {
 
         let coder_id = input.register_pipeline_coder_proto(proto_pipeline::Coder {
             spec: Some(proto_pipeline::FunctionSpec {
-                urn: String::from(coders::standard_coders::BYTES_CODER_URN),
+                urn: String::from(coders::urns::BYTES_CODER_URN),
                 payload: Vec::with_capacity(0),
             }),
             component_coder_ids: Vec::with_capacity(0),

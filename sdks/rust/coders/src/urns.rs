@@ -16,4 +16,8 @@
  * limitations under the License.
  */
 
-mod tests;
+pub const BYTES_CODER_URN: &str = "beam:coder:bytes:v1";
+pub const KV_CODER_URN: &str = "beam:coder:kvcoder:v1";
+pub const ITERABLE_CODER_URN: &str = "beam:coder:iterable:v1";
+
+pub const STR_UTF8_CODER_URN: &str = "beam:coder:string_utf8:v1";

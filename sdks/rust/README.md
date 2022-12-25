@@ -109,6 +109,8 @@ Prepare the environment and build the Rust project:
 
 #### Test
 
+At the moment, unit tests are contained in the lib file for each module and integration tests can be found in sdks/rust/src/tests.
+
 The following command (also available in the build script) can be used to run the available tests:
 
 ```

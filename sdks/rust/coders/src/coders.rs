@@ -16,6 +16,82 @@
  * limitations under the License.
  */
 
+use std::collections::HashMap;
+use std::io::{self, Read, Write};
+
+// TODO: reorganize modules and separate coders by type
+pub const BYTES_CODER_URN: &str = "beam:coder:bytes:v1";
+pub const KV_CODER_URN: &str = "beam:coder:kvcoder:v1";
+pub const ITERABLE_CODER_URN: &str = "beam:coder:iterable:v1";
+
+pub const STR_UTF8_CODER_URN: &str = "beam:coder:string_utf8:v1";
+
+pub struct CoderRegistry {
+    internal_registry: HashMap<&'static str, CoderTypeDiscriminants>,
+}
+
+impl CoderRegistry {
+    pub fn new() -> Self {
+        let internal_registry: HashMap<&'static str, CoderTypeDiscriminants> = HashMap::from([
+            (BYTES_CODER_URN, CoderTypeDiscriminants::Bytes),
+            (KV_CODER_URN, CoderTypeDiscriminants::KV),
+            (ITERABLE_CODER_URN, CoderTypeDiscriminants::Iterable),
+            (STR_UTF8_CODER_URN, CoderTypeDiscriminants::StrUtf8),
+        ]);
+
+        Self { internal_registry }
+    }
+
+    pub fn get_coder_type(&self, urn: &str) -> &CoderTypeDiscriminants {
+        let coder_type = self
+            .internal_registry
+            .get(urn)
+            .unwrap_or_else(|| panic!("No coder type registered for URN {urn}"));
+
+        coder_type
+    }
+
+    pub fn register(&mut self, urn: &'static str, coder_type: CoderTypeDiscriminants) {
+        self.internal_registry.insert(urn, coder_type);
+    }
+}
+
+impl Default for CoderRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Clone, EnumDiscriminants)]
+pub enum CoderType {
+    Bytes,
+    Iterable,
+    KV,
+    StrUtf8,
+
+    Placeholder,
+}
+
+// TODO: create and use separate AnyCoder trait instead of Any
+// ...
+
+/// This is the base interface for coders, which are responsible in Apache Beam to encode and decode
+///  elements of a PCollection.
+pub trait CoderI<T> {
+    fn get_coder_type(&self) -> &CoderTypeDiscriminants;
+
+    /// Encode an element into a stream of bytes
+    fn encode(
+        &self,
+        element: T,
+        writer: &mut dyn Write,
+        context: &Context,
+    ) -> Result<usize, io::Error>;
+
+    /// Decode an element from an incoming stream of bytes
+    fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<T, io::Error>;
+}
+
 /// The context for encoding a PCollection element.
 /// For example, for strings of utf8 characters or bytes, `WholeStream` encoding means
 /// that the string will be encoded as-is; while `NeedsDelimiter` encoding means that the

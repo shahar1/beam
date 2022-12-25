@@ -22,7 +22,8 @@ use std::sync::Arc;
 
 use std::sync::Mutex;
 
-use coders::standard_coders::{BytesCoder, CoderI};
+use coders::coders::CoderI;
+use coders::required_coders::BytesCoder;
 use proto::beam::pipeline as proto_pipeline;
 
 const _CODER_ID_PREFIX: &str = "coder_";
@@ -64,7 +65,7 @@ impl PValue {
 
         let proto_coder_id = pipeline.register_coder_proto(proto_pipeline::Coder {
             spec: Some(proto_pipeline::FunctionSpec {
-                urn: String::from(coders::standard_coders::BYTES_CODER_URN),
+                urn: String::from(coders::urns::BYTES_CODER_URN),
                 payload: Vec::with_capacity(0),
             }),
             component_coder_ids: Vec::with_capacity(0),
