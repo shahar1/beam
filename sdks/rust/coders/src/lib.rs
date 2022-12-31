@@ -38,10 +38,8 @@ mod tests {
     use serde_yaml::{Deserializer, Value};
 
     // TODO: empty this list
-    const UNSUPPORTED_CODERS: [&'static str; 14] = [
+    const UNSUPPORTED_CODERS: [&'static str; 13] = [
         "beam:coder:bool:v1",
-        // TODO: fix StrUtf8Coder for unicode values and retest it
-        "beam:coder:string_utf8:v1",
         "beam:coder:kv:v1",
         "beam:coder:interval_window:v1",
         "beam:coder:iterable:v1",
@@ -129,7 +127,9 @@ mod tests {
             &self,
             value: &serde_yaml::Value,
         ) -> <VarIntCoder as CoderTestUtils>::InternalCoderType {
-            if !value.is_u64() {return value.as_i64().unwrap() as u64;}
+            if !value.is_u64() {
+                return value.as_i64().unwrap() as u64;
+            }
 
             value.as_u64().unwrap()
         }
@@ -152,7 +152,7 @@ mod tests {
         let standard_coders_dir = beam_root_dir.join(STANDARD_CODERS_FILE);
 
         let f = std::fs::read(standard_coders_dir).expect("Unable to read file");
-        
+
         for doc in Deserializer::from_slice(&f) {
             let spec = Value::deserialize(doc).expect("Unable to parse document");
 
@@ -217,7 +217,8 @@ mod tests {
     {
         let c: &C = coder.downcast_ref::<C>().unwrap();
         // The expected encodings in standard_coders.yaml need to be read as UTF-16
-        let expected_enc_utf16: Vec<u16> = expected_encoded.as_str().unwrap().encode_utf16().collect();
+        let expected_enc_utf16: Vec<u16> =
+            expected_encoded.as_str().unwrap().encode_utf16().collect();
         let mut expected_enc: Vec<u8> = Vec::new();
         for w in expected_enc_utf16 {
             expected_enc.push(w as u8);

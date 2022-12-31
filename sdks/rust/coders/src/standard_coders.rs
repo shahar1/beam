@@ -30,7 +30,7 @@
 use std::fmt;
 use std::io::{self, ErrorKind, Read, Write};
 
-use integer_encoding::{VarIntReader, VarIntWriter, VarInt};
+use integer_encoding::{VarInt, VarIntReader, VarIntWriter};
 
 use crate::coders::{CoderI, CoderTypeDiscriminants, Context};
 use crate::required_coders::BytesCoder;
@@ -117,7 +117,7 @@ impl VarIntCoder {
 
 // TODO: passes tests for -1 if it gets casted to u64 and encoded as such.
 // Revisit this later
-impl<N> CoderI<N> for VarIntCoder 
+impl<N> CoderI<N> for VarIntCoder
 where
     N: fmt::Debug + VarInt,
 {
