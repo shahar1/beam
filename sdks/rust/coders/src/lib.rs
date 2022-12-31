@@ -38,11 +38,10 @@ mod tests {
     use serde_yaml::{Deserializer, Value};
 
     // TODO: empty this list
-    const UNSUPPORTED_CODERS: [&'static str; 15] = [
+    const UNSUPPORTED_CODERS: [&'static str; 14] = [
         "beam:coder:bool:v1",
         // TODO: fix StrUtf8Coder for unicode values and retest it
         "beam:coder:string_utf8:v1",
-        "beam:coder:varint:v1",
         "beam:coder:kv:v1",
         "beam:coder:interval_window:v1",
         "beam:coder:iterable:v1",
@@ -83,17 +82,6 @@ mod tests {
         }
     }
 
-    impl CoderTestUtils for StrUtf8Coder {
-        type InternalCoderType = String;
-
-        fn parse_yaml_value(
-            &self,
-            value: &serde_yaml::Value,
-        ) -> <StrUtf8Coder as CoderTestUtils>::InternalCoderType {
-            value.as_str().unwrap().to_string()
-        }
-    }
-
     impl<K, V> CoderTestUtils for KVCoder<KV<K, V>>
     where
         K: Clone + fmt::Debug,
@@ -123,6 +111,30 @@ mod tests {
         }
     }
 
+    impl CoderTestUtils for StrUtf8Coder {
+        type InternalCoderType = String;
+
+        fn parse_yaml_value(
+            &self,
+            value: &serde_yaml::Value,
+        ) -> <StrUtf8Coder as CoderTestUtils>::InternalCoderType {
+            value.as_str().unwrap().to_string()
+        }
+    }
+
+    impl CoderTestUtils for VarIntCoder {
+        type InternalCoderType = u64;
+
+        fn parse_yaml_value(
+            &self,
+            value: &serde_yaml::Value,
+        ) -> <VarIntCoder as CoderTestUtils>::InternalCoderType {
+            if !value.is_u64() {return value.as_i64().unwrap() as u64;}
+
+            value.as_u64().unwrap()
+        }
+    }
+
     #[test]
     fn test_coders() {
         let coder_registry = CoderRegistry::new();
@@ -139,8 +151,9 @@ mod tests {
             .unwrap();
         let standard_coders_dir = beam_root_dir.join(STANDARD_CODERS_FILE);
 
-        let f = std::fs::File::open(standard_coders_dir).expect("Unable to read file");
-        for doc in Deserializer::from_reader(f) {
+        let f = std::fs::read(standard_coders_dir).expect("Unable to read file");
+        
+        for doc in Deserializer::from_slice(&f) {
             let spec = Value::deserialize(doc).expect("Unable to parse document");
 
             let urn_spec = spec
@@ -175,6 +188,10 @@ mod tests {
                     let c = StrUtf8Coder::new();
                     run_unnested::<StrUtf8Coder, String>(&c, nested, &spec);
                 }
+                CoderTypeDiscriminants::VarIntCoder => {
+                    let c = VarIntCoder::new();
+                    run_unnested::<VarIntCoder, u64>(&c, nested, &spec);
+                }
                 _ => unimplemented!(),
             }
         }
@@ -199,8 +216,12 @@ mod tests {
         E: Clone + std::fmt::Debug + PartialEq,
     {
         let c: &C = coder.downcast_ref::<C>().unwrap();
-
-        let expected_enc = expected_encoded.as_str().unwrap().as_bytes().to_vec();
+        // The expected encodings in standard_coders.yaml need to be read as UTF-16
+        let expected_enc_utf16: Vec<u16> = expected_encoded.as_str().unwrap().encode_utf16().collect();
+        let mut expected_enc: Vec<u8> = Vec::new();
+        for w in expected_enc_utf16 {
+            expected_enc.push(w as u8);
+        }
 
         let mut writer = vec![].writer();
         let mut reader = expected_enc.reader();
@@ -222,7 +243,7 @@ mod tests {
             expected_enc.as_slice(), encoded, expected_dec, decoded
         );
 
-        assert_eq!(encoded, expected_enc.as_slice());
+        assert_eq!(encoded.as_slice(), expected_enc.as_slice());
         assert_eq!(decoded, expected_dec);
     }
 }
