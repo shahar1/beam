@@ -153,6 +153,7 @@ name = "coders"
 version = "0.1.0"
 dependencies = [
  "bytes",
+ "integer-encoding",
  "proto",
  "serde",
  "serde_yaml",
@@ -431,6 +432,12 @@ checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
  "cfg-if",
 ]
+
+[[package]]
+name = "integer-encoding"
+version = "3.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8bb03732005da905c88227371639bf1ad885cc712789c011c31c5fb3ab3ccf02"
 
 [[package]]
 name = "internals"

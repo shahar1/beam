@@ -30,6 +30,8 @@
 use std::fmt;
 use std::io::{self, ErrorKind, Read, Write};
 
+use integer_encoding::{VarIntReader, VarIntWriter, VarInt};
+
 use crate::coders::{CoderI, CoderTypeDiscriminants, Context};
 use crate::required_coders::BytesCoder;
 use crate::urns::*;
@@ -93,6 +95,60 @@ impl Default for StrUtf8Coder {
 impl fmt::Debug for StrUtf8Coder {
     fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("StrUtf8Coder")
+            .field("urn", &self.urn)
+            .finish()
+    }
+}
+
+#[derive(Clone)]
+pub struct VarIntCoder {
+    coder_type: CoderTypeDiscriminants,
+    urn: &'static str,
+}
+
+impl VarIntCoder {
+    pub fn new() -> Self {
+        Self {
+            coder_type: CoderTypeDiscriminants::VarIntCoder,
+            urn: VARINT_CODER_URN,
+        }
+    }
+}
+
+// TODO: passes tests for -1 if it gets casted to u64 and encoded as such.
+// Revisit this later
+impl<N> CoderI<N> for VarIntCoder 
+where
+    N: fmt::Debug + VarInt,
+{
+    fn get_coder_type(&self) -> &CoderTypeDiscriminants {
+        &self.coder_type
+    }
+
+    // TODO: try to adapt CoderI such that the context arg is not mandatory
+    fn encode(
+        &self,
+        element: N,
+        mut writer: &mut dyn Write,
+        _context: &Context,
+    ) -> Result<usize, io::Error> {
+        writer.write_varint(element)
+    }
+
+    fn decode(&self, mut reader: &mut dyn Read, _context: &Context) -> Result<N, io::Error> {
+        reader.read_varint()
+    }
+}
+
+impl Default for VarIntCoder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl fmt::Debug for VarIntCoder {
+    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+        o.debug_struct("VarIntCoder")
             .field("urn", &self.urn)
             .finish()
     }

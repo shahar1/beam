@@ -19,12 +19,7 @@
 use std::collections::HashMap;
 use std::io::{self, Read, Write};
 
-// TODO: reorganize modules and separate coders by type
-pub const BYTES_CODER_URN: &str = "beam:coder:bytes:v1";
-pub const KV_CODER_URN: &str = "beam:coder:kvcoder:v1";
-pub const ITERABLE_CODER_URN: &str = "beam:coder:iterable:v1";
-
-pub const STR_UTF8_CODER_URN: &str = "beam:coder:string_utf8:v1";
+use crate::urns::*;
 
 pub struct CoderRegistry {
     internal_registry: HashMap<&'static str, CoderTypeDiscriminants>,
@@ -37,6 +32,7 @@ impl CoderRegistry {
             (KV_CODER_URN, CoderTypeDiscriminants::KV),
             (ITERABLE_CODER_URN, CoderTypeDiscriminants::Iterable),
             (STR_UTF8_CODER_URN, CoderTypeDiscriminants::StrUtf8),
+            (VARINT_CODER_URN, CoderTypeDiscriminants::VarIntCoder),
         ]);
 
         Self { internal_registry }
@@ -64,12 +60,14 @@ impl Default for CoderRegistry {
 
 #[derive(Clone, EnumDiscriminants)]
 pub enum CoderType {
+    // ******* Required coders *******
     Bytes,
     Iterable,
     KV,
-    StrUtf8,
 
-    Placeholder,
+    // ******* Standard coders *******
+    StrUtf8,
+    VarIntCoder,
 }
 
 // TODO: create and use separate AnyCoder trait instead of Any
