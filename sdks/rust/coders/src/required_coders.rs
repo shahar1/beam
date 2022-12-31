@@ -33,6 +33,8 @@ use std::fmt;
 use std::io::{self, Read, Write};
 use std::marker::PhantomData;
 
+use integer_encoding::{VarIntReader, VarIntWriter};
+
 use crate::coders::{CoderI, CoderTypeDiscriminants, Context};
 use crate::urns::*;
 
@@ -65,15 +67,20 @@ impl CoderI<Vec<u8>> for BytesCoder {
     fn encode(
         &self,
         element: Vec<u8>,
-        writer: &mut dyn Write,
+        mut writer: &mut dyn Write,
         context: &Context,
     ) -> Result<usize, io::Error> {
         match context {
-            // TODO: write to the buffer ignoring the preceding bytes that would
-            // be used as a u32 to represent a delimiter (when that functionality
-            // gets implemented)
             Context::WholeStream => writer.write(&element),
-            Context::NeedsDelimiters => writer.write(&element),
+            Context::NeedsDelimiters => {
+                // TODO: confirm that usize gets decoded correctly by production runners
+                let delimiter: usize = element.len();
+                writer
+                    .write_varint(delimiter)
+                    .expect("Unable to write delimiter to buffer");
+
+                writer.write(&element)
+            }
         }
     }
 
@@ -82,42 +89,40 @@ impl CoderI<Vec<u8>> for BytesCoder {
     /// the length of the data.
     ///
     /// If the context is `WholeStream`, the whole input stream is decoded as-is.
-    fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<Vec<u8>, io::Error> {
+    fn decode(&self, mut reader: &mut dyn Read, context: &Context) -> Result<Vec<u8>, io::Error> {
         match context {
             Context::WholeStream => {
                 let mut buf: Vec<u8> = Vec::new();
                 reader.read_to_end(&mut buf)?;
                 Ok(buf)
             }
-            // TODO: interpret the preceding bytes in the buffer as a u32 flag
-            // and use that value as a length delimiter (whenever it gets
-            // implemented)
+
             Context::NeedsDelimiters => {
-                unimplemented!()
+                let delimiter: usize = reader
+                    .read_varint()
+                    .expect("Unable to read delimiter from buffer");
 
-                // // Read initial bytes as u32
-                // let length = ...
+                let mut buf: Vec<u8> = Vec::new();
 
-                // let mut buf: Vec<u8> = Vec::new();
+                let mut num_bytes_read = 0;
+                for b in reader.bytes() {
+                    if num_bytes_read == delimiter {
+                        break;
+                    }
 
-                // // Read as many bytes as possible (or should it fail if there
-                // // are fewer bytes available than length?)
-                // let mut num_bytes_read = 0;
-                // for b in reader.bytes() {
-                //     if num_bytes_read == length || b.is_err() {
-                //         break;
-                //     }
+                    if b.is_err() {
+                        return Err(io::Error::from(std::io::ErrorKind::UnexpectedEof));
+                    }
 
-                //     buf.push(b.unwrap());
-                //     num_bytes_read += 1;
-                // }
+                    buf.push(b.expect("Unable to read byte"));
+                    num_bytes_read += 1;
+                }
 
-                // use std::io::ErrorKind;
-                // if num_bytes_read == 0 {
-                //     return Err(io::Error::from(ErrorKind::UnexpectedEof));
-                // }
+                if num_bytes_read < delimiter {
+                    return Err(io::Error::from(std::io::ErrorKind::UnexpectedEof));
+                }
 
-                // Ok(buf)
+                Ok(buf)
             }
         }
     }

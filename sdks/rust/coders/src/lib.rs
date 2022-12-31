@@ -252,20 +252,25 @@ mod tests {
 
     #[test]
     fn test_general_object_coder() {
-        let coder: GeneralObjectCoder<String> = GeneralObjectCoder::new();
-        let input = "abcde".to_string();
+        fn string_test() {
+            let coder: GeneralObjectCoder<String> = GeneralObjectCoder::new();
+            let input = "abcde".to_string();
 
-        let mut writer = vec![].writer();
-        coder
-            .encode(input.clone(), &mut writer, &Context::NeedsDelimiters)
-            .unwrap();
-        let buf = writer.into_inner();
+            let mut writer = vec![].writer();
+            coder
+                .encode(input.clone(), &mut writer, &Context::NeedsDelimiters)
+                .unwrap();
+            let buf = writer.into_inner();
 
-        let mut reader = buf.reader();
-        let decoded = coder
-            .decode(&mut reader, &Context::NeedsDelimiters)
-            .unwrap();
+            let mut reader = buf.reader();
+            let decoded = coder
+                .decode(&mut reader, &Context::NeedsDelimiters)
+                .unwrap();
 
-        assert_eq!(input, decoded);
+            assert_eq!(input, decoded);
+        }
+
+        string_test();
+        
     }
 }
