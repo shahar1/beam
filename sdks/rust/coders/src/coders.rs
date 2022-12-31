@@ -29,6 +29,10 @@ impl CoderRegistry {
     pub fn new() -> Self {
         let internal_registry: HashMap<&'static str, CoderTypeDiscriminants> = HashMap::from([
             (BYTES_CODER_URN, CoderTypeDiscriminants::Bytes),
+            (
+                GENERAL_OBJECT_CODER_URN,
+                CoderTypeDiscriminants::GeneralObject,
+            ),
             (KV_CODER_URN, CoderTypeDiscriminants::KV),
             (ITERABLE_CODER_URN, CoderTypeDiscriminants::Iterable),
             (STR_UTF8_CODER_URN, CoderTypeDiscriminants::StrUtf8),
@@ -64,6 +68,9 @@ pub enum CoderType {
     Bytes,
     Iterable,
     KV,
+
+    // ******* Rust coders *******
+    GeneralObject,
 
     // ******* Standard coders *******
     StrUtf8,

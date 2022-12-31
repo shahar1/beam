@@ -18,6 +18,7 @@
 
 pub mod coders;
 pub mod required_coders;
+pub mod rust_coders;
 pub mod standard_coders;
 pub mod urns;
 
@@ -28,6 +29,7 @@ extern crate strum_macros;
 mod tests {
     use super::coders::*;
     use super::required_coders::*;
+    use super::rust_coders::*;
     use super::standard_coders::*;
 
     use std::any::Any;
@@ -136,7 +138,7 @@ mod tests {
     }
 
     #[test]
-    fn test_coders() {
+    fn test_standard_coders() {
         let coder_registry = CoderRegistry::new();
 
         // TODO: Move this to utils module
@@ -246,5 +248,24 @@ mod tests {
 
         assert_eq!(encoded.as_slice(), expected_enc.as_slice());
         assert_eq!(decoded, expected_dec);
+    }
+
+    #[test]
+    fn test_general_object_coder() {
+        let coder: GeneralObjectCoder<String> = GeneralObjectCoder::new();
+        let input = "abcde".to_string();
+
+        let mut writer = vec![].writer();
+        coder
+            .encode(input.clone(), &mut writer, &Context::NeedsDelimiters)
+            .unwrap();
+        let buf = writer.into_inner();
+
+        let mut reader = buf.reader();
+        let decoded = coder
+            .decode(&mut reader, &Context::NeedsDelimiters)
+            .unwrap();
+
+        assert_eq!(input, decoded);
     }
 }

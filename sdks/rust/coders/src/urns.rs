@@ -24,3 +24,6 @@ pub const ITERABLE_CODER_URN: &str = "beam:coder:iterable:v1";
 // ******* Required coders *******
 pub const STR_UTF8_CODER_URN: &str = "beam:coder:string_utf8:v1";
 pub const VARINT_CODER_URN: &str = "beam:coder:varint:v1";
+
+// ******* Rust coders *******
+pub const GENERAL_OBJECT_CODER_URN: &str = "beam:coder:genericobjectjs:v1";
