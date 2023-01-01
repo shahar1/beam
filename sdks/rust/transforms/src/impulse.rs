@@ -35,8 +35,10 @@ impl Impulse {
     }
 }
 
-impl PTransform for Impulse {
-    fn expand(mut self, input: PValue) -> PValue {
+// Input type should be never(!)
+// https://github.com/rust-lang/rust/issues/35121
+impl PTransform<bool, Vec<u8>> for Impulse {
+    fn expand(mut self, input: PValue<bool>) -> PValue<Vec<u8>> {
         assert!(*input.get_type() == PType::Root);
 
         // TODO: move this elsewhere

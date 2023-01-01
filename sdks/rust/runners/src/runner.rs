@@ -38,9 +38,11 @@ pub trait RunnerI {
     /// Runs the transform.
     /// Resolves to an instance of PipelineResult when the pipeline completes.
     /// Use run_async() to execute the pipeline in the background.
-    async fn run<F>(&self, pipeline: F)
+    async fn run<In, Out, F>(&self, pipeline: F)
     where
-        F: FnOnce(PValue) -> PValue + Send,
+        In: Send,
+        Out: Send,
+        F: FnOnce(PValue<In>) -> PValue<Out> + Send,
     {
         self.run_async(pipeline).await;
     }
@@ -48,9 +50,11 @@ pub trait RunnerI {
     /// run_async() is the asynchronous version of run(), does not wait until
     /// pipeline finishes. Use the returned PipelineResult to query job
     /// status.
-    async fn run_async<F>(&self, pipeline: F)
+    async fn run_async<In, Out, F>(&self, pipeline: F)
     where
-        F: FnOnce(PValue) -> PValue + Send,
+        In: Send,
+        Out: Send,
+        F: FnOnce(PValue<In>) -> PValue<Out> + Send,
     {
         let p = Arc::new(Pipeline::new());
         let root = PValue::new_root(p.clone());

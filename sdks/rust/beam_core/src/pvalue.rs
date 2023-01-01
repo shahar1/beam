@@ -18,24 +18,33 @@
 
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::sync::Arc;
-
-use std::sync::Mutex;
 
 use coders::coders::CoderI;
 use coders::required_coders::BytesCoder;
 use internals::pipeline::Pipeline;
 use proto::beam::pipeline as proto_pipeline;
 
+// T should be never(!) for Root
+// https://github.com/rust-lang/rust/issues/35121
 #[derive(Clone)]
-pub struct PValue {
+pub struct PValue<T>
+where
+    T: Send,
+{
     ptype: PType,
     name: String,
     pcoll_proto: proto_pipeline::PCollection,
     pipeline: Arc<Pipeline>,
+
+    phantom: PhantomData<T>,
 }
 
-impl PValue {
+impl<T> PValue<T>
+where
+    T: Send,
+{
     pub fn new(
         ptype: PType,
         name: String,
@@ -47,6 +56,8 @@ impl PValue {
             name,
             pcoll_proto,
             pipeline,
+
+            phantom: PhantomData::default(),
         }
     }
 
@@ -110,16 +121,17 @@ impl PValue {
         &self.ptype
     }
 
-    pub fn apply<F>(self, transform: F) -> PValue
+    pub fn apply<F, Out>(self, transform: F) -> PValue<Out>
     where
-        F: PTransform + Send,
+        Out: Send,
+        F: PTransform<T, Out> + Send,
     {
         transform.expand(self)
     }
 
-    pub fn map(&self, callable: impl Fn() -> PValue) -> PValue {
-        unimplemented!()
-    }
+    // pub fn map(&self, callable: impl Fn() -> PValue) -> PValue {
+    //     unimplemented!()
+    // }
 }
 
 // Anonymous sum types would probably be better, if/when they become
@@ -133,8 +145,12 @@ pub enum PType {
     PValueMap,
 }
 
-pub trait PTransform {
-    fn expand(self, input: PValue) -> PValue
+pub trait PTransform<In, Out>
+where
+    In: Send,
+    Out: Send,
+{
+    fn expand(self, input: PValue<In>) -> PValue<Out>
     where
         Self: Sized,
     {
