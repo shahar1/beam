@@ -24,4 +24,6 @@ edition = "2021"
 coders = { path = "../coders" }
 proto = { path = "../proto" }
 
+async-trait = "0.1.60"
 rand = "0.7"
+tokio = { version = "1.0", features = ["rt-multi-thread", "macros", "sync", "time"] }

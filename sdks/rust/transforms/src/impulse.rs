@@ -18,8 +18,8 @@
 
 use std::collections::HashMap;
 
-use beam_core::pvalue::{PTransform, PType, PValue};
 use coders::required_coders::BytesCoder;
+use internals::pvalue::{PTransform, PType, PValue};
 use internals::{pipeline::get_pcollection_name, urns};
 use proto::beam::pipeline as proto_pipeline;
 

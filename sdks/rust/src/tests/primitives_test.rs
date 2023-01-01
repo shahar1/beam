@@ -22,9 +22,9 @@ mod tests {
     use std::any::Any;
     use std::sync::Arc;
 
-    use beam_core::pvalue::{PType, PValue};
     use coders::required_coders::BytesCoder;
     use internals::pipeline::Pipeline;
+    use internals::pvalue::{PType, PValue};
     use runners::direct_runner::DirectRunner;
     use runners::runner::RunnerI;
     use transforms::impulse::Impulse;
@@ -38,7 +38,7 @@ mod tests {
 
     #[tokio::test]
     async fn run_impulse_expansion() {
-        let p = Arc::new(Pipeline::new());
+        let p = Arc::new(Pipeline::default());
         let root = PValue::new_root(p.clone());
 
         let pcoll = root.apply(Impulse::new());

@@ -23,8 +23,9 @@ use std::sync::Arc;
 
 use coders::coders::CoderI;
 use coders::required_coders::BytesCoder;
-use internals::pipeline::Pipeline;
 use proto::beam::pipeline as proto_pipeline;
+
+use crate::pipeline::Pipeline;
 
 // T should be never(!) for Root
 // https://github.com/rust-lang/rust/issues/35121

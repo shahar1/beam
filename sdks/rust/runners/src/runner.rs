@@ -21,8 +21,8 @@ use std::{pin::Pin, sync::Arc};
 
 use async_trait::async_trait;
 
-use beam_core::pvalue::PValue;
 use internals::pipeline::Pipeline;
+use internals::pvalue::PValue;
 use proto::beam::pipeline as proto_pipeline;
 
 pub type Task = Pin<Box<dyn Future<Output = ()> + Send>>;
@@ -56,7 +56,7 @@ pub trait RunnerI {
         Out: Send,
         F: FnOnce(PValue<In>) -> PValue<Out> + Send,
     {
-        let p = Arc::new(Pipeline::new());
+        let p = Arc::new(Pipeline::default());
         let root = PValue::new_root(p.clone());
 
         (pipeline)(root);

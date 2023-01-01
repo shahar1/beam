@@ -18,13 +18,12 @@
 
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
-use std::sync::Arc;
-
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use coders::coders::CoderI;
-use coders::required_coders::BytesCoder;
 use proto::beam::pipeline as proto_pipeline;
+
+use crate::pvalue::PTransform;
 
 const _CODER_ID_PREFIX: &str = "coder_";
 
@@ -37,7 +36,38 @@ pub fn get_pcollection_name() -> String {
     format!("ref_PCollection_{}", bad_id)
 }
 
+pub struct PipelineContext {
+    component_prefix: String,
+    counter: Arc<Mutex<usize>>,
+}
+
+impl PipelineContext {
+    pub fn new(component_prefix: String) -> Self {
+        Self {
+            component_prefix,
+            counter: Arc::new(Mutex::new(0)),
+        }
+    }
+
+    pub fn create_unique_name(&self, prefix: String) -> String {
+        format!(
+            "{}{}_{}",
+            self.component_prefix,
+            prefix,
+            self.get_and_increment_counter()
+        )
+    }
+
+    fn get_and_increment_counter(&self) -> usize {
+        let mut counter = self.counter.lock().unwrap();
+        *counter += 1;
+
+        *counter - 1
+    }
+}
+
 pub struct Pipeline {
+    context: PipelineContext,
     proto: Arc<Mutex<proto_pipeline::Pipeline>>,
     // TODO: use AnyCoder instead of Any
     coders: Mutex<HashMap<TypeId, Box<dyn Any + Send>>>,
@@ -46,7 +76,7 @@ pub struct Pipeline {
 }
 
 impl<'a> Pipeline {
-    pub fn new() -> Self {
+    pub fn new(component_prefix: String) -> Self {
         let proto = proto_pipeline::Pipeline {
             components: Some(proto_pipeline::Components {
                 transforms: HashMap::with_capacity(0),
@@ -61,8 +91,9 @@ impl<'a> Pipeline {
         };
 
         Pipeline {
+            context: PipelineContext::new(component_prefix),
             proto: Arc::new(Mutex::new(proto)),
-            // TODO: try to refactor to RwLock
+
             coders: Mutex::new(HashMap::new()),
             coder_proto_counter: Mutex::new(0),
         }
@@ -125,10 +156,43 @@ impl<'a> Pipeline {
             .transforms
             .insert(transform.unique_name.clone(), transform);
     }
+
+    pub fn pre_apply_transform<In, Out, F>(
+        &self,
+        transform: F,
+    ) -> (String, proto_pipeline::PTransform)
+    where
+        In: Send,
+        Out: Send,
+        F: PTransform<In, Out> + Send,
+    {
+        todo!()
+    }
+
+    pub fn apply_transform<In, Out, F>(&self, transform: F)
+    where
+        In: Send,
+        Out: Send,
+        F: PTransform<In, Out> + Send,
+    {
+        let (id, tproto) = self.pre_apply_transform(transform);
+        let result: Out;
+
+        todo!()
+    }
+
+    pub fn post_apply_transform<In, Out, F>(&self, transform: F)
+    where
+        In: Send,
+        Out: Send,
+        F: PTransform<In, Out> + Send,
+    {
+        todo!()
+    }
 }
 
 impl Default for Pipeline {
     fn default() -> Self {
-        Self::new()
+        Self::new("".to_string())
     }
 }

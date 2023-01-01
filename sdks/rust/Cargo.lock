@@ -119,18 +119,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
 
 [[package]]
-name = "beam_core"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "coders",
- "internals",
- "proto",
- "rand 0.7.3",
- "tokio",
-]
-
-[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -443,9 +431,11 @@ checksum = "8bb03732005da905c88227371639bf1ad885cc712789c011c31c5fb3ab3ccf02"
 name = "internals"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "coders",
  "proto",
  "rand 0.7.3",
+ "tokio",
 ]
 
 [[package]]
@@ -792,7 +782,6 @@ name = "runners"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "beam_core",
  "coders",
  "futures",
  "internals",
@@ -805,7 +794,6 @@ dependencies = [
 name = "rust_sdk"
 version = "0.1.0"
 dependencies = [
- "beam_core",
  "coders",
  "internals",
  "runners",
@@ -1141,7 +1129,6 @@ name = "transforms"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "beam_core",
  "coders",
  "internals",
  "proto",

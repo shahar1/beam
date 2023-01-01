@@ -17,4 +17,5 @@
  */
 
 pub mod pipeline;
+pub mod pvalue;
 pub mod urns;

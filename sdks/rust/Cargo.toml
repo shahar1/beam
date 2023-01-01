@@ -27,7 +27,6 @@ path = "src/main.rs"
 
 [workspace]
 members = [
-  "beam_core",
   "coders",
   "internals",
   "proto",
@@ -37,7 +36,6 @@ members = [
 ]
 
 [dependencies]
-beam_core = { path = "beam_core" }
 coders = { path = "coders" }
 internals = { path = "internals" }
 runners = { path = "runners" }
