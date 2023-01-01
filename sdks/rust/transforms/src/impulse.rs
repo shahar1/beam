@@ -17,8 +17,10 @@
  */
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use coders::required_coders::BytesCoder;
+use internals::pipeline::Pipeline;
 use internals::pvalue::{PTransform, PType, PValue};
 use internals::{pipeline::get_pcollection_name, urns};
 use proto::beam::pipeline as proto_pipeline;
@@ -38,12 +40,8 @@ impl Impulse {
 // Input type should be never(!)
 // https://github.com/rust-lang/rust/issues/35121
 impl PTransform<bool, Vec<u8>> for Impulse {
-    fn expand(mut self, input: PValue<bool>) -> PValue<Vec<u8>> {
+    fn expand(&self, input: PValue<bool>) -> PValue<Vec<u8>> {
         assert!(*input.get_type() == PType::Root);
-
-        // TODO: move this elsewhere
-        // TODO: import value from StandardPTransforms_Primitives in proto.pipelines
-        self.urn = "beam:transform:impulse:v1";
 
         let pcoll_name = get_pcollection_name();
 
@@ -87,6 +85,18 @@ impl PTransform<bool, Vec<u8>> for Impulse {
             output_proto,
             input.get_pipeline_arc(),
         )
+    }
+
+    fn expand_internal(
+        &self,
+        input: PValue<bool>,
+        pipeline: Arc<Pipeline>,
+        transform_proto: proto_pipeline::PTransform,
+    ) -> PValue<Vec<u8>>
+    where
+        Self: Sized,
+    {
+        self.expand(input)
     }
 }
 

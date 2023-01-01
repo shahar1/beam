@@ -19,3 +19,16 @@
 pub mod pipeline;
 pub mod pvalue;
 pub mod urns;
+
+pub mod utils {
+    use rand::{distributions::Alphanumeric, Rng};
+
+    // TODO: generate unique IDs correctly
+    pub fn get_bad_id() -> String {
+        rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(7)
+            .map(char::from)
+            .collect()
+    }
+}

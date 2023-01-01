@@ -32,8 +32,9 @@ use crate::pipeline::Pipeline;
 #[derive(Clone)]
 pub struct PValue<T>
 where
-    T: Send,
+    T: Clone + Send,
 {
+    id: String,
     ptype: PType,
     name: String,
     pcoll_proto: proto_pipeline::PCollection,
@@ -44,7 +45,7 @@ where
 
 impl<T> PValue<T>
 where
-    T: Send,
+    T: Clone + Send,
 {
     pub fn new(
         ptype: PType,
@@ -53,6 +54,7 @@ where
         pipeline: Arc<Pipeline>,
     ) -> Self {
         Self {
+            id: crate::utils::get_bad_id(),
             ptype,
             name,
             pcoll_proto,
@@ -121,10 +123,13 @@ where
     pub fn get_type(&self) -> &PType {
         &self.ptype
     }
+    pub fn get_id(&self) -> String {
+        self.id.clone()
+    }
 
     pub fn apply<F, Out>(self, transform: F) -> PValue<Out>
     where
-        Out: Send,
+        Out: Clone + Send,
         F: PTransform<T, Out> + Send,
     {
         transform.expand(self)
@@ -133,6 +138,32 @@ where
     // pub fn map(&self, callable: impl Fn() -> PValue) -> PValue {
     //     unimplemented!()
     // }
+}
+
+/// Returns a PValue as a flat object with string keys and PCollection values.
+///
+/// The full set of PCollections reachable by this PValue will be returned,
+/// with keys corresponding roughly to the path taken to get there
+pub fn flatten_pvalue<T>(pvalue: PValue<T>, prefix: Option<String>) -> HashMap<String, PValue<T>>
+where
+    T: Clone + Send,
+{
+    let mut result: HashMap<String, PValue<T>> = HashMap::new();
+    match pvalue.ptype {
+        PType::PCollection => match prefix {
+            Some(pr) => {
+                result.insert(pr, pvalue);
+            }
+            None => {
+                result.insert("main".to_string(), pvalue);
+            }
+        },
+        PType::PValueArr => todo!(),
+        PType::PValueMap => todo!(),
+        PType::Root => panic!("Unexpected root PValue"),
+    }
+
+    result
 }
 
 // Anonymous sum types would probably be better, if/when they become
@@ -148,21 +179,25 @@ pub enum PType {
 
 pub trait PTransform<In, Out>
 where
-    In: Send,
-    Out: Send,
+    In: Clone + Send,
+    Out: Clone + Send,
 {
-    fn expand(self, input: PValue<In>) -> PValue<Out>
+    fn expand(&self, input: PValue<In>) -> PValue<Out>
     where
         Self: Sized,
     {
-        match input.get_type() {
-            PType::Root => {
-                panic!()
-            }
-            PType::PCollection => {
-                unimplemented!()
-            }
-            _ => unimplemented!(),
-        }
+        unimplemented!()
+    }
+
+    fn expand_internal(
+        &self,
+        input: PValue<In>,
+        pipeline: Arc<Pipeline>,
+        transform_proto: proto_pipeline::PTransform,
+    ) -> PValue<Out>
+    where
+        Self: Sized,
+    {
+        self.expand(input)
     }
 }

@@ -17,13 +17,13 @@
  */
 
 use std::any::{Any, TypeId};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use coders::coders::CoderI;
 use proto::beam::pipeline as proto_pipeline;
 
-use crate::pvalue::PTransform;
+use crate::pvalue::{flatten_pvalue, PTransform, PValue};
 
 const _CODER_ID_PREFIX: &str = "coder_";
 
@@ -68,7 +68,11 @@ impl PipelineContext {
 
 pub struct Pipeline {
     context: PipelineContext,
+    default_environment: String,
     proto: Arc<Mutex<proto_pipeline::Pipeline>>,
+    transform_stack: Vec<String>,
+    used_stage_names: HashSet<String>,
+
     // TODO: use AnyCoder instead of Any
     coders: Mutex<HashMap<TypeId, Box<dyn Any + Send>>>,
 
@@ -91,8 +95,11 @@ impl<'a> Pipeline {
         };
 
         Pipeline {
-            context: PipelineContext::new(component_prefix),
+            context: PipelineContext::new(component_prefix.clone()),
+            default_environment: format!("{}rustEnvironment", component_prefix),
             proto: Arc::new(Mutex::new(proto)),
+            transform_stack: Vec::with_capacity(0),
+            used_stage_names: HashSet::with_capacity(0),
 
             coders: Mutex::new(HashMap::new()),
             coder_proto_counter: Mutex::new(0),
@@ -158,36 +165,115 @@ impl<'a> Pipeline {
     }
 
     pub fn pre_apply_transform<In, Out, F>(
-        &self,
-        transform: F,
+        &mut self,
+        transform: &F,
+        input: &PValue<In>,
     ) -> (String, proto_pipeline::PTransform)
     where
-        In: Send,
-        Out: Send,
+        In: Clone + Send,
+        Out: Clone + Send,
         F: PTransform<In, Out> + Send,
     {
-        todo!()
+        let transform_id = self.context.create_unique_name("transform".to_string());
+        let mut parent: Option<&proto_pipeline::PTransform> = None;
+
+        let mut pipeline_proto = self.proto.lock().unwrap();
+
+        if self.transform_stack.is_empty() {
+            pipeline_proto.root_transform_ids.push(transform_id.clone());
+        } else {
+            let p = pipeline_proto
+                .components
+                .as_mut()
+                .expect("No components on pipeline proto")
+                .transforms
+                .get_mut(
+                    self.transform_stack
+                        .last()
+                        .expect("Transform stack is empty"),
+                )
+                .expect("Transform ID not registered on pipeline proto");
+
+            let p_subtransforms: &mut Vec<String> = p.subtransforms.as_mut();
+            p_subtransforms.push(transform_id.clone());
+
+            parent = Some(p);
+        }
+
+        let parent_name = match parent {
+            Some(p) => {
+                format!("{}/", p.unique_name.clone())
+            }
+            None => "".to_string(),
+        };
+
+        // TODO: extract unique transform name properly
+        let bad_transform_name = crate::utils::get_bad_id();
+        let unique_name = format!("{}{}", parent_name, bad_transform_name);
+
+        if self.used_stage_names.contains(&unique_name) {
+            panic!("Duplicate stage name: {}", unique_name)
+        }
+        self.used_stage_names.insert(unique_name.clone());
+
+        let flattened = flatten_pvalue(input.clone(), None);
+        let mut inputs: HashMap<String, String> = HashMap::new();
+        for (name, pvalue) in flattened {
+            inputs.insert(name.clone(), pvalue.get_id());
+        }
+
+        let transform_proto = proto_pipeline::PTransform {
+            unique_name,
+            spec: None,
+            subtransforms: Vec::with_capacity(0),
+            inputs,
+            outputs: HashMap::with_capacity(0),
+            display_data: Vec::with_capacity(0),
+            environment_id: self.default_environment.clone(),
+            annotations: HashMap::with_capacity(0),
+        };
+
+        pipeline_proto
+            .components
+            .as_mut()
+            .unwrap()
+            .transforms
+            .insert(transform_id.clone(), transform_proto.clone());
+
+        (transform_id, transform_proto)
     }
 
-    pub fn apply_transform<In, Out, F>(&self, transform: F)
+    pub fn apply_transform<In, Out, F>(&mut self, transform: F, input: PValue<In>) -> PValue<Out>
     where
-        In: Send,
-        Out: Send,
+        In: Clone + Send,
+        Out: Clone + Send,
         F: PTransform<In, Out> + Send,
     {
-        let (id, tproto) = self.pre_apply_transform(transform);
-        let result: Out;
+        let (transform_id, transform_proto) = self.pre_apply_transform(&transform, &input);
 
-        todo!()
+        self.transform_stack.push(transform_id);
+
+        let result = transform.expand(input);
+
+        // TODO: ensure this happens even if an error happens above
+        self.transform_stack.pop();
+
+        self.post_apply_transform(transform, transform_proto, result)
     }
 
-    pub fn post_apply_transform<In, Out, F>(&self, transform: F)
+    // TODO: deal with bounds and windows
+    pub fn post_apply_transform<In, Out, F>(
+        &self,
+        transform: F,
+        transform_proto: proto_pipeline::PTransform,
+        result: PValue<Out>,
+    ) -> PValue<Out>
     where
-        In: Send,
-        Out: Send,
+        In: Clone + Send,
+        Out: Clone + Send,
         F: PTransform<In, Out> + Send,
     {
-        todo!()
+        result
     }
 }
 

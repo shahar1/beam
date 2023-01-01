@@ -40,8 +40,8 @@ pub trait RunnerI {
     /// Use run_async() to execute the pipeline in the background.
     async fn run<In, Out, F>(&self, pipeline: F)
     where
-        In: Send,
-        Out: Send,
+        In: Clone + Send,
+        Out: Clone + Send,
         F: FnOnce(PValue<In>) -> PValue<Out> + Send,
     {
         self.run_async(pipeline).await;
@@ -52,8 +52,8 @@ pub trait RunnerI {
     /// status.
     async fn run_async<In, Out, F>(&self, pipeline: F)
     where
-        In: Send,
-        Out: Send,
+        In: Clone + Send,
+        Out: Clone + Send,
         F: FnOnce(PValue<In>) -> PValue<Out> + Send,
     {
         let p = Arc::new(Pipeline::default());
