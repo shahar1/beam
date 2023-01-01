@@ -271,6 +271,5 @@ mod tests {
         }
 
         string_test();
-        
     }
 }

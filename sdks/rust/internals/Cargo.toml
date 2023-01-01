@@ -21,4 +21,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+coders = { path = "../coders" }
 proto = { path = "../proto" }
+
+rand = "0.7"

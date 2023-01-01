@@ -23,6 +23,7 @@ edition = "2021"
 [dependencies]
 beam_core = { path = "../beam_core" }
 coders = { path = "../coders" }
+internals = { path = "../internals" }
 proto = { path = "../proto" }
 worker = { path = "../worker" }
 

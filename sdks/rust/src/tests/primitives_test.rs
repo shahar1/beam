@@ -22,8 +22,9 @@ mod tests {
     use std::any::Any;
     use std::sync::Arc;
 
-    use beam_core::pvalue::{PType, PValue, Pipeline};
+    use beam_core::pvalue::{PType, PValue};
     use coders::required_coders::BytesCoder;
+    use internals::pipeline::Pipeline;
     use runners::direct_runner::DirectRunner;
     use runners::runner::RunnerI;
     use transforms::impulse::Impulse;

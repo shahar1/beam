@@ -443,7 +443,9 @@ checksum = "8bb03732005da905c88227371639bf1ad885cc712789c011c31c5fb3ab3ccf02"
 name = "internals"
 version = "0.1.0"
 dependencies = [
+ "coders",
  "proto",
+ "rand 0.7.3",
 ]
 
 [[package]]
@@ -793,6 +795,7 @@ dependencies = [
  "beam_core",
  "coders",
  "futures",
+ "internals",
  "proto",
  "tokio",
  "worker",

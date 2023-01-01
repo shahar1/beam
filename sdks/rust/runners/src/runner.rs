@@ -21,7 +21,8 @@ use std::{pin::Pin, sync::Arc};
 
 use async_trait::async_trait;
 
-use beam_core::pvalue::{PValue, Pipeline};
+use beam_core::pvalue::PValue;
+use internals::pipeline::Pipeline;
 use proto::beam::pipeline as proto_pipeline;
 
 pub type Task = Pin<Box<dyn Future<Output = ()> + Send>>;

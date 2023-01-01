@@ -18,9 +18,9 @@
 
 use std::collections::HashMap;
 
-use beam_core::pvalue::{get_pcollection_name, PTransform, PType, PValue};
+use beam_core::pvalue::{PTransform, PType, PValue};
 use coders::required_coders::BytesCoder;
-use internals::urns;
+use internals::{pipeline::get_pcollection_name, urns};
 use proto::beam::pipeline as proto_pipeline;
 
 pub struct Impulse {
