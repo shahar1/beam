@@ -16,13 +16,10 @@
  * limitations under the License.
  */
 
-use std::collections::HashMap;
 use std::sync::Arc;
 
-use coders::required_coders::BytesCoder;
 use internals::pipeline::Pipeline;
-use internals::pvalue::{PTransform, PType, PValue};
-use internals::{pipeline::get_pcollection_name, urns};
+use internals::pvalue::{PTransform, PValue};
 use proto::beam::pipeline as proto_pipeline;
 
 pub struct Impulse {
@@ -39,64 +36,23 @@ impl Impulse {
 
 // Input type should be never(!)
 // https://github.com/rust-lang/rust/issues/35121
-impl PTransform<bool, Vec<u8>> for Impulse {
-    fn expand(&self, input: PValue<bool>) -> PValue<Vec<u8>> {
-        assert!(*input.get_type() == PType::Root);
+pub type Never = bool;
 
-        let pcoll_name = get_pcollection_name();
-
-        let coder_id = input.register_pipeline_coder_proto(proto_pipeline::Coder {
-            spec: Some(proto_pipeline::FunctionSpec {
-                urn: String::from(coders::urns::BYTES_CODER_URN),
-                payload: Vec::with_capacity(0),
-            }),
-            component_coder_ids: Vec::with_capacity(0),
-        });
-
-        input.register_pipeline_coder::<BytesCoder, Vec<u8>>(Box::new(BytesCoder::new()));
-
-        let output_proto = proto_pipeline::PCollection {
-            unique_name: pcoll_name.clone(),
-            coder_id: "placeholder".to_string(),
-            is_bounded: proto_pipeline::is_bounded::Enum::Bounded as i32,
-            windowing_strategy_id: "placeholder".to_string(),
-            display_data: Vec::with_capacity(0),
-        };
-
-        let impulse_proto = proto_pipeline::PTransform {
-            unique_name: "impulse".to_string(),
-            spec: Some(proto_pipeline::FunctionSpec {
-                urn: String::from(urns::DATA_INPUT_URN),
-                payload: urns::IMPULSE_BUFFER.to_vec(),
-            }),
-            subtransforms: Vec::with_capacity(0),
-            inputs: HashMap::with_capacity(0),
-            outputs: HashMap::from([("out".to_string(), pcoll_name.clone())]),
-            display_data: Vec::with_capacity(0),
-            environment_id: "".to_string(),
-            annotations: HashMap::with_capacity(0),
-        };
-
-        input.register_pipeline_proto_transform(impulse_proto);
-
-        PValue::new(
-            PType::PCollection,
-            pcoll_name,
-            output_proto,
-            input.get_pipeline_arc(),
-        )
-    }
-
+impl PTransform<Never, Vec<u8>> for Impulse {
     fn expand_internal(
         &self,
-        input: PValue<bool>,
+        input: &PValue<Never>,
         pipeline: Arc<Pipeline>,
-        transform_proto: proto_pipeline::PTransform,
-    ) -> PValue<Vec<u8>>
-    where
-        Self: Sized,
-    {
-        self.expand(input)
+        mut transform_proto: proto_pipeline::PTransform,
+    ) -> PValue<Vec<u8>> {
+        let spec = proto_pipeline::FunctionSpec {
+            urn: self.urn.to_string(),
+            payload: internals::urns::IMPULSE_BUFFER.to_vec(),
+        };
+        transform_proto.spec = Some(spec);
+
+        // TODO: add coder id
+        pipeline.create_pcollection_internal("".to_string(), pipeline.clone())
     }
 }
 

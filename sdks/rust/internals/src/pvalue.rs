@@ -27,6 +27,7 @@ use proto::beam::pipeline as proto_pipeline;
 
 use crate::pipeline::Pipeline;
 
+// TODO: remove field pcoll_proto.
 // T should be never(!) for Root
 // https://github.com/rust-lang/rust/issues/35121
 #[derive(Clone)]
@@ -36,7 +37,6 @@ where
 {
     id: String,
     ptype: PType,
-    name: String,
     pcoll_proto: proto_pipeline::PCollection,
     pipeline: Arc<Pipeline>,
 
@@ -49,14 +49,13 @@ where
 {
     pub fn new(
         ptype: PType,
-        name: String,
         pcoll_proto: proto_pipeline::PCollection,
         pipeline: Arc<Pipeline>,
+        id: String,
     ) -> Self {
         Self {
-            id: crate::utils::get_bad_id(),
+            id,
             ptype,
-            name,
             pcoll_proto,
             pipeline,
 
@@ -98,7 +97,12 @@ where
 
         pipeline.register_proto_transform(impulse_proto);
 
-        PValue::new(PType::Root, pcoll_name, output_proto, pipeline)
+        PValue::new(
+            PType::Root,
+            output_proto,
+            pipeline,
+            crate::utils::get_bad_id(),
+        )
     }
 
     pub fn register_pipeline_coder<'a, C: CoderI<E> + 'a, E>(
@@ -132,7 +136,8 @@ where
         Out: Clone + Send,
         F: PTransform<T, Out> + Send,
     {
-        transform.expand(self)
+        self.pipeline
+            .apply_transform(transform, &self, self.pipeline.clone())
     }
 
     // pub fn map(&self, callable: impl Fn() -> PValue) -> PValue {
@@ -160,7 +165,9 @@ where
         },
         PType::PValueArr => todo!(),
         PType::PValueMap => todo!(),
-        PType::Root => panic!("Unexpected root PValue"),
+        PType::Root => {
+            result.insert("main".to_string(), pvalue);
+        }
     }
 
     result
@@ -182,7 +189,7 @@ where
     In: Clone + Send,
     Out: Clone + Send,
 {
-    fn expand(&self, input: PValue<In>) -> PValue<Out>
+    fn expand(&self, input: &PValue<In>) -> PValue<Out>
     where
         Self: Sized,
     {
@@ -191,7 +198,7 @@ where
 
     fn expand_internal(
         &self,
-        input: PValue<In>,
+        input: &PValue<In>,
         pipeline: Arc<Pipeline>,
         transform_proto: proto_pipeline::PTransform,
     ) -> PValue<Out>

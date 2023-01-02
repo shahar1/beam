@@ -70,8 +70,8 @@ pub struct Pipeline {
     context: PipelineContext,
     default_environment: String,
     proto: Arc<Mutex<proto_pipeline::Pipeline>>,
-    transform_stack: Vec<String>,
-    used_stage_names: HashSet<String>,
+    transform_stack: Arc<Mutex<Vec<String>>>,
+    used_stage_names: Arc<Mutex<HashSet<String>>>,
 
     // TODO: use AnyCoder instead of Any
     coders: Mutex<HashMap<TypeId, Box<dyn Any + Send>>>,
@@ -98,8 +98,8 @@ impl<'a> Pipeline {
             context: PipelineContext::new(component_prefix.clone()),
             default_environment: format!("{}rustEnvironment", component_prefix),
             proto: Arc::new(Mutex::new(proto)),
-            transform_stack: Vec::with_capacity(0),
-            used_stage_names: HashSet::with_capacity(0),
+            transform_stack: Arc::new(Mutex::new(Vec::with_capacity(0))),
+            used_stage_names: Arc::new(Mutex::new(HashSet::with_capacity(0))),
 
             coders: Mutex::new(HashMap::new()),
             coder_proto_counter: Mutex::new(0),
@@ -165,7 +165,7 @@ impl<'a> Pipeline {
     }
 
     pub fn pre_apply_transform<In, Out, F>(
-        &mut self,
+        &self,
         transform: &F,
         input: &PValue<In>,
     ) -> (String, proto_pipeline::PTransform)
@@ -178,8 +178,9 @@ impl<'a> Pipeline {
         let mut parent: Option<&proto_pipeline::PTransform> = None;
 
         let mut pipeline_proto = self.proto.lock().unwrap();
+        let transform_stack = self.transform_stack.lock().unwrap();
 
-        if self.transform_stack.is_empty() {
+        if transform_stack.is_empty() {
             pipeline_proto.root_transform_ids.push(transform_id.clone());
         } else {
             let p = pipeline_proto
@@ -187,11 +188,7 @@ impl<'a> Pipeline {
                 .as_mut()
                 .expect("No components on pipeline proto")
                 .transforms
-                .get_mut(
-                    self.transform_stack
-                        .last()
-                        .expect("Transform stack is empty"),
-                )
+                .get_mut(transform_stack.last().expect("Transform stack is empty"))
                 .expect("Transform ID not registered on pipeline proto");
 
             let p_subtransforms: &mut Vec<String> = p.subtransforms.as_mut();
@@ -199,6 +196,7 @@ impl<'a> Pipeline {
 
             parent = Some(p);
         }
+        drop(transform_stack);
 
         let parent_name = match parent {
             Some(p) => {
@@ -211,10 +209,14 @@ impl<'a> Pipeline {
         let bad_transform_name = crate::utils::get_bad_id();
         let unique_name = format!("{}{}", parent_name, bad_transform_name);
 
-        if self.used_stage_names.contains(&unique_name) {
-            panic!("Duplicate stage name: {}", unique_name)
+        {
+            let mut used_stage_names = self.used_stage_names.lock().unwrap();
+
+            if used_stage_names.contains(&unique_name) {
+                panic!("Duplicate stage name: {}", unique_name)
+            }
+            used_stage_names.insert(unique_name.clone());
         }
-        self.used_stage_names.insert(unique_name.clone());
 
         let flattened = flatten_pvalue(input.clone(), None);
         let mut inputs: HashMap<String, String> = HashMap::new();
@@ -243,7 +245,12 @@ impl<'a> Pipeline {
         (transform_id, transform_proto)
     }
 
-    pub fn apply_transform<In, Out, F>(&mut self, transform: F, input: PValue<In>) -> PValue<Out>
+    pub fn apply_transform<In, Out, F>(
+        &self,
+        transform: F,
+        input: &PValue<In>,
+        pipeline: Arc<Pipeline>,
+    ) -> PValue<Out>
     where
         In: Clone + Send,
         Out: Clone + Send,
@@ -251,12 +258,16 @@ impl<'a> Pipeline {
     {
         let (transform_id, transform_proto) = self.pre_apply_transform(&transform, &input);
 
-        self.transform_stack.push(transform_id);
+        let mut transform_stack = self.transform_stack.lock().unwrap();
 
-        let result = transform.expand(input);
+        transform_stack.push(transform_id);
 
-        // TODO: ensure this happens even if an error happens above
-        self.transform_stack.pop();
+        let result = transform.expand_internal(input, pipeline, transform_proto.clone());
+
+        // TODO: ensure this happens even if an error takes place above
+        transform_stack.pop();
+
+        drop(transform_stack);
 
         self.post_apply_transform(transform, transform_proto, result)
     }
@@ -274,6 +285,40 @@ impl<'a> Pipeline {
         F: PTransform<In, Out> + Send,
     {
         result
+    }
+
+    pub fn create_pcollection_internal<Out>(
+        &self,
+        coder_id: String,
+        pipeline: Arc<Pipeline>,
+    ) -> PValue<Out>
+    where
+        Out: Clone + Send,
+    {
+        // TODO: remove pcoll_proto arg
+        PValue::new(
+            crate::pvalue::PType::PCollection,
+            proto_pipeline::PCollection::default(),
+            pipeline,
+            self.create_pcollection_id_internal(coder_id),
+        )
+    }
+
+    pub fn create_pcollection_id_internal(&self, coder_id: String) -> String {
+        let pcoll_id = self.context.create_unique_name("pc".to_string());
+        let mut pcoll_proto: proto_pipeline::PCollection = proto_pipeline::PCollection::default();
+        pcoll_proto.unique_name = pcoll_id.clone();
+        pcoll_proto.coder_id = coder_id;
+
+        let mut pipeline_proto = self.proto.lock().unwrap();
+        pipeline_proto
+            .components
+            .as_mut()
+            .unwrap()
+            .pcollections
+            .insert(pcoll_id.clone(), pcoll_proto);
+
+        pcoll_id
     }
 }
 
