@@ -114,7 +114,7 @@ At the moment, unit tests are contained in the lib file for each module and inte
 The following command (also available in the build script) can be used to run the available tests:
 
 ```
-cargo test --workspace --exclude proto
+cargo test -- --skip target/debug
 ```
 
 #### Style

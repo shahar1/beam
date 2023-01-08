@@ -16,6 +16,18 @@
  * limitations under the License.
  */
 
-pub mod coders_test;
-pub mod primitives_test;
-pub mod worker_test;
+pub struct DoFn;
+
+impl DoFn {
+    pub fn process() {
+        unimplemented!()
+    }
+
+    pub fn start_bundle() {
+        unimplemented!()
+    }
+
+    pub fn finish_bundle() {
+        unimplemented!()
+    }
+}

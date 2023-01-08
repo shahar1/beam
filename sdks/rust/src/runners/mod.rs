@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
-pub mod coders_test;
-pub mod primitives_test;
-pub mod worker_test;
+pub mod direct_runner;
+pub mod runner;
+
+// TODO: move this elsewhere
+pub const IMPULSE_URN: &str = "beam:transform:impulse:v1";

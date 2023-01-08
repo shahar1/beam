@@ -16,4 +16,14 @@
  * limitations under the License.
  */
 
+pub mod coders;
+pub mod internals;
+pub mod proto;
+pub mod runners;
+pub mod transforms;
+pub mod worker;
+
 mod tests;
+
+#[macro_use]
+extern crate strum_macros;

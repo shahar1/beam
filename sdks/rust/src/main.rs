@@ -17,6 +17,6 @@
  */
 
 fn main() {
-    worker::worker_main::init();
+    apache_beam::worker::worker_main::init();
     println!("Hello World!");
 }

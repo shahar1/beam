@@ -16,6 +16,13 @@
  * limitations under the License.
  */
 
-pub mod coders_test;
-pub mod primitives_test;
-pub mod worker_test;
+pub const IMPULSE_BUFFER: &[u8] = "impulse".as_bytes();
+
+pub const DATA_INPUT_URN: &str = "beam:runner:source:v1";
+pub const DATA_OUTPUT_URN: &str = "beam:runner:sink:v1";
+pub const IDENTITY_DOFN_URN: &str = "beam:dofn:identity:0.1";
+
+// TODO: move test urns elsewhere
+pub const CREATE_URN: &str = "create";
+pub const RECORDING_URN: &str = "recording";
+pub const PARTITION_URN: &str = "partition";

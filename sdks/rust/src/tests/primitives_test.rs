@@ -16,18 +16,17 @@
  * limitations under the License.
  */
 
-//TODO: organize tests in a better way
 #[cfg(test)]
 mod tests {
     use std::any::Any;
     use std::sync::Arc;
 
-    use coders::required_coders::BytesCoder;
-    use internals::pipeline::Pipeline;
-    use internals::pvalue::{PType, PValue};
-    use runners::direct_runner::DirectRunner;
-    use runners::runner::RunnerI;
-    use transforms::impulse::Impulse;
+    use crate::coders::required_coders::BytesCoder;
+    use crate::internals::pipeline::Pipeline;
+    use crate::internals::pvalue::{PType, PValue};
+    use crate::runners::direct_runner::DirectRunner;
+    use crate::runners::runner::RunnerI;
+    use crate::transforms::impulse::Impulse;
 
     #[tokio::test]
     async fn run_direct_runner() {

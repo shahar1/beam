@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
-pub mod coders_test;
-pub mod primitives_test;
-pub mod worker_test;
+pub mod coders;
+pub mod required_coders;
+pub mod rust_coders;
+pub mod standard_coders;
+pub mod urns;
