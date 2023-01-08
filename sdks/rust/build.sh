@@ -17,14 +17,6 @@
 # limitations under the License.
 #
 
-# TODO: make build.rs use relative paths and stop copying the protos from Beam
-# root
-
-cd proto
-rm -r beam_protos/
-cp -r ../../../model/ beam_protos
-cd ..
-
 cargo test --workspace --exclude proto
 # TODO: set build to fail on warnings when code is ready
 # cargo clippy --all-targets --all-features -- -D warnings
