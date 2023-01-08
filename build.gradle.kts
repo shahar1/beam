@@ -603,6 +603,7 @@ tasks.register("pushAllSdkDockerImages") {
   dependsOn(":sdks:java:container:pushAll")
   dependsOn(":sdks:python:container:pushAll")
   dependsOn(":sdks:go:container:pushAll")
+  dependsOn(":sdks:rust:container:pushAll")
   dependsOn(":sdks:typescript:container:pushAll")
 
   doLast {
