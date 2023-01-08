@@ -21,7 +21,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use coders::coders::CoderI;
-use proto::beam::pipeline as proto_pipeline;
+use proto::beam_api::pipeline as proto_pipeline;
 
 use crate::pvalue::{flatten_pvalue, PTransform, PValue};
 

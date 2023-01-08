@@ -23,7 +23,7 @@ use std::sync::Arc;
 
 use coders::coders::CoderI;
 use coders::required_coders::BytesCoder;
-use proto::beam::pipeline as proto_pipeline;
+use proto::beam_api::pipeline as proto_pipeline;
 
 use crate::pipeline::Pipeline;
 

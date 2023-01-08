@@ -37,7 +37,7 @@ fn main() {
     tonic_build::configure()
         .build_client(true)
         .build_server(true)
-        .include_file("protos.rs")
+        .include_file("beam_api.rs")
         .compile(
             &[
                 format!("{}/{}", pipeline_dir, "beam_runner_api.proto"),

@@ -44,7 +44,7 @@ mod tests {
     use serde_json;
 
     use internals::urns;
-    use proto::beam::{
+    use proto::beam_api::{
         fn_execution::ProcessBundleDescriptor,
         pipeline::{FunctionSpec, PTransform},
     };

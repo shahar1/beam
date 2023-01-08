@@ -23,7 +23,7 @@ use async_trait::async_trait;
 
 use internals::pipeline::Pipeline;
 use internals::pvalue::PValue;
-use proto::beam::pipeline as proto_pipeline;
+use proto::beam_api::pipeline as proto_pipeline;
 
 pub type Task = Pin<Box<dyn Future<Output = ()> + Send>>;
 

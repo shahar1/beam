@@ -20,7 +20,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use proto::beam::{fn_execution::ProcessBundleDescriptor, pipeline as proto_pipeline};
+use proto::beam_api::{fn_execution::ProcessBundleDescriptor, pipeline as proto_pipeline};
 use worker::sdk_worker::BundleProcessor;
 
 use crate::runner::RunnerI;

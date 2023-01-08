@@ -30,7 +30,7 @@ use crate::sdk_worker::{Worker, WorkerEndpoints};
 use beam_fn_external_worker_pool_server::{
     BeamFnExternalWorkerPool, BeamFnExternalWorkerPoolServer,
 };
-use proto::beam::fn_execution::{
+use proto::beam_api::fn_execution::{
     beam_fn_external_worker_pool_server, StartWorkerRequest, StartWorkerResponse,
     StopWorkerRequest, StopWorkerResponse,
 };

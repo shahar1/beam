@@ -20,10 +20,10 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
 
 use http::Uri;
-use proto::beam::pipeline::PTransform;
+use proto::beam_api::pipeline::PTransform;
 use tonic::transport::Channel;
 
-use proto::beam::fn_execution::{
+use proto::beam_api::fn_execution::{
     beam_fn_control_client::BeamFnControlClient, InstructionRequest, InstructionResponse,
     ProcessBundleDescriptor, ProcessBundleResponse, ProcessBundleSplitRequest,
     ProcessBundleSplitResponse,

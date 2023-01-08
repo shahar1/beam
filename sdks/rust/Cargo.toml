@@ -38,6 +38,7 @@ members = [
 [dependencies]
 coders = { path = "coders" }
 internals = { path = "internals" }
+proto = { path = "proto" }
 runners = { path = "runners" }
 transforms = { path = "transforms" }
 worker = { path = "worker" }

@@ -17,8 +17,8 @@
 */
 
 #![allow(clippy::derive_partial_eq_without_eq, clippy::enum_variant_names)]
-pub mod beam {
-    tonic::include_proto!("protos");
+pub mod beam_api {
+    tonic::include_proto!("beam_api");
 
     pub use org::apache::beam::model::expansion::v1 as expansion;
     pub use org::apache::beam::model::fn_execution::v1 as fn_execution;

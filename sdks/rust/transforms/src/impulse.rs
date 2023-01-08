@@ -20,7 +20,7 @@ use std::sync::Arc;
 
 use internals::pipeline::Pipeline;
 use internals::pvalue::{PTransform, PValue};
-use proto::beam::pipeline as proto_pipeline;
+use proto::beam_api::pipeline as proto_pipeline;
 
 pub struct Impulse {
     urn: &'static str,
