@@ -16,11 +16,7 @@
  * limitations under the License.
  */
 
-use worker::ExternalWorkerPool;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ExternalWorkerPool::new("127.0.0.1", 5555).start().await?;
-
-    Ok(())
+fn main() {
+    worker::worker_main::init();
+    println!("Hello World!");
 }
