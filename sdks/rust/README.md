@@ -130,3 +130,8 @@ The changes can be applied automatically through the following command:
 ```
 cargo fmt --all
 ```
+
+#### Protos
+
+The auto-generated proto files with the Beam API can be found after compilation at:
+`rust/target/debug/build/apache-beam-[hash]/out`
