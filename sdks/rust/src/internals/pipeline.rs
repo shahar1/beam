@@ -66,6 +66,7 @@ impl PipelineContext {
     }
 }
 
+// TODO: move coders to PipelineContext
 pub struct Pipeline {
     context: PipelineContext,
     default_environment: String,
@@ -73,7 +74,8 @@ pub struct Pipeline {
     transform_stack: Arc<Mutex<Vec<String>>>,
     used_stage_names: Arc<Mutex<HashSet<String>>>,
 
-    // TODO: use AnyCoder instead of Any
+    // TODO: stop using TypeId as a key
+    // TODO: use something better than Any (maybe use CoderI with an "as_any" method)
     coders: Mutex<HashMap<TypeId, Box<dyn Any + Send>>>,
 
     coder_proto_counter: Mutex<usize>,
