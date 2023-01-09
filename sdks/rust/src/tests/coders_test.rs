@@ -81,7 +81,7 @@ mod tests {
             &self,
             value: &serde_yaml::Value,
         ) -> <KVCoder<KV<K, V>> as CoderTestUtils>::InternalCoderType {
-            unimplemented!()
+            todo!()
         }
     }
 
@@ -95,7 +95,7 @@ mod tests {
             &self,
             value: &serde_yaml::Value,
         ) -> <IterableCoder<T> as CoderTestUtils>::InternalCoderType {
-            unimplemented!()
+            todo!()
         }
     }
 
@@ -180,7 +180,7 @@ mod tests {
                     let c = VarIntCoder::new();
                     run_unnested::<VarIntCoder, u64>(&c, nested, &spec);
                 }
-                _ => unimplemented!(),
+                _ => todo!(),
             }
         }
     }

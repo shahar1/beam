@@ -194,12 +194,12 @@ impl<K, V> CoderI<KV<K, V>> for KVCoder<KV<K, V>> {
         writer: &mut dyn Write,
         context: &Context,
     ) -> Result<usize, io::Error> {
-        unimplemented!()
+        todo!()
     }
 
     /// Decode the input byte stream into a `KV` element
     fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<KV<K, V>, io::Error> {
-        unimplemented!()
+        todo!()
     }
 }
 
@@ -235,11 +235,11 @@ impl<T> CoderI<Iterable<T>> for IterableCoder<T> {
         writer: &mut dyn Write,
         context: &Context,
     ) -> Result<usize, io::Error> {
-        unimplemented!()
+        todo!()
     }
 
     /// Decode the input byte stream into a `Iterable` element
     fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<Iterable<T>, io::Error> {
-        unimplemented!()
+        todo!()
     }
 }

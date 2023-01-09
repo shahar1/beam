@@ -151,9 +151,8 @@ impl Worker {
         Ok(())
     }
 
-    // TODO
     pub fn stop(&mut self) {
-        unimplemented!()
+        todo!()
     }
 
     fn process_bundle(&self, request: ProcessBundleRequest) -> () {

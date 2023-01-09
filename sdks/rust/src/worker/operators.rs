@@ -63,7 +63,7 @@ pub trait OperatorI {
     fn process(&self, value: WindowedValue);
 
     fn finish_bundle(&self) {
-        unimplemented!()
+        todo!()
     }
 }
 
@@ -92,7 +92,7 @@ impl OperatorI for Operator {
                 context,
                 operator_discriminant,
             )),
-            _ => unimplemented!(),
+            _ => todo!(),
         }
     }
 
@@ -100,7 +100,7 @@ impl OperatorI for Operator {
         match self {
             Operator::Create(create_op) => create_op.start_bundle(),
             Operator::Recording(recording_op) => recording_op.start_bundle(),
-            _ => unimplemented!(),
+            _ => todo!(),
         };
     }
 
@@ -112,7 +112,7 @@ impl OperatorI for Operator {
             Operator::Recording(recording_op) => {
                 recording_op.process(value);
             }
-            _ => unimplemented!(),
+            _ => todo!(),
         };
     }
 
@@ -120,7 +120,7 @@ impl OperatorI for Operator {
         match self {
             Operator::Create(create_op) => create_op.finish_bundle(),
             Operator::Recording(recording_op) => recording_op.finish_bundle(),
-            _ => unimplemented!(),
+            _ => todo!(),
         };
     }
 }
@@ -161,7 +161,7 @@ pub fn create_operator(transform_id: &str, context: Arc<OperatorContext>) -> Ope
             context.clone(),
             OperatorDiscriminants::Recording,
         )),
-        _ => unimplemented!(),
+        _ => todo!(),
     }
 }
 
