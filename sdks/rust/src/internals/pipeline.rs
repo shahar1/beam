@@ -27,15 +27,6 @@ use crate::internals::pvalue::{flatten_pvalue, PTransform, PValue};
 
 const _CODER_ID_PREFIX: &str = "coder_";
 
-// TODO: use something better...
-pub fn get_pcollection_name() -> String {
-    use rand::Rng;
-
-    let mut rng = rand::thread_rng();
-    let bad_id: usize = rng.gen();
-    format!("ref_PCollection_{}", bad_id)
-}
-
 pub struct PipelineContext {
     component_prefix: String,
     counter: Arc<Mutex<usize>>,

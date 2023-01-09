@@ -131,12 +131,7 @@ mod tests {
 
         // TODO: Move this to utils module
         let current_dir = std::env::current_dir().unwrap();
-        let beam_root_dir = current_dir
-            .as_path()
-            .parent()
-            .unwrap()
-            .parent()
-            .unwrap();
+        let beam_root_dir = current_dir.as_path().parent().unwrap().parent().unwrap();
         let standard_coders_dir = beam_root_dir.join(STANDARD_CODERS_FILE);
 
         let f = std::fs::read(standard_coders_dir).expect("Unable to read file");
