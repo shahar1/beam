@@ -22,7 +22,7 @@ use crate::elem_types::ElemType;
 use crate::internals::pipeline::Pipeline;
 use crate::internals::pvalue::{PTransform, PValue};
 use crate::internals::urns::FLATTEN_URN;
-use crate::proto::beam_api::pipeline as proto_pipeline;
+use crate::proto::pipeline::v1 as pipeline_v1;
 
 pub struct Flatten {}
 
@@ -42,9 +42,9 @@ where
         &self,
         _input: &PValue<In>,
         pipeline: Arc<Pipeline>,
-        transform_proto: &mut proto_pipeline::PTransform,
+        transform_proto: &mut pipeline_v1::PTransform,
     ) -> PValue<Out> {
-        let spec = proto_pipeline::FunctionSpec {
+        let spec = pipeline_v1::FunctionSpec {
             urn: FLATTEN_URN.to_string(),
             payload: crate::internals::urns::IMPULSE_BUFFER.to_vec(), // Should be able to omit.
         };

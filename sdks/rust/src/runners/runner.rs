@@ -23,7 +23,7 @@ use async_trait::async_trait;
 
 use crate::elem_types::ElemType;
 use crate::internals::pvalue::PValue;
-use crate::proto::beam_api::pipeline as proto_pipeline;
+use crate::proto::pipeline::v1 as pipeline_v1;
 
 pub type Task = Pin<Box<dyn Future<Output = ()> + Send>>;
 
@@ -64,5 +64,5 @@ pub trait RunnerI {
         self.run_pipeline(inner_pipeline.get_proto()).await;
     }
 
-    async fn run_pipeline(&self, pipeline: Arc<std::sync::Mutex<proto_pipeline::Pipeline>>);
+    async fn run_pipeline(&self, pipeline: Arc<std::sync::Mutex<pipeline_v1::Pipeline>>);
 }

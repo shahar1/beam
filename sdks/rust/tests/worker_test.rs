@@ -21,9 +21,9 @@ mod tests {
     use std::{collections::HashMap, sync::Arc};
 
     use apache_beam::internals::urns;
-    use apache_beam::proto::beam_api::{
-        fn_execution::ProcessBundleDescriptor,
-        pipeline::{FunctionSpec, PTransform},
+    use apache_beam::proto::{
+        fn_execution::v1::ProcessBundleDescriptor,
+        pipeline::v1::{FunctionSpec, PTransform},
     };
 
     use apache_beam::{

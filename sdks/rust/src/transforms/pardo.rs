@@ -26,7 +26,7 @@ use crate::internals::pvalue::{PTransform, PValue};
 use crate::internals::serialize;
 use crate::internals::urns;
 
-use crate::proto::beam_api::pipeline as proto_pipeline;
+use crate::proto::pipeline::v1 as pipeline_v1;
 
 pub trait DoFn: Send + Sync {
     type In: ElemType;
@@ -94,11 +94,11 @@ where
         &self,
         _input: &PValue<In>, // really a PCollection<T>
         pipeline: Arc<Pipeline>,
-        transform_proto: &mut proto_pipeline::PTransform,
+        transform_proto: &mut pipeline_v1::PTransform,
     ) -> PValue<Out> // really a PCollection<O>
     {
         // Update the spec to say how it's created.
-        transform_proto.spec = Some(proto_pipeline::FunctionSpec {
+        transform_proto.spec = Some(pipeline_v1::FunctionSpec {
             urn: urns::PAR_DO_URN.to_string(),
             payload: self.payload.as_bytes().to_owned(),
         });

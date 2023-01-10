@@ -31,8 +31,8 @@ use serde_json;
 use crate::elem_types::ElemType;
 use crate::internals::serialize;
 use crate::internals::urns;
-use crate::proto::beam_api::fn_execution::ProcessBundleDescriptor;
-use crate::proto::beam_api::pipeline::PTransform;
+use crate::proto::fn_execution::v1::{ProcessBundleDescriptor, RemoteGrpcPort};
+use crate::proto::pipeline::v1::PTransform;
 
 use crate::worker::sdk_worker::BundleProcessor;
 use crate::worker::test_utils::RECORDING_OPERATOR_LOGS;

@@ -20,7 +20,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use crate::elem_types::ElemType;
-use crate::proto::beam_api::pipeline as proto_pipeline;
+use crate::proto::pipeline::v1 as pipeline_v1;
 
 use crate::internals::pvalue::{flatten_pvalue, PTransform, PValue};
 
@@ -65,7 +65,7 @@ impl PipelineContext {
 pub struct Pipeline {
     context: PipelineContext,
     default_environment: String,
-    proto: Arc<Mutex<proto_pipeline::Pipeline>>,
+    proto: Arc<Mutex<pipeline_v1::Pipeline>>,
     transform_stack: Arc<Mutex<Vec<String>>>,
     used_stage_names: Arc<Mutex<HashSet<String>>>,
 
@@ -74,8 +74,8 @@ pub struct Pipeline {
 
 impl Pipeline {
     pub fn new(component_prefix: String) -> Self {
-        let proto = proto_pipeline::Pipeline {
-            components: Some(proto_pipeline::Components {
+        let proto = pipeline_v1::Pipeline {
+            components: Some(pipeline_v1::Components {
                 transforms: HashMap::with_capacity(0),
                 pcollections: HashMap::with_capacity(0),
                 windowing_strategies: HashMap::with_capacity(0),
@@ -98,12 +98,12 @@ impl Pipeline {
         }
     }
 
-    pub fn get_proto(&self) -> Arc<std::sync::Mutex<proto_pipeline::Pipeline>> {
+    pub fn get_proto(&self) -> Arc<std::sync::Mutex<pipeline_v1::Pipeline>> {
         self.proto.clone()
     }
 
     // TODO: review need for separate function vs register_coder
-    pub fn register_coder_proto(&self, coder_proto: proto_pipeline::Coder) -> String {
+    pub fn register_coder_proto(&self, coder_proto: pipeline_v1::Coder) -> String {
         let mut pipeline_proto = self.proto.lock().unwrap();
 
         let proto_coders = &mut pipeline_proto.components.as_mut().unwrap().coders;
@@ -122,7 +122,7 @@ impl Pipeline {
         new_coder_id
     }
 
-    pub fn register_proto_transform(&self, transform: proto_pipeline::PTransform) {
+    pub fn register_proto_transform(&self, transform: pipeline_v1::PTransform) {
         let mut pipeline_proto = self.proto.lock().unwrap();
 
         pipeline_proto
@@ -137,14 +137,14 @@ impl Pipeline {
         &self,
         _transform: &F,
         input: &PValue<In>,
-    ) -> (String, proto_pipeline::PTransform)
+    ) -> (String, pipeline_v1::PTransform)
     where
         In: ElemType,
         Out: ElemType + Clone,
         F: PTransform<In, Out> + Send,
     {
         let transform_id = self.context.create_unique_name("transform".to_string());
-        let mut parent: Option<&proto_pipeline::PTransform> = None;
+        let mut parent: Option<&pipeline_v1::PTransform> = None;
 
         let mut pipeline_proto = self.proto.lock().unwrap();
         let transform_stack = self.transform_stack.lock().unwrap();
@@ -193,7 +193,7 @@ impl Pipeline {
             inputs.insert(name.clone(), id);
         }
 
-        let transform_proto = proto_pipeline::PTransform {
+        let transform_proto = pipeline_v1::PTransform {
             unique_name,
             spec: None,
             subtransforms: Vec::with_capacity(0),
@@ -278,8 +278,8 @@ impl Pipeline {
     // TODO: deal with bounds and windows
     pub fn post_apply_transform<In, Out, F>(
         &self,
-        _transform: F,
-        _transform_proto: proto_pipeline::PTransform,
+        transform: F,
+        transform_proto: pipeline_v1::PTransform,
         result: PValue<Out>,
     ) -> PValue<Out>
     where
@@ -308,7 +308,7 @@ impl Pipeline {
 
     pub fn create_pcollection_id_internal(&self, coder_id: String) -> String {
         let pcoll_id = self.context.create_unique_name("pc".to_string());
-        let pcoll_proto: proto_pipeline::PCollection = proto_pipeline::PCollection {
+        let pcoll_proto: pipeline_v1::PCollection = pipeline_v1::PCollection {
             unique_name: pcoll_id.clone(),
             coder_id,
             ..Default::default()

@@ -23,7 +23,7 @@ use crate::coders::Coder;
 use crate::internals::pipeline::Pipeline;
 use crate::internals::pvalue::{PTransform, PValue};
 use crate::internals::urns::IMPULSE_URN;
-use crate::proto::beam_api::pipeline as proto_pipeline;
+use crate::proto::pipeline::v1 as pipeline_v1;
 
 pub struct Impulse {
     urn: &'static str,
@@ -44,9 +44,9 @@ impl PTransform<Never, Vec<u8>> for Impulse {
         &self,
         _input: &PValue<Never>,
         pipeline: Arc<Pipeline>,
-        transform_proto: &mut proto_pipeline::PTransform,
+        transform_proto: &mut pipeline_v1::PTransform,
     ) -> PValue<Vec<u8>> {
-        let spec = proto_pipeline::FunctionSpec {
+        let spec = pipeline_v1::FunctionSpec {
             urn: self.urn.to_string(),
             payload: crate::internals::urns::IMPULSE_BUFFER.to_vec(), // Should be able to omit.
         };

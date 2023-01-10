@@ -2,7 +2,7 @@ mod sdk_launcher {
     use apache_beam::{
         coders::{Coder, Context},
         elem_types::ElemType,
-        proto::beam_api::pipeline as proto_pipeline,
+        proto::pipeline::v1 as pipeline_v1,
         register_coders,
     };
     use serde::{Deserialize, Serialize};
@@ -49,7 +49,7 @@ mod sdk_launcher {
 
     register_coders!(MyCoder);
 
-    pub fn launcher_register_coder_proto() -> proto_pipeline::Coder {
+    pub fn launcher_register_coder_proto() -> pipeline_v1::Coder {
         // in the proto registration (in the pipeline construction)
         let my_coder = MyCoder::default();
         my_coder.to_proto(vec![])
@@ -61,11 +61,11 @@ mod sdk_harness {
     use std::io;
 
     use apache_beam::{
-        coders::Context, elem_types::ElemType, proto::beam_api::pipeline as proto_pipeline,
+        coders::Context, elem_types::ElemType, proto::pipeline::v1 as pipeline_v1,
         worker::CoderFromUrn,
     };
 
-    fn receive_coder() -> proto_pipeline::Coder {
+    fn receive_coder() -> pipeline_v1::Coder {
         // serialized coder is sent from the launcher
         super::sdk_launcher::launcher_register_coder_proto()
     }
@@ -77,7 +77,7 @@ mod sdk_harness {
         }
     }
 
-    fn encode_element(element: &dyn ElemType, coder: &proto_pipeline::Coder) -> Vec<u8> {
+    fn encode_element(element: &dyn ElemType, coder: &pipeline_v1::Coder) -> Vec<u8> {
         let urn = &coder.spec.as_ref().unwrap().urn;
 
         let mut encoded_element = vec![];
@@ -90,7 +90,7 @@ mod sdk_harness {
 
     fn decode_element(
         elem_reader: &mut dyn io::Read,
-        coder: &proto_pipeline::Coder,
+        coder: &pipeline_v1::Coder,
     ) -> Box<dyn ElemType> {
         let urn = &coder.spec.as_ref().unwrap().urn;
 

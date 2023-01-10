@@ -26,7 +26,7 @@ use crate::internals::pvalue::{PTransform, PValue};
 use crate::internals::serialize;
 use crate::internals::urns;
 
-use crate::proto::beam_api::pipeline as proto_pipeline;
+use crate::proto::pipeline::v1 as pipeline_v1;
 
 pub struct GroupByKey<K, V> {
     payload: String,
@@ -54,10 +54,10 @@ impl<K: ElemType + Clone, V: ElemType + Clone> PTransform<KV<K, V>, KV<K, Vec<V>
         &self,
         _input: &PValue<KV<K, V>>, // really a PCollection
         pipeline: Arc<Pipeline>,
-        transform_proto: &mut proto_pipeline::PTransform,
+        transform_proto: &mut pipeline_v1::PTransform,
     ) -> PValue<KV<K, Vec<V>>> // really a PCollection
     {
-        transform_proto.spec = Some(proto_pipeline::FunctionSpec {
+        transform_proto.spec = Some(pipeline_v1::FunctionSpec {
             urn: urns::GROUP_BY_KEY_URN.to_string(),
             payload: self.payload.clone().into(),
         });

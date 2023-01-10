@@ -25,7 +25,7 @@ mod register_coders;
 pub(crate) use register_coders::{DecodeFromUrnFn, EncodeFromUrnFn};
 
 use crate::elem_types::ElemType;
-use crate::proto::beam_api::pipeline as proto_pipeline;
+use crate::proto::pipeline::v1 as pipeline_v1;
 use std::fmt;
 use std::io::{self, Read, Write};
 
@@ -127,12 +127,12 @@ pub trait Coder: CoderUrn + fmt::Debug + Default {
     /// A coder in protobuf format can be shared with other components such as Beam runners,
     /// SDK workers; and reconstructed into its runtime representation if necessary.
     #[doc(hidden)]
-    fn to_proto(&self, component_coder_ids: Vec<String>) -> proto_pipeline::Coder {
-        let spec = proto_pipeline::FunctionSpec {
+    fn to_proto(&self, component_coder_ids: Vec<String>) -> pipeline_v1::Coder {
+        let spec = pipeline_v1::FunctionSpec {
             urn: Self::URN.to_string(),
             payload: vec![], // unused in Rust SDK
         };
-        proto_pipeline::Coder {
+        pipeline_v1::Coder {
             spec: Some(spec),
             component_coder_ids,
         }
