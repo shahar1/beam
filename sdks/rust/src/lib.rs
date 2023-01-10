@@ -20,6 +20,7 @@
 pub mod coders;
 pub mod elem_types;
 pub mod internals;
+#[allow(unused_imports)]
 pub mod proto;
 pub mod runners;
 pub mod transforms;

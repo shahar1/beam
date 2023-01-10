@@ -31,8 +31,7 @@ use serde_json;
 use crate::elem_types::ElemType;
 use crate::internals::serialize;
 use crate::internals::urns;
-use crate::proto::fn_execution::v1::{ProcessBundleDescriptor, RemoteGrpcPort};
-use crate::proto::pipeline::v1::PTransform;
+use crate::proto::{fn_execution_v1, pipeline_v1};
 
 use crate::worker::sdk_worker::BundleProcessor;
 use crate::worker::test_utils::RECORDING_OPERATOR_LOGS;
@@ -60,7 +59,7 @@ static OPERATORS_BY_URN: Lazy<Mutex<OperatorMap>> = Lazy::new(|| {
 pub(crate) trait OperatorI {
     fn new(
         transform_id: Arc<String>,
-        transform: Arc<PTransform>,
+        transform: Arc<pipeline_v1::PTransform>,
         context: Arc<OperatorContext>,
         operator_discriminant: OperatorDiscriminants,
     ) -> Self
@@ -94,7 +93,7 @@ pub(crate) enum Operator {
 impl OperatorI for Operator {
     fn new(
         transform_id: Arc<String>,
-        transform: Arc<PTransform>,
+        transform: Arc<pipeline_v1::PTransform>,
         context: Arc<OperatorContext>,
         operator_discriminant: OperatorDiscriminants,
     ) -> Self {
@@ -159,7 +158,7 @@ impl OperatorI for Operator {
 }
 
 pub(crate) fn create_operator(transform_id: &str, context: Arc<OperatorContext>) -> Operator {
-    let descriptor: &ProcessBundleDescriptor = context.descriptor.as_ref();
+    let descriptor: &fn_execution_v1::ProcessBundleDescriptor = context.descriptor.as_ref();
 
     let transform = descriptor
         .transforms
@@ -242,7 +241,7 @@ impl Receiver {
 }
 
 pub struct OperatorContext {
-    pub descriptor: Arc<ProcessBundleDescriptor>,
+    pub descriptor: Arc<fn_execution_v1::ProcessBundleDescriptor>,
     pub get_receiver: Box<dyn Fn(Arc<BundleProcessor>, String) -> Arc<Receiver> + Send + Sync>,
     // get_data_channel: fn(&str) -> MultiplexingDataChannel,
     // get_bundle_id: String,
@@ -312,7 +311,7 @@ impl<In: ElemType> WindowedValue<In> {
 #[derive(Clone, Debug)]
 pub struct CreateOperator {
     _transform_id: Arc<String>,
-    _transform: Arc<PTransform>,
+    _transform: Arc<pipeline_v1::PTransform>,
     _context: Arc<OperatorContext>,
     _operator_discriminant: OperatorDiscriminants,
 
@@ -323,7 +322,7 @@ pub struct CreateOperator {
 impl OperatorI for CreateOperator {
     fn new(
         transform_id: Arc<String>,
-        transform: Arc<PTransform>,
+        transform: Arc<pipeline_v1::PTransform>,
         context: Arc<OperatorContext>,
         operator_discriminant: OperatorDiscriminants,
     ) -> Self {
@@ -373,7 +372,7 @@ impl OperatorI for CreateOperator {
 #[derive(Clone, Debug)]
 pub struct RecordingOperator {
     transform_id: Arc<String>,
-    _transform: Arc<PTransform>,
+    _transform: Arc<pipeline_v1::PTransform>,
     _context: Arc<OperatorContext>,
     _operator_discriminant: OperatorDiscriminants,
 
@@ -383,7 +382,7 @@ pub struct RecordingOperator {
 impl OperatorI for RecordingOperator {
     fn new(
         transform_id: Arc<String>,
-        transform: Arc<PTransform>,
+        transform: Arc<pipeline_v1::PTransform>,
         context: Arc<OperatorContext>,
         operator_discriminant: OperatorDiscriminants,
     ) -> Self {
@@ -439,7 +438,7 @@ pub struct ImpulsePerBundleOperator {
 impl OperatorI for ImpulsePerBundleOperator {
     fn new(
         _transform_id: Arc<String>,
-        transform: Arc<PTransform>,
+        transform: Arc<pipeline_v1::PTransform>,
         context: Arc<OperatorContext>,
         _operator_discriminant: OperatorDiscriminants,
     ) -> Self {
@@ -497,7 +496,7 @@ pub(crate) struct GroupByKeyWithinBundleOperator {
 impl OperatorI for GroupByKeyWithinBundleOperator {
     fn new(
         _transform_id: Arc<String>,
-        transform_proto: Arc<PTransform>,
+        transform_proto: Arc<pipeline_v1::PTransform>,
         context: Arc<OperatorContext>,
         _operator_discriminant: OperatorDiscriminants,
     ) -> Self {
@@ -550,7 +549,7 @@ impl std::fmt::Debug for GroupByKeyWithinBundleOperator {
 #[derive(Clone)]
 pub struct ParDoOperator {
     _transform_id: Arc<String>,
-    _transform: Arc<PTransform>,
+    _transform: Arc<pipeline_v1::PTransform>,
     _context: Arc<OperatorContext>,
     _operator_discriminant: OperatorDiscriminants,
 
@@ -561,7 +560,7 @@ pub struct ParDoOperator {
 impl OperatorI for ParDoOperator {
     fn new(
         transform_id: Arc<String>,
-        transform_proto: Arc<PTransform>,
+        transform_proto: Arc<pipeline_v1::PTransform>,
         context: Arc<OperatorContext>,
         operator_discriminant: OperatorDiscriminants,
     ) -> Self {
@@ -617,7 +616,7 @@ pub struct FlattenOperator {
 impl OperatorI for FlattenOperator {
     fn new(
         _transform_id: Arc<String>,
-        transform: Arc<PTransform>,
+        transform: Arc<pipeline_v1::PTransform>,
         context: Arc<OperatorContext>,
         _operator_discriminant: OperatorDiscriminants,
     ) -> Self {

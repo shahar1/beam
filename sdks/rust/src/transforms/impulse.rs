@@ -23,7 +23,7 @@ use crate::coders::Coder;
 use crate::internals::pipeline::Pipeline;
 use crate::internals::pvalue::{PTransform, PValue};
 use crate::internals::urns::IMPULSE_URN;
-use crate::proto::pipeline::v1 as pipeline_v1;
+use crate::proto::pipeline_v1;
 
 pub struct Impulse {
     urn: &'static str,
