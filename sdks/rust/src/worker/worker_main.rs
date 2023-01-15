@@ -1,8 +1,8 @@
-use std::error::Error;
+use std::{collections::HashSet, error::Error};
 
 use clap::{Args, Parser};
 
-use crate::worker::sdk_worker::{Worker, WorkerEndpoints};
+use crate::worker::sdk_worker::Worker;
 
 // Beam internal subcommands, currently only used for worker start up.
 #[derive(Parser, Debug)]
@@ -45,8 +45,15 @@ pub fn init() {
 // TODO(sjvanrossum): Maybe make this an associated function, e.g. Worker::main?
 #[tokio::main]
 async fn worker_main(args: WorkerArgs) -> Result<(), Box<dyn Error>> {
-    Worker::new(args.id, WorkerEndpoints::new(Some(args.control_endpoint)))
-        .await
-        .start()
-        .await
+    Worker::new(
+        args.id,
+        args.control_endpoint,
+        args.logging_endpoint,
+        args.status_endpoint,
+        serde_json::Value::from(args.options),
+        HashSet::<String>::from_iter(args.runner_capabilities),
+    )
+    .await
+    .start()
+    .await
 }

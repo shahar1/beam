@@ -16,14 +16,14 @@
  * limitations under the License.
  */
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::sync::{Arc, Mutex, RwLock};
 
 use tokio::sync::mpsc;
 use tokio::sync::Mutex as TokioMutex;
 use tonic::codegen::InterceptedService;
-use tonic::transport::{Channel, Uri};
+use tonic::transport::Channel;
 use tonic::Status;
 
 use crate::proto::{
@@ -55,15 +55,22 @@ pub struct Worker {
     _bundle_processors: HashMap<String, BundleProcessor>,
     _active_bundle_processors: HashMap<String, BundleProcessor>,
     _id: String,
-    _endpoints: WorkerEndpoints,
     _options: HashMap<String, String>,
 }
 
 impl Worker {
     // concurrent data structures and/or finer grained locks.
-    pub async fn new(id: String, endpoints: WorkerEndpoints) -> Self {
+    pub async fn new(
+        id: String,
+        control_endpoint: String,
+        _logging_endpoint: String,
+        _status_endpoint: Option<String>,
+        _options: serde_json::Value,
+        _runner_capabilities: HashSet<String>,
+    ) -> Self {
         // TODO: parse URIs in the endpoint struct
-        let channel = Channel::builder(endpoints.get_endpoint().parse::<Uri>().unwrap())
+        let channel = Channel::from_shared(control_endpoint)
+            .unwrap()
             .connect()
             .await
             .expect("Failed to connect to control service");
@@ -82,7 +89,6 @@ impl Worker {
             _bundle_processors: HashMap::new(),
             _active_bundle_processors: HashMap::new(),
             _id: id,
-            _endpoints: endpoints,
             _options: HashMap::new(),
         }
     }
@@ -239,23 +245,6 @@ impl Worker {
             response: None,
         })
         .await
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct WorkerEndpoints {
-    control_endpoint_url: Option<String>,
-}
-
-impl WorkerEndpoints {
-    pub fn new(control_endpoint_url: Option<String>) -> Self {
-        Self {
-            control_endpoint_url,
-        }
-    }
-
-    pub fn get_endpoint(&self) -> &str {
-        self.control_endpoint_url.as_ref().unwrap()
     }
 }
 
