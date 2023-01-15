@@ -42,6 +42,7 @@ type InstructionId = String;
 // Using concurrent caches removes the need to synchronize on the worker instance in every context.
 #[derive(Debug)]
 pub struct Worker {
+    _id: String,
     // Cheap and safe to clone
     control_client: beam_fn_control_client_v1::BeamFnControlClient<
         InterceptedService<Channel, WorkerIdInterceptor>,
@@ -54,7 +55,6 @@ pub struct Worker {
         moka::future::Cache<BundleDescriptorId, Arc<fn_execution_v1::ProcessBundleDescriptor>>,
     _bundle_processors: HashMap<String, BundleProcessor>,
     _active_bundle_processors: HashMap<String, BundleProcessor>,
-    _id: String,
     _options: HashMap<String, String>,
 }
 
@@ -75,6 +75,7 @@ impl Worker {
         let (tx, rx) = mpsc::channel(100);
 
         Ok(Self {
+            _id: id,
             control_client: client,
             control_tx: tx,
             control_rx: Arc::new(TokioMutex::new(rx)),
@@ -82,7 +83,6 @@ impl Worker {
             process_bundle_descriptors: moka::future::Cache::builder().build(),
             _bundle_processors: HashMap::new(),
             _active_bundle_processors: HashMap::new(),
-            _id: id,
             _options: HashMap::new(),
         })
     }
