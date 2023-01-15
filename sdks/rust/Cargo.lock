@@ -14,6 +14,7 @@ version = "2.40.0"
 dependencies = [
  "async-stream 0.2.1",
  "async-trait",
+ "async_cell",
  "bytes",
  "clap",
  "ctor",
@@ -22,6 +23,8 @@ dependencies = [
  "futures-core",
  "futures-util",
  "integer-encoding",
+ "itertools",
+ "lazy_static",
  "moka",
  "once_cell",
  "prost",
@@ -120,6 +123,12 @@ dependencies = [
  "quote",
  "syn 1.0.103",
 ]
+
+[[package]]
+name = "async_cell"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "834eee9ce518130a3b4d5af09ecc43e9d6b57ee76613f227a1ddd6b77c7a62bc"
 
 [[package]]
 name = "autocfg"

@@ -33,6 +33,7 @@ use crate::proto::{
     fn_execution_v1::instruction_response as instruction_response_v1, pipeline_v1,
 };
 
+use crate::worker::data::MultiplexingDataChannel;
 use crate::worker::interceptors::WorkerIdInterceptor;
 use crate::worker::operators::{create_operator, Operator, OperatorContext, OperatorI, Receiver};
 
@@ -56,6 +57,7 @@ pub struct Worker {
         moka::future::Cache<BundleDescriptorId, Arc<fn_execution_v1::ProcessBundleDescriptor>>,
     _bundle_processors: DashMap<String, BundleProcessor>,
     _active_bundle_processors: DashMap<String, BundleProcessor>,
+    _data_channels: DashMap<String, MultiplexingDataChannel>,
     _options: HashMap<String, String>,
 }
 
@@ -84,6 +86,7 @@ impl Worker {
             process_bundle_descriptors: moka::future::Cache::builder().build(),
             _bundle_processors: DashMap::new(),
             _active_bundle_processors: DashMap::new(),
+            _data_channels: DashMap::new(),
             _options: HashMap::new(),
         })
     }

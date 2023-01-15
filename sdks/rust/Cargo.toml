@@ -49,6 +49,11 @@ tokio-util = "0.7.4"
 tokio-stream = "0.1"
 tonic = "0.8"
 dashmap = "5.4"
+itertools = "0.10"
+async_cell = "0.2.2"
 
 [build-dependencies]
 tonic-build = "0.8"
+
+[dev-dependencies]
+lazy_static = "1.4.0"

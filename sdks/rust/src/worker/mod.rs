@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+pub mod data;
 mod external_worker_service;
 pub mod operators;
 
