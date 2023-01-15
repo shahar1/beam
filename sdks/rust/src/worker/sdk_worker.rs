@@ -20,6 +20,7 @@ use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::sync::{Arc, Mutex, RwLock};
 
+use dashmap::DashMap;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex as TokioMutex;
 use tonic::codegen::InterceptedService;
@@ -53,8 +54,8 @@ pub struct Worker {
     // Cheap and safe to clone
     process_bundle_descriptors:
         moka::future::Cache<BundleDescriptorId, Arc<fn_execution_v1::ProcessBundleDescriptor>>,
-    _bundle_processors: HashMap<String, BundleProcessor>,
-    _active_bundle_processors: HashMap<String, BundleProcessor>,
+    _bundle_processors: DashMap<String, BundleProcessor>,
+    _active_bundle_processors: DashMap<String, BundleProcessor>,
     _options: HashMap<String, String>,
 }
 
@@ -81,8 +82,8 @@ impl Worker {
             control_rx: Arc::new(TokioMutex::new(control_rx)),
             // TODO(sjvanrossum): Maybe define the eviction policy
             process_bundle_descriptors: moka::future::Cache::builder().build(),
-            _bundle_processors: HashMap::new(),
-            _active_bundle_processors: HashMap::new(),
+            _bundle_processors: DashMap::new(),
+            _active_bundle_processors: DashMap::new(),
             _options: HashMap::new(),
         })
     }
