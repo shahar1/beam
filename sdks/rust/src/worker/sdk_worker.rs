@@ -92,7 +92,7 @@ impl Worker {
             channel,
             WorkerIdInterceptor::new(id.clone()),
         );
-        let (tx, rx) = mpsc::channel::<fn_execution_v1::InstructionResponse>(100);
+        let (tx, rx) = mpsc::channel(100);
 
         Self {
             control_client: client,
