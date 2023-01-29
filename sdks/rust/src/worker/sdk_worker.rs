@@ -303,7 +303,10 @@ impl BundleProcessor {
                         }
                         oprs
                     }
-                    None => Vec::new(),
+                    None => {
+                        drop(receivers);
+                        Vec::new()
+                    }
                 };
 
                 let receiver = Receiver::new(pcoll_operators);
@@ -382,7 +385,7 @@ impl BundleProcessor {
     }
 }
 
-// TODO
+// TODO: Handle transforms that return their inputs.
 fn is_primitive(transform: &PTransform) -> bool {
-    true
+    transform.subtransforms.is_empty()
 }

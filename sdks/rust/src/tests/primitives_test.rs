@@ -26,13 +26,85 @@ mod tests {
     use crate::internals::pvalue::{PType, PValue};
     use crate::runners::direct_runner::DirectRunner;
     use crate::runners::runner::RunnerI;
+    use crate::transforms::create::Create;
+    use crate::transforms::flatten::Flatten;
+    use crate::transforms::group_by_key::GroupByKey;
     use crate::transforms::impulse::Impulse;
+    use crate::transforms::pardo::ParDo;
+    use crate::transforms::testing::AssertEqualUnordered;
 
     #[tokio::test]
     async fn run_direct_runner() {
-        let runner = DirectRunner::new();
+        DirectRunner::new()
+            .run(|root| root.apply(Impulse::new()))
+            .await;
+    }
 
-        runner.run(|root| root.apply(Impulse::new())).await;
+    // TODO: Enabling these tests seem to cause random failures in other
+    // tests in this file.
+    #[tokio::test]
+    #[should_panic]
+    // This tests that AssertEqualUnordered is actually doing its job.
+    async fn ensure_assert_fails() {
+        DirectRunner::new()
+            .run(|root| {
+                root.apply(Create::new(&[1, 2, 3]))
+                    .apply(AssertEqualUnordered::new(&[1, 2, 4]))
+            })
+            .await;
+    }
+
+    //#[tokio::test]
+    #[should_panic]
+    async fn ensure_assert_fails_on_empty() {
+        DirectRunner::new()
+            .run(|root| {
+                root.apply(Create::new(&[]))
+                    .apply(AssertEqualUnordered::new(&[1]))
+            })
+            .await;
+    }
+
+    #[tokio::test]
+    async fn run_map() {
+        DirectRunner::new()
+            .run(|root| {
+                root.apply(Create::new(&[1, 2, 3]))
+                    .apply(ParDo::from_map(|x: &i32| -> i32 { x * x }))
+                    .apply(AssertEqualUnordered::new(&[1, 4, 9]))
+            })
+            .await;
+    }
+
+    #[tokio::test]
+    async fn run_gbk() {
+        DirectRunner::new()
+            .run(|root| {
+                root.apply(Create::new(&[
+                    ("a".to_string(), 1),
+                    ("a".to_string(), 2),
+                    ("b".to_string(), 3),
+                ]))
+                .apply(GroupByKey::new())
+                .apply(AssertEqualUnordered::new(&[
+                    ("a".to_string(), vec![1, 2]),
+                    ("b".to_string(), vec![3]),
+                ]))
+            })
+            .await;
+    }
+
+    #[tokio::test]
+    async fn run_flatten() {
+        DirectRunner::new()
+            .run(|root| {
+                let first = root.clone().apply(Create::new(&[1, 2, 3]));
+                let second = root.apply(Create::new(&[100, 200]));
+                PValue::new_array(&vec![first, second])
+                    .apply(Flatten::new())
+                    .apply(AssertEqualUnordered::new(&[1, 2, 3, 100, 200]))
+            })
+            .await;
     }
 
     #[tokio::test]

@@ -20,6 +20,10 @@ pub const IMPULSE_BUFFER: &[u8] = "impulse".as_bytes();
 
 pub const DATA_INPUT_URN: &str = "beam:runner:source:v1";
 pub const DATA_OUTPUT_URN: &str = "beam:runner:sink:v1";
+pub const IMPULSE_URN: &str = "beam:transform:impulse:v1";
+pub const PAR_DO_URN: &str = "beam:beam:pardo:v1";
+pub const GROUP_BY_KEY_URN: &str = "beam:beam:group_by_key:v1";
+pub const FLATTEN_URN: &str = "beam:beam:flatten:v1";
 pub const IDENTITY_DOFN_URN: &str = "beam:dofn:identity:0.1";
 
 // TODO: move test urns elsewhere

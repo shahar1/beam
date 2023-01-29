@@ -113,12 +113,12 @@ mod tests {
                 Vec::from([
                     "z.start_bundle()",
                     "y.start_bundle()",
-                    "y.process(String(\"a\"))",
-                    "z.process(String(\"a\"))",
-                    "y.process(String(\"b\"))",
-                    "z.process(String(\"b\"))",
-                    "y.process(String(\"c\"))",
-                    "z.process(String(\"c\"))",
+                    "y.process(\"a\")",
+                    "z.process(\"a\")",
+                    "y.process(\"b\")",
+                    "z.process(\"b\")",
+                    "y.process(\"c\")",
+                    "z.process(\"c\")",
                     "y.finish_bundle()",
                     "z.finish_bundle()",
                 ])

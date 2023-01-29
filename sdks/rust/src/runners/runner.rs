@@ -42,7 +42,7 @@ pub trait RunnerI {
     where
         In: Clone + Send,
         Out: Clone + Send,
-        F: FnOnce(PValue<In>) -> PValue<Out> + Send,
+        F: FnOnce(PValue<In>) -> PValue<Out> + Send, // TODO: Don't require a return value.
     {
         self.run_async(pipeline).await;
     }

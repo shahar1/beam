@@ -18,6 +18,7 @@
 
 pub mod pipeline;
 pub mod pvalue;
+pub mod serialize;
 pub mod urns;
 
 pub mod utils {

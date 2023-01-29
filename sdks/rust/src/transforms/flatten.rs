@@ -18,54 +18,39 @@
 
 use std::sync::Arc;
 
-use crate::coders::required_coders::BytesCoder;
 use crate::internals::pipeline::Pipeline;
 use crate::internals::pvalue::{PTransform, PValue};
-use crate::internals::urns::IMPULSE_URN;
+use crate::internals::urns::FLATTEN_URN;
 use crate::proto::beam_api::pipeline as proto_pipeline;
 
-pub struct Impulse {
-    urn: &'static str,
-}
+pub struct Flatten {}
 
-impl Impulse {
+impl Flatten {
     pub fn new() -> Self {
-        Self { urn: IMPULSE_URN }
+        Self {}
     }
 }
 
-// Input type should be never(!)
-// https://github.com/rust-lang/rust/issues/35121
-pub type Never = bool;
-
-impl PTransform<Never, Vec<u8>> for Impulse {
+// TODO: The type signature should indicate only PCollection arrays are accepted.
+impl<T: Clone + Sync + Send + 'static> PTransform<T, T> for Flatten {
     fn expand_internal(
         &self,
-        input: &PValue<Never>,
+        input: &PValue<T>,
         pipeline: Arc<Pipeline>,
         transform_proto: &mut proto_pipeline::PTransform,
-    ) -> PValue<Vec<u8>> {
+    ) -> PValue<T> {
         let spec = proto_pipeline::FunctionSpec {
-            urn: self.urn.to_string(),
+            urn: FLATTEN_URN.to_string(),
             payload: crate::internals::urns::IMPULSE_BUFFER.to_vec(), // Should be able to omit.
         };
         transform_proto.spec = Some(spec);
 
-        pipeline.register_coder::<BytesCoder, Vec<u8>>(Box::new(BytesCoder::new()));
-        pipeline.create_pcollection_internal(
-            pipeline.register_coder_proto(proto_pipeline::Coder {
-                spec: Some(proto_pipeline::FunctionSpec {
-                    urn: String::from(crate::coders::urns::BYTES_CODER_URN),
-                    payload: Vec::with_capacity(0),
-                }),
-                component_coder_ids: Vec::with_capacity(0),
-            }),
-            pipeline.clone(),
-        )
+        // TODO: add coder id
+        pipeline.create_pcollection_internal("".to_string(), pipeline.clone())
     }
 }
 
-impl Default for Impulse {
+impl Default for Flatten {
     fn default() -> Self {
         Self::new()
     }

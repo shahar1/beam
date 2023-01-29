@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+use std::iter::Iterator;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
@@ -26,64 +27,39 @@ use crate::internals::urns;
 
 use crate::proto::beam_api::pipeline as proto_pipeline;
 
-pub struct DoFn;
-
-impl DoFn {
-    pub fn process() {
-        todo!()
-    }
-
-    pub fn start_bundle() {
-        todo!()
-    }
-
-    pub fn finish_bundle() {
-        todo!()
-    }
-}
-
-pub struct ParDo<T, O> {
+pub struct GroupByKey<K, V> {
     payload: String,
-    phantom_t: PhantomData<T>,
-    phantom_o: PhantomData<O>,
+    phantom_k: PhantomData<K>,
+    phantom_v: PhantomData<V>,
 }
 
-// TODO: Is the Sync + Send stuff needed?
-impl<T: 'static, O: 'static> ParDo<T, O> {
-    // TODO: These should correspond to methods on PCollection<T> (but not on PValue).
-    pub fn from_map(func: fn(&T) -> O) -> Self {
-        Self::from_dyn_map(Box::new(func))
-    }
-    pub fn from_dyn_map(func: Box<dyn Fn(&T) -> O + Sync + Send>) -> Self {
-        Self::from_dyn_flat_map(Box::new(move |x: &T| -> Vec<O> { vec![func(x)] }))
-    }
-    pub fn from_flat_map<I: IntoIterator<Item = O> + 'static>(func: fn(&T) -> I) -> Self {
-        Self::from_dyn_flat_map(Box::new(func))
-    }
-    pub fn from_dyn_flat_map<I: IntoIterator<Item = O> + 'static>(
-        func: Box<dyn Fn(&T) -> I + Sync + Send>,
-    ) -> Self {
+// TODO: Use coders to allow arbitrary keys.
+impl<V: Clone + Sync + Send + 'static> GroupByKey<String, V> {
+    pub fn new() -> Self {
         Self {
-            payload: serialize::serialize_fn::<serialize::GenericDoFn>(Box::new(
-                serialize::to_generic_dofn_dyn(func),
+            payload: serialize::serialize_fn::<Box<dyn serialize::KeyExtractor>>(Box::new(
+                Box::new(serialize::TypedKeyExtractor::<V>::default()),
             )),
-            phantom_t: PhantomData,
-            phantom_o: PhantomData,
+            phantom_k: PhantomData,
+            phantom_v: PhantomData,
         }
     }
 }
 
-impl<T: Clone + std::marker::Send, O: Clone + std::marker::Send> PTransform<T, O> for ParDo<T, O> {
+// TODO: The return value should be something like dyn IntoIterator<Item = V, IntoIter = Box<dyn Iterator<Item = V>>> + Clone + Sync + Send + 'static,
+// to avoid requiring it to be in memory.
+impl<K: Clone + std::marker::Send, V: Clone + std::marker::Send> PTransform<(K, V), (K, Vec<V>)>
+    for GroupByKey<K, V>
+{
     fn expand_internal(
         &self,
-        _input: &PValue<T>, // really a PCollection<T>
+        _input: &PValue<(K, V)>, // really a PCollection
         pipeline: Arc<Pipeline>,
         transform_proto: &mut proto_pipeline::PTransform,
-    ) -> PValue<O> // really a PCollection<O>
+    ) -> PValue<(K, Vec<V>)> // really a PCollection
     {
-        // Update the spec to say how it's created.
         transform_proto.spec = Some(proto_pipeline::FunctionSpec {
-            urn: urns::PAR_DO_URN.to_string(),
+            urn: urns::GROUP_BY_KEY_URN.to_string(),
             payload: self.payload.clone().into(),
         });
         pipeline.create_pcollection_internal("".to_string(), pipeline.clone())
