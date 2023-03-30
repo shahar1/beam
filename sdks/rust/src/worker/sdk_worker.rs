@@ -154,7 +154,7 @@ impl Worker {
         todo!()
     }
 
-    fn process_bundle(&self, request: ProcessBundleRequest) -> () {
+    fn process_bundle(&self, request: ProcessBundleRequest) {
         let mut client = self.control_client.clone();
         let descriptor_cache = self.process_bundle_descriptors.clone();
         tokio::spawn(async move {
@@ -175,27 +175,27 @@ impl Worker {
         });
     }
 
-    fn process_bundle_progress(&self, _request: ProcessBundleProgressRequest) -> () {
+    fn process_bundle_progress(&self, _request: ProcessBundleProgressRequest) {
         // TODO(sjvanrossum): Flesh out after process_bundle is sufficiently implemented
     }
 
-    fn process_bundle_split(&self, _request: ProcessBundleSplitRequest) -> () {
+    fn process_bundle_split(&self, _request: ProcessBundleSplitRequest) {
         // TODO(sjvanrossum): Flesh out after process_bundle is sufficiently implemented
     }
 
-    fn finalize_bundle(&self, _request: FinalizeBundleRequest) -> () {
+    fn finalize_bundle(&self, _request: FinalizeBundleRequest) {
         // TODO(sjvanrossum): Flesh out after process_bundle is sufficiently implemented.
     }
 
-    fn monitoring_infos(&self, _request: MonitoringInfosMetadataRequest) -> () {
+    fn monitoring_infos(&self, _request: MonitoringInfosMetadataRequest) {
         // TODO: Implement
     }
 
-    fn harness_monitoring_infos(&self, _request: HarnessMonitoringInfosRequest) -> () {
+    fn harness_monitoring_infos(&self, _request: HarnessMonitoringInfosRequest) {
         // TODO: Implement
     }
 
-    fn register(&self, _request: RegisterRequest) -> () {
+    fn register(&self, _request: RegisterRequest) {
         // TODO: Implement or maybe respond with a failure since this is deprecated
     }
 }

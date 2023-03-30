@@ -276,13 +276,9 @@ impl OperatorI for CreateOperator {
         }
     }
 
-    fn process(&self, _value: WindowedValue) {
-        ()
-    }
+    fn process(&self, _value: WindowedValue) {}
 
-    fn finish_bundle(&self) {
-        ()
-    }
+    fn finish_bundle(&self) {}
 }
 
 #[derive(Debug)]
