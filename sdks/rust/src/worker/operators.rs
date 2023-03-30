@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-use std::any::Any;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::{Arc, Mutex};
@@ -25,7 +24,7 @@ use once_cell::sync::Lazy;
 use serde_json;
 
 use crate::internals::urns;
-use crate::proto::beam_api::fn_execution::{ProcessBundleDescriptor, RemoteGrpcPort};
+use crate::proto::beam_api::fn_execution::ProcessBundleDescriptor;
 use crate::proto::beam_api::pipeline::PTransform;
 
 use crate::worker::sdk_worker::BundleProcessor;

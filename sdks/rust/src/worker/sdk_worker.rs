@@ -31,10 +31,9 @@ use tonic::Status;
 use crate::proto::beam_api::fn_execution::instruction_request;
 use crate::proto::beam_api::fn_execution::{
     beam_fn_control_client::BeamFnControlClient, FinalizeBundleRequest,
-    GetProcessBundleDescriptorRequest, HarnessMonitoringInfosRequest, InstructionRequest,
-    InstructionResponse, MonitoringInfosMetadataRequest, ProcessBundleDescriptor,
-    ProcessBundleProgressRequest, ProcessBundleRequest, ProcessBundleResponse,
-    ProcessBundleSplitRequest, ProcessBundleSplitResponse, RegisterRequest,
+    GetProcessBundleDescriptorRequest, HarnessMonitoringInfosRequest, InstructionResponse,
+    MonitoringInfosMetadataRequest, ProcessBundleDescriptor, ProcessBundleProgressRequest,
+    ProcessBundleRequest, ProcessBundleSplitRequest, RegisterRequest,
 };
 use crate::proto::beam_api::pipeline::PTransform;
 
