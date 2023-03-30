@@ -325,8 +325,8 @@ impl BundleProcessor {
 
         let operator_opt = operators.get(&transform_id);
 
-        if operator_opt.is_some() {
-            operator_opt.unwrap().clone()
+        if let Some(operator) = operator_opt {
+            operator.clone()
         } else {
             let descriptor = bundle_processor.descriptor.clone();
             drop(operators);
