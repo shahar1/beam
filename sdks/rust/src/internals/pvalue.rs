@@ -27,7 +27,7 @@ use crate::proto::beam_api::pipeline as proto_pipeline;
 
 use crate::internals::pipeline::Pipeline;
 
-// TODO: remove field pcoll_proto.
+// TODO: remove field _pcoll_proto.
 // T should be never(!) for Root
 // https://github.com/rust-lang/rust/issues/35121
 #[derive(Clone)]
@@ -37,7 +37,7 @@ where
 {
     id: String,
     ptype: PType,
-    pcoll_proto: proto_pipeline::PCollection,
+    _pcoll_proto: proto_pipeline::PCollection,
     pipeline: Arc<Pipeline>,
 
     phantom: PhantomData<T>,
@@ -56,7 +56,7 @@ where
         Self {
             id,
             ptype,
-            pcoll_proto,
+            _pcoll_proto: pcoll_proto,
             pipeline,
 
             phantom: PhantomData::default(),
