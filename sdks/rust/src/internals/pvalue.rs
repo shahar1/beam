@@ -27,6 +27,7 @@ use crate::proto::beam_api::pipeline as proto_pipeline;
 
 use crate::internals::pipeline::Pipeline;
 
+// TODO: remove field pcoll_proto.
 // T should be never(!) for Root
 // https://github.com/rust-lang/rust/issues/35121
 #[derive(Clone)]
@@ -36,6 +37,7 @@ where
 {
     id: String,
     ptype: PType,
+    pcoll_proto: proto_pipeline::PCollection,
     pipeline: Arc<Pipeline>,
 
     phantom: PhantomData<T>,
@@ -45,10 +47,16 @@ impl<T> PValue<T>
 where
     T: Clone + Send,
 {
-    pub fn new(ptype: PType, pipeline: Arc<Pipeline>, id: String) -> Self {
+    pub fn new(
+        ptype: PType,
+        pcoll_proto: proto_pipeline::PCollection,
+        pipeline: Arc<Pipeline>,
+        id: String,
+    ) -> Self {
         Self {
             id,
             ptype,
+            pcoll_proto,
             pipeline,
 
             phantom: PhantomData::default(),
@@ -56,18 +64,44 @@ where
     }
 
     pub fn new_root(pipeline: Arc<Pipeline>) -> Self {
-        PValue::new(PType::Root, pipeline, crate::internals::utils::get_bad_id())
-    }
+        let pcoll_name = "root".to_string();
 
-    pub fn new_array(pcolls: &[PValue<T>]) -> Self {
+        let proto_coder_id = pipeline.register_coder_proto(proto_pipeline::Coder {
+            spec: Some(proto_pipeline::FunctionSpec {
+                urn: String::from(crate::coders::urns::BYTES_CODER_URN),
+                payload: Vec::with_capacity(0),
+            }),
+            component_coder_ids: Vec::with_capacity(0),
+        });
+
+        pipeline.register_coder::<BytesCoder, Vec<u8>>(Box::new(BytesCoder::new()));
+
+        let output_proto = proto_pipeline::PCollection {
+            unique_name: pcoll_name.clone(),
+            coder_id: proto_coder_id,
+            is_bounded: proto_pipeline::is_bounded::Enum::Bounded as i32,
+            windowing_strategy_id: "placeholder".to_string(),
+            display_data: Vec::with_capacity(0),
+        };
+
+        let impulse_proto = proto_pipeline::PTransform {
+            unique_name: "root".to_string(),
+            spec: None,
+            subtransforms: Vec::with_capacity(0),
+            inputs: HashMap::with_capacity(0),
+            outputs: HashMap::from([("out".to_string(), pcoll_name)]),
+            display_data: Vec::with_capacity(0),
+            environment_id: "".to_string(),
+            annotations: HashMap::with_capacity(0),
+        };
+
+        pipeline.register_proto_transform(impulse_proto);
+
         PValue::new(
-            PType::PValueArr,
-            pcolls[0].clone().pipeline,
-            pcolls
-                .iter()
-                .map(|pcoll| -> String { pcoll.id.clone() })
-                .collect::<Vec<String>>()
-                .join(","),
+            PType::Root,
+            output_proto,
+            pipeline,
+            crate::internals::utils::get_bad_id(),
         )
     }
 
@@ -111,32 +145,29 @@ where
     // }
 }
 
-/// Returns a PValue as a flat object with string keys and PCollection id values.
+/// Returns a PValue as a flat object with string keys and PCollection values.
 ///
 /// The full set of PCollections reachable by this PValue will be returned,
 /// with keys corresponding roughly to the path taken to get there
-pub fn flatten_pvalue<T>(pvalue: PValue<T>, prefix: Option<String>) -> HashMap<String, String>
+pub fn flatten_pvalue<T>(pvalue: PValue<T>, prefix: Option<String>) -> HashMap<String, PValue<T>>
 where
     T: Clone + Send,
 {
-    let mut result: HashMap<String, String> = HashMap::new();
+    let mut result: HashMap<String, PValue<T>> = HashMap::new();
     match pvalue.ptype {
         PType::PCollection => match prefix {
             Some(pr) => {
-                result.insert(pr, pvalue.get_id());
+                result.insert(pr, pvalue);
             }
             None => {
-                result.insert("main".to_string(), pvalue.get_id());
+                result.insert("main".to_string(), pvalue);
             }
         },
-        PType::PValueArr => {
-            // TODO: Remove this hack, PValues can have multiple ids.
-            for (i, id) in pvalue.get_id().split(",").enumerate() {
-                result.insert(i.to_string(), id.to_string());
-            }
-        }
+        PType::PValueArr => todo!(),
         PType::PValueMap => todo!(),
-        PType::Root => {}
+        PType::Root => {
+            result.insert("main".to_string(), pvalue);
+        }
     }
 
     result
@@ -159,7 +190,7 @@ where
     In: Clone + Send,
     Out: Clone + Send,
 {
-    fn expand(&self, input: &PValue<In>) -> PValue<Out>
+    fn expand(&self, _input: &PValue<In>) -> PValue<Out>
     where
         Self: Sized,
     {
@@ -169,8 +200,8 @@ where
     fn expand_internal(
         &self,
         input: &PValue<In>,
-        pipeline: Arc<Pipeline>,
-        transform_proto: &mut proto_pipeline::PTransform,
+        _pipeline: Arc<Pipeline>,
+        _transform_proto: proto_pipeline::PTransform,
     ) -> PValue<Out>
     where
         Self: Sized,

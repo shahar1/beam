@@ -114,7 +114,7 @@ impl ExternalWorkerPool {
     }
 
     // TODO: implement timeout for graceful shutdown
-    pub async fn stop(&self, timeout: Duration) {
+    pub async fn stop(&self, _timeout: Duration) {
         // TODO: add logging
         println!("Shutting down external workers.");
 

@@ -18,7 +18,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::coders::{*, required_coders::*, rust_coders::*, standard_coders::*};
+    use crate::coders::{required_coders::*, rust_coders::*, standard_coders::*, *};
 
     use std::any::Any;
     use std::fmt;
@@ -79,7 +79,7 @@ mod tests {
 
         fn parse_yaml_value(
             &self,
-            value: &serde_yaml::Value,
+            _value: &serde_yaml::Value,
         ) -> <KVCoder<KV<K, V>> as CoderTestUtils>::InternalCoderType {
             todo!()
         }
@@ -93,7 +93,7 @@ mod tests {
 
         fn parse_yaml_value(
             &self,
-            value: &serde_yaml::Value,
+            _value: &serde_yaml::Value,
         ) -> <IterableCoder<T> as CoderTestUtils>::InternalCoderType {
             todo!()
         }

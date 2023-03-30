@@ -41,7 +41,7 @@ pub type Never = bool;
 impl PTransform<Never, Vec<u8>> for Impulse {
     fn expand_internal(
         &self,
-        input: &PValue<Never>,
+        _input: &PValue<Never>,
         pipeline: Arc<Pipeline>,
         transform_proto: &mut proto_pipeline::PTransform,
     ) -> PValue<Vec<u8>> {

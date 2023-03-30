@@ -159,7 +159,7 @@ impl Worker {
         let mut client = self.control_client.clone();
         let descriptor_cache = self.process_bundle_descriptors.clone();
         tokio::spawn(async move {
-            let descriptor = descriptor_cache
+            let _descriptor = descriptor_cache
                 .try_get_with::<_, Status>(request.process_bundle_descriptor_id.clone(), async {
                     let res = client
                         .get_process_bundle_descriptor(GetProcessBundleDescriptorRequest {
@@ -176,27 +176,27 @@ impl Worker {
         });
     }
 
-    fn process_bundle_progress(&self, request: ProcessBundleProgressRequest) -> () {
+    fn process_bundle_progress(&self, _request: ProcessBundleProgressRequest) -> () {
         // TODO(sjvanrossum): Flesh out after process_bundle is sufficiently implemented
     }
 
-    fn process_bundle_split(&self, request: ProcessBundleSplitRequest) -> () {
+    fn process_bundle_split(&self, _request: ProcessBundleSplitRequest) -> () {
         // TODO(sjvanrossum): Flesh out after process_bundle is sufficiently implemented
     }
 
-    fn finalize_bundle(&self, request: FinalizeBundleRequest) -> () {
+    fn finalize_bundle(&self, _request: FinalizeBundleRequest) -> () {
         // TODO(sjvanrossum): Flesh out after process_bundle is sufficiently implemented.
     }
 
-    fn monitoring_infos(&self, request: MonitoringInfosMetadataRequest) -> () {
+    fn monitoring_infos(&self, _request: MonitoringInfosMetadataRequest) -> () {
         // TODO: Implement
     }
 
-    fn harness_monitoring_infos(&self, request: HarnessMonitoringInfosRequest) -> () {
+    fn harness_monitoring_infos(&self, _request: HarnessMonitoringInfosRequest) -> () {
         // TODO: Implement
     }
 
-    fn register(&self, request: RegisterRequest) -> () {
+    fn register(&self, _request: RegisterRequest) -> () {
         // TODO: Implement or maybe respond with a failure since this is deprecated
     }
 }
@@ -303,10 +303,7 @@ impl BundleProcessor {
                         }
                         oprs
                     }
-                    None => {
-                        drop(receivers);
-                        Vec::new()
-                    }
+                    None => Vec::new(),
                 };
 
                 let receiver = Receiver::new(pcoll_operators);
@@ -385,7 +382,7 @@ impl BundleProcessor {
     }
 }
 
-// TODO: Handle transforms that return their inputs.
-fn is_primitive(transform: &PTransform) -> bool {
-    transform.subtransforms.is_empty()
+// TODO
+fn is_primitive(_transform: &PTransform) -> bool {
+    true
 }
