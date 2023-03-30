@@ -39,9 +39,9 @@ static OPERATORS_BY_URN: Lazy<Mutex<OperatorMap>> = Lazy::new(|| {
         // Test operators
         (urns::CREATE_URN, OperatorDiscriminants::Create),
         (urns::RECORDING_URN, OperatorDiscriminants::Recording),
-        (urns::PARTITION_URN, OperatorDiscriminants::Partitioning),
+        (urns::PARTITION_URN, OperatorDiscriminants::_Partitioning),
         // Production operators
-        (urns::DATA_INPUT_URN, OperatorDiscriminants::DataSource),
+        (urns::DATA_INPUT_URN, OperatorDiscriminants::_DataSource),
     ]);
 
     Mutex::new(m)
@@ -71,10 +71,10 @@ pub enum Operator {
     // Test operators
     Create(CreateOperator),
     Recording(RecordingOperator),
-    Partitioning,
+    _Partitioning,
 
     // Production operators
-    DataSource,
+    _DataSource,
 }
 
 impl OperatorI for Operator {
