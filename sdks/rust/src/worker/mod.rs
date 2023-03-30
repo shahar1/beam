@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-mod data;
 mod external_worker_service;
 mod operators;
 

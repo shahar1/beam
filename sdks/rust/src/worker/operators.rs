@@ -28,7 +28,6 @@ use crate::internals::urns;
 use crate::proto::beam_api::fn_execution::{ProcessBundleDescriptor, RemoteGrpcPort};
 use crate::proto::beam_api::pipeline::PTransform;
 
-use crate::worker::data::MultiplexingDataChannel;
 use crate::worker::sdk_worker::BundleProcessor;
 use crate::worker::test_utils::RECORDING_OPERATOR_LOGS;
 
