@@ -60,7 +60,7 @@ impl Interceptor for WorkerIdInterceptor {
 }
 
 type BundleDescriptorId = String;
-type InstructionId = String;
+type _InstructionId = String;
 
 // TODO(sjvanrossum): Convert simple map caches to concurrent caches.
 // Using concurrent caches removes the need to synchronize on the worker instance in every context.
@@ -71,11 +71,11 @@ pub struct Worker {
     // Cheap and safe to clone
     process_bundle_descriptors:
         moka::future::Cache<BundleDescriptorId, Arc<ProcessBundleDescriptor>>,
-    bundle_processors: HashMap<String, BundleProcessor>,
-    active_bundle_processors: HashMap<String, BundleProcessor>,
-    id: String,
-    endpoints: WorkerEndpoints,
-    options: HashMap<String, String>,
+    _bundle_processors: HashMap<String, BundleProcessor>,
+    _active_bundle_processors: HashMap<String, BundleProcessor>,
+    _id: String,
+    _endpoints: WorkerEndpoints,
+    _options: HashMap<String, String>,
 }
 
 impl Worker {
@@ -94,11 +94,11 @@ impl Worker {
             control_client: client,
             // TODO(sjvanrossum): Maybe define the eviction policy
             process_bundle_descriptors: moka::future::Cache::builder().build(),
-            bundle_processors: HashMap::new(),
-            active_bundle_processors: HashMap::new(),
-            id,
-            endpoints,
-            options: HashMap::new(),
+            _bundle_processors: HashMap::new(),
+            _active_bundle_processors: HashMap::new(),
+            _id: id,
+            _endpoints: endpoints,
+            _options: HashMap::new(),
         }))
     }
 

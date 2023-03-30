@@ -199,7 +199,7 @@ impl fmt::Debug for OperatorContext {
 
 #[derive(Clone, Debug)]
 pub enum WindowedValue {
-    Null,
+    _Null,
     Array(Vec<Arc<WindowedValue>>),
     String(String),
     // Bool(bool),
@@ -211,10 +211,10 @@ pub enum WindowedValue {
 
 #[derive(Debug)]
 pub struct CreateOperator {
-    transform_id: Arc<String>,
-    transform: Arc<PTransform>,
-    context: Arc<OperatorContext>,
-    operator_discriminant: OperatorDiscriminants,
+    _transform_id: Arc<String>,
+    _transform: Arc<PTransform>,
+    _context: Arc<OperatorContext>,
+    _operator_discriminant: OperatorDiscriminants,
 
     receivers: Vec<Arc<Receiver>>,
     data: WindowedValue,
@@ -252,10 +252,10 @@ impl OperatorI for CreateOperator {
             .collect();
 
         Self {
-            transform_id,
-            transform,
-            context,
-            operator_discriminant,
+            _transform_id: transform_id,
+            _transform: transform,
+            _context: context,
+            _operator_discriminant: operator_discriminant,
             receivers,
             data,
         }
@@ -288,9 +288,9 @@ impl OperatorI for CreateOperator {
 #[derive(Debug)]
 pub struct RecordingOperator {
     transform_id: Arc<String>,
-    transform: Arc<PTransform>,
-    context: Arc<OperatorContext>,
-    operator_discriminant: OperatorDiscriminants,
+    _transform: Arc<PTransform>,
+    _context: Arc<OperatorContext>,
+    _operator_discriminant: OperatorDiscriminants,
 
     receivers: Vec<Arc<Receiver>>,
 }
@@ -313,9 +313,9 @@ impl OperatorI for RecordingOperator {
 
         Self {
             transform_id,
-            transform,
-            context,
-            operator_discriminant: operator_discriminant,
+            _transform: transform,
+            _context: context,
+            _operator_discriminant: operator_discriminant,
             receivers,
         }
     }
