@@ -35,8 +35,8 @@ use std::marker::PhantomData;
 
 use integer_encoding::{VarIntReader, VarIntWriter};
 
-use crate::coders::coders::{CoderI, CoderTypeDiscriminants, Context};
 use crate::coders::urns::*;
+use crate::coders::{CoderI, CoderTypeDiscriminants, Context};
 
 /// Coder for byte-array data types
 #[derive(Clone)]

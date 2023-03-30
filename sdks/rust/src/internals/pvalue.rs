@@ -21,8 +21,8 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use crate::coders::coders::CoderI;
 use crate::coders::required_coders::BytesCoder;
+use crate::coders::CoderI;
 use crate::proto::beam_api::pipeline as proto_pipeline;
 
 use crate::internals::pipeline::Pipeline;

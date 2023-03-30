@@ -20,7 +20,7 @@ use std::any::{Any, TypeId};
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
-use crate::coders::coders::CoderI;
+use crate::coders::CoderI;
 use crate::proto::beam_api::pipeline as proto_pipeline;
 
 use crate::internals::pvalue::{flatten_pvalue, PTransform, PValue};

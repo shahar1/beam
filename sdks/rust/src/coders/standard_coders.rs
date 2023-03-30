@@ -32,9 +32,9 @@ use std::io::{self, ErrorKind, Read, Write};
 
 use integer_encoding::{VarInt, VarIntReader, VarIntWriter};
 
-use crate::coders::coders::{CoderI, CoderTypeDiscriminants, Context};
 use crate::coders::required_coders::BytesCoder;
 use crate::coders::urns::*;
+use crate::coders::{CoderI, CoderTypeDiscriminants, Context};
 
 #[derive(Clone)]
 pub struct StrUtf8Coder {

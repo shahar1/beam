@@ -18,7 +18,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::coders::{coders::*, required_coders::*, rust_coders::*, standard_coders::*};
+    use crate::coders::{*, required_coders::*, rust_coders::*, standard_coders::*};
 
     use std::any::Any;
     use std::fmt;
