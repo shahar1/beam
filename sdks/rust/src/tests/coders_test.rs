@@ -28,7 +28,7 @@ mod tests {
     use serde_yaml::{Deserializer, Value};
 
     // TODO: empty this list
-    const UNSUPPORTED_CODERS: [&'static str; 13] = [
+    const UNSUPPORTED_CODERS: [&str; 13] = [
         "beam:coder:bool:v1",
         "beam:coder:kv:v1",
         "beam:coder:interval_window:v1",
