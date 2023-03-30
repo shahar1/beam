@@ -135,7 +135,7 @@ impl Default for BytesCoder {
 }
 
 impl fmt::Debug for BytesCoder {
-    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("BytesCoder")
             .field("urn", &self.urn)
             .finish()
