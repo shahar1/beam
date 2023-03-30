@@ -317,17 +317,13 @@ impl OperatorI for RecordingOperator {
     }
 
     fn start_bundle(&self) {
-        unsafe {
-            let mut log = RECORDING_OPERATOR_LOGS.lock().unwrap();
-            log.push(format!("{}.start_bundle()", self.transform_id));
-        }
+        let mut log = RECORDING_OPERATOR_LOGS.lock().unwrap();
+        log.push(format!("{}.start_bundle()", self.transform_id));
     }
 
     fn process(&self, value: WindowedValue) {
-        unsafe {
-            let mut log = RECORDING_OPERATOR_LOGS.lock().unwrap();
-            log.push(format!("{}.process({:?})", self.transform_id, value));
-        }
+        let mut log = RECORDING_OPERATOR_LOGS.lock().unwrap();
+        log.push(format!("{}.process({:?})", self.transform_id, value));
 
         for rec in self.receivers.iter() {
             rec.receive(value.clone());
@@ -335,9 +331,7 @@ impl OperatorI for RecordingOperator {
     }
 
     fn finish_bundle(&self) {
-        unsafe {
-            let mut log = RECORDING_OPERATOR_LOGS.lock().unwrap();
-            log.push(format!("{}.finish_bundle()", self.transform_id));
-        }
+        let mut log = RECORDING_OPERATOR_LOGS.lock().unwrap();
+        log.push(format!("{}.finish_bundle()", self.transform_id));
     }
 }

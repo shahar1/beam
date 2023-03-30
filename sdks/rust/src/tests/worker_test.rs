@@ -96,33 +96,29 @@ mod tests {
             timer_api_service_descriptor: None,
         };
 
-        unsafe {
-            reset_log();
-        }
+        reset_log();
 
         let processor = BundleProcessor::new(Arc::new(descriptor), &[urns::CREATE_URN]);
 
         processor.process("bundle_id".to_string()).await;
 
-        unsafe {
-            let log = RECORDING_OPERATOR_LOGS.lock().unwrap();
-            let _log: &Vec<String> = log.as_ref();
+        let log = RECORDING_OPERATOR_LOGS.lock().unwrap();
+        let _log: &Vec<String> = log.as_ref();
 
-            assert_eq!(
-                *_log,
-                Vec::from([
-                    "z.start_bundle()",
-                    "y.start_bundle()",
-                    "y.process(\"a\")",
-                    "z.process(\"a\")",
-                    "y.process(\"b\")",
-                    "z.process(\"b\")",
-                    "y.process(\"c\")",
-                    "z.process(\"c\")",
-                    "y.finish_bundle()",
-                    "z.finish_bundle()",
-                ])
-            );
-        }
+        assert_eq!(
+            *_log,
+            Vec::from([
+                "z.start_bundle()",
+                "y.start_bundle()",
+                "y.process(String(\"a\"))",
+                "z.process(String(\"a\"))",
+                "y.process(String(\"b\"))",
+                "z.process(String(\"b\"))",
+                "y.process(String(\"c\"))",
+                "z.process(String(\"c\"))",
+                "y.finish_bundle()",
+                "z.finish_bundle()",
+            ])
+        );
     }
 }
