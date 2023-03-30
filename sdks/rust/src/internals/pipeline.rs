@@ -299,9 +299,11 @@ impl<'a> Pipeline {
 
     pub fn create_pcollection_id_internal(&self, coder_id: String) -> String {
         let pcoll_id = self.context.create_unique_name("pc".to_string());
-        let mut pcoll_proto: proto_pipeline::PCollection = proto_pipeline::PCollection::default();
-        pcoll_proto.unique_name = pcoll_id.clone();
-        pcoll_proto.coder_id = coder_id;
+        let pcoll_proto: proto_pipeline::PCollection = proto_pipeline::PCollection {
+            unique_name: pcoll_id.clone(),
+            coder_id,
+            ..Default::default()
+        };
 
         let mut pipeline_proto = self.proto.lock().unwrap();
         pipeline_proto
