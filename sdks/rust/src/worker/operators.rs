@@ -249,7 +249,7 @@ pub struct OperatorContext {
 }
 
 impl fmt::Debug for OperatorContext {
-    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("OperatorContext")
             .field("descriptor", &self.descriptor)
             .field("bundle_processor", &self.bundle_processor)

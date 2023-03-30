@@ -92,7 +92,7 @@ impl Default for StrUtf8Coder {
 }
 
 impl fmt::Debug for StrUtf8Coder {
-    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("StrUtf8Coder")
             .field("urn", &self.urn)
             .finish()
@@ -146,7 +146,7 @@ impl Default for VarIntCoder {
 }
 
 impl fmt::Debug for VarIntCoder {
-    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("VarIntCoder")
             .field("urn", &self.urn)
             .finish()

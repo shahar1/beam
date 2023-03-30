@@ -82,7 +82,7 @@ impl<T> Default for GeneralObjectCoder<T> {
 }
 
 impl<T> fmt::Debug for GeneralObjectCoder<T> {
-    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("GeneralObjectCoder")
             .field("urn", &self.urn)
             .finish()
