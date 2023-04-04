@@ -180,7 +180,7 @@ mod tests {
         }
     }
 
-    fn run_unnested<'a, C, E>(coder: &(dyn Any + 'a), _nested: bool, spec: &Value)
+    fn run_unnested<'a, C, E>(coder: &C, _nested: bool, spec: &Value)
     where
         C: CoderI<E> + CoderTestUtils + CoderTestUtils<InternalCoderType = E> + 'a,
         E: Clone + std::fmt::Debug + PartialEq,
@@ -193,12 +193,11 @@ mod tests {
         }
     }
 
-    fn run_case<'a, C, E>(coder: &(dyn Any + 'a), expected_encoded: &Value, original: &Value)
+    fn run_case<'a, C, E>(coder: &C, expected_encoded: &Value, original: &Value)
     where
         C: CoderI<E> + CoderTestUtils + CoderTestUtils<InternalCoderType = E> + 'a,
         E: Clone + std::fmt::Debug + PartialEq,
     {
-        let c: &C = coder.downcast_ref::<C>().unwrap();
         // The expected encodings in standard_coders.yaml need to be read as UTF-16
         let expected_enc_utf16: Vec<u16> =
             expected_encoded.as_str().unwrap().encode_utf16().collect();
@@ -213,15 +212,15 @@ mod tests {
         // TODO: revisit when context gets fully implemented
         let context = Context::WholeStream;
 
-        let expected_dec = c.parse_yaml_value(original);
+        let expected_dec = coder.parse_yaml_value(original);
 
-        c.encode(expected_dec.clone(), &mut writer, &context)
+        coder.encode(expected_dec.clone(), &mut writer, &context)
             .unwrap();
         let encoded = writer.into_inner();
 
-        let decoded = c.decode(&mut reader, &context).unwrap();
+        let decoded = coder.decode(&mut reader, &context).unwrap();
 
-        println!("\n---------\nCoder type: {:?}", c.get_coder_type());
+        println!("\n---------\nCoder type: {:?}", coder.get_coder_type());
         println!(
             "\nExpected encoded: {:?}\nGenerated encoded: {:?}\n\nExpected decoded: {:?}\nGenerated decoded: {:?}",
             expected_enc.as_slice(), encoded, expected_dec, decoded
