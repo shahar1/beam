@@ -21,6 +21,7 @@ use std::{pin::Pin, sync::Arc};
 
 use async_trait::async_trait;
 
+use crate::elem_types::ElemType;
 use crate::internals::pipeline::Pipeline;
 use crate::internals::pvalue::PValue;
 use crate::proto::beam_api::pipeline as proto_pipeline;
@@ -40,9 +41,9 @@ pub trait RunnerI {
     /// Use run_async() to execute the pipeline in the background.
     async fn run<In, Out, F>(&self, pipeline: F)
     where
-        In: Clone + Send,
-        Out: Clone + Send,
-        F: FnOnce(PValue<In>) -> PValue<Out> + Send, // TODO: Don't require a return value.
+        In: ElemType,
+        Out: ElemType,
+        F: FnOnce(PValue<In>) -> PValue<Out> + Send,
     {
         self.run_async(pipeline).await;
     }
@@ -52,8 +53,8 @@ pub trait RunnerI {
     /// status.
     async fn run_async<In, Out, F>(&self, pipeline: F)
     where
-        In: Clone + Send,
-        Out: Clone + Send,
+        In: ElemType,
+        Out: ElemType,
         F: FnOnce(PValue<In>) -> PValue<Out> + Send,
     {
         let p = Arc::new(Pipeline::default());

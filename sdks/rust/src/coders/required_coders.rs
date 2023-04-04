@@ -212,7 +212,7 @@ where
     phantom: PhantomData<E>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Iterable<E>
 where
     E: ElemType,

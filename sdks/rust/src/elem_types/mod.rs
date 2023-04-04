@@ -3,14 +3,14 @@ use std::fmt;
 use crate::coders::required_coders::{Iterable, KV};
 
 /// Element types used in Beam pipelines (including PTransforms, PCollections, Coders, etc.)
-pub trait ElemType: Send + 'static {}
+pub trait ElemType: Clone + Send + 'static {}
 
 impl ElemType for Vec<u8> {}
 
 impl<K, V> ElemType for KV<K, V>
 where
-    K: Send + 'static,
-    V: Send + 'static,
+    K: Clone + Send + 'static,
+    V: Clone + Send + 'static,
 {
 }
 
@@ -28,3 +28,5 @@ impl ElemType for u16 {}
 impl ElemType for u32 {}
 impl ElemType for u64 {}
 impl ElemType for usize {}
+
+impl ElemType for () {}

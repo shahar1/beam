@@ -19,6 +19,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
+use crate::elem_types::ElemType;
 use crate::proto::beam_api::pipeline as proto_pipeline;
 
 use crate::internals::pvalue::{flatten_pvalue, PTransform, PValue};
@@ -133,8 +134,8 @@ impl<'a> Pipeline {
         input: &PValue<In>,
     ) -> (String, proto_pipeline::PTransform)
     where
-        In: Clone + Send,
-        Out: Clone + Send,
+        In: ElemType,
+        Out: ElemType,
         F: PTransform<In, Out> + Send,
     {
         let transform_id = self.context.create_unique_name("transform".to_string());
@@ -215,11 +216,11 @@ impl<'a> Pipeline {
         pipeline: Arc<Pipeline>,
     ) -> PValue<Out>
     where
-        In: Clone + Send,
-        Out: Clone + Send,
+        In: ElemType,
+        Out: ElemType,
         F: PTransform<In, Out> + Send,
     {
-        let (transform_id, transform_proto) = self.pre_apply_transform(&transform, &input);
+        let (transform_id, transform_proto) = self.pre_apply_transform(&transform, input);
 
         let mut transform_stack = self.transform_stack.lock().unwrap();
 
@@ -243,8 +244,8 @@ impl<'a> Pipeline {
         result: PValue<Out>,
     ) -> PValue<Out>
     where
-        In: Clone + Send,
-        Out: Clone + Send,
+        In: ElemType,
+        Out: ElemType,
         F: PTransform<In, Out> + Send,
     {
         result
@@ -256,7 +257,7 @@ impl<'a> Pipeline {
         pipeline: Arc<Pipeline>,
     ) -> PValue<Out>
     where
-        Out: Clone + Send,
+        Out: ElemType,
     {
         // TODO: remove pcoll_proto arg
         PValue::new(
