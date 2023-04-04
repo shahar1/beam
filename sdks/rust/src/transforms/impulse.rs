@@ -36,7 +36,7 @@ impl Impulse {
 
 // Input type should be never(!)
 // https://github.com/rust-lang/rust/issues/35121
-pub type Never = bool;
+pub type Never = ();
 
 impl PTransform<Never, Vec<u8>> for Impulse {
     fn expand_internal(
