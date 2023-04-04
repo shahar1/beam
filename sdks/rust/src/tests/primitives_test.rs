@@ -20,6 +20,7 @@
 mod tests {
     use std::sync::Arc;
 
+    use crate::coders::required_coders::KV;
     use crate::internals::pipeline::Pipeline;
     use crate::internals::pvalue::{PType, PValue};
     use crate::runners::direct_runner::DirectRunner;
@@ -79,14 +80,14 @@ mod tests {
         DirectRunner::new()
             .run(|root| {
                 root.apply(Create::new(&[
-                    ("a".to_string(), 1),
-                    ("a".to_string(), 2),
-                    ("b".to_string(), 3),
+                    KV::new("a".to_string(), 1),
+                    KV::new("a".to_string(), 2),
+                    KV::new("b".to_string(), 3),
                 ]))
                 .apply(GroupByKey::new())
                 .apply(AssertEqualUnordered::new(&[
-                    ("a".to_string(), vec![1, 2]),
-                    ("b".to_string(), vec![3]),
+                    KV::new("a".to_string(), vec![1, 2]),
+                    KV::new("b".to_string(), vec![3]),
                 ]))
             })
             .await;

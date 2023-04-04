@@ -129,8 +129,8 @@ impl fmt::Debug for BytesCoder {
 
 #[derive(Clone, fmt::Debug)]
 pub struct KV<K, V> {
-    k: PhantomData<K>,
-    v: PhantomData<V>,
+    k: K,
+    v: V,
 }
 
 impl<K, V> KV<K, V>
@@ -138,21 +138,8 @@ where
     K: Clone + fmt::Debug + Send,
     V: Clone + fmt::Debug + Send,
 {
-    pub fn new() -> Self {
-        KV {
-            k: PhantomData::default(),
-            v: PhantomData::default(),
-        }
-    }
-}
-
-impl<K, V> Default for KV<K, V>
-where
-    K: Clone + fmt::Debug + Send,
-    V: Clone + fmt::Debug + Send,
-{
-    fn default() -> Self {
-        Self::new()
+    pub fn new(k: K, v: V) -> Self {
+        KV { k, v }
     }
 }
 
