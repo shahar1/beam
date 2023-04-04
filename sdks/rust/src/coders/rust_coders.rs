@@ -19,25 +19,13 @@
 use std::fmt;
 use std::marker::PhantomData;
 
+use crate::coders::coders::CoderI;
 use crate::coders::standard_coders::*;
 use crate::coders::urns::*;
-use crate::coders::{CoderI, CoderTypeDiscriminants};
 
 #[derive(Eq, PartialEq)]
 pub struct GeneralObjectCoder<T> {
-    coder_type: CoderTypeDiscriminants,
-
     phantom: PhantomData<T>,
-}
-
-impl<T> GeneralObjectCoder<T> {
-    pub fn new() -> Self {
-        Self {
-            coder_type: CoderTypeDiscriminants::GeneralObject,
-
-            phantom: PhantomData::default(),
-        }
-    }
 }
 
 impl CoderI for GeneralObjectCoder<String> {
@@ -47,26 +35,22 @@ impl CoderI for GeneralObjectCoder<String> {
         GENERAL_OBJECT_CODER_URN
     }
 
-    fn get_coder_type(&self) -> &CoderTypeDiscriminants {
-        &self.coder_type
-    }
-
     fn encode(
         &self,
         element: String,
         writer: &mut dyn std::io::Write,
-        context: &crate::coders::Context,
+        context: &crate::coders::coders::Context,
     ) -> Result<usize, std::io::Error> {
         let marker = "S".as_bytes();
         writer.write_all(marker).unwrap();
 
-        StrUtf8Coder::new().encode(element, writer, context)
+        StrUtf8Coder::default().encode(element, writer, context)
     }
 
     fn decode(
         &self,
         reader: &mut dyn std::io::Read,
-        context: &crate::coders::Context,
+        context: &crate::coders::coders::Context,
     ) -> Result<String, std::io::Error> {
         let marker: &mut [u8; 1] = &mut [0; 1];
         reader.read_exact(marker)?;
@@ -75,18 +59,20 @@ impl CoderI for GeneralObjectCoder<String> {
             todo!()
         }
 
-        StrUtf8Coder::new().decode(reader, context)
+        StrUtf8Coder::default().decode(reader, context)
     }
 }
 
 impl<T> Default for GeneralObjectCoder<T> {
     fn default() -> Self {
-        Self::new()
+        Self {
+            phantom: PhantomData::default(),
+        }
     }
 }
 
 impl<T> fmt::Debug for GeneralObjectCoder<T> {
-    fn fmt(&self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("GeneralObjectCoder")
             .field("urn", &GENERAL_OBJECT_CODER_URN)
             .finish()

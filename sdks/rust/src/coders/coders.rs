@@ -19,6 +19,7 @@
 pub mod coder_resolver;
 
 use std::collections::HashMap;
+use std::fmt;
 use std::io::{self, Read, Write};
 
 use crate::coders::urns::*;
@@ -84,15 +85,13 @@ pub enum CoderType {
 
 /// This is the base interface for coders, which are responsible in Apache Beam to encode and decode
 ///  elements of a PCollection.
-pub trait CoderI {
+pub trait CoderI: fmt::Debug + Default {
     /// The type of the elements to be encoded/decoded.
     type E;
 
     fn get_coder_urn() -> &'static str
     where
         Self: Sized;
-
-    fn get_coder_type(&self) -> &CoderTypeDiscriminants;
 
     /// Encode an element into a stream of bytes
     fn encode(

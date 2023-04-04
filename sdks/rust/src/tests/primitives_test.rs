@@ -121,7 +121,7 @@ mod tests {
         //     .get(&root_clone.pcoll_proto.coder_id)
         //     .unwrap();
 
-        let bytes_coder_type_id = BytesCoder::new().type_id();
+        let bytes_coder_type_id = BytesCoder::default().type_id();
         let coder = p.get_coder::<BytesCoder>(&bytes_coder_type_id);
 
         assert_eq!(*pcoll.get_type(), PType::PCollection);

@@ -74,7 +74,7 @@ where
             component_coder_ids: Vec::with_capacity(0),
         });
 
-        pipeline.register_coder::<BytesCoder>(Box::new(BytesCoder::new()));
+        pipeline.register_coder::<BytesCoder>(Box::<BytesCoder>::default());
 
         let output_proto = proto_pipeline::PCollection {
             unique_name: pcoll_name.clone(),

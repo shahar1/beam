@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{fmt, marker::PhantomData};
 
 use crate::{
     coders::{
@@ -13,19 +13,15 @@ use crate::{
 /// You may use original coders by implementing the `CoderResolver` trait.
 pub trait CoderResolver {
     type E: ElemType;
+    type C: CoderI<E = Self::E>;
 
     /// Resolve a coder from a coder URN.
     ///
     /// # Returns
     ///
     /// `Some(C)` if the coder was resolved, `None` otherwise.
-    fn resolve(&self, coder_urn: &str) -> Option<Box<dyn CoderI<E = Self::E>>>;
-
-    fn _resolve_default<C: CoderI<E = Self::E> + Default + 'static>(
-        &self,
-        coder_urn: &str,
-    ) -> Option<Box<dyn CoderI<E = Self::E>>> {
-        (coder_urn == C::get_coder_urn()).then_some(Box::<C>::default())
+    fn resolve(coder_urn: &str) -> Option<Self::C> {
+        (coder_urn == Self::C::get_coder_urn()).then_some(Self::C::default())
     }
 }
 
@@ -35,10 +31,7 @@ pub struct BytesCoderResolverDefault;
 
 impl CoderResolver for BytesCoderResolverDefault {
     type E = Vec<u8>;
-
-    fn resolve(&self, coder_urn: &str) -> Option<Box<dyn CoderI<E = Self::E>>> {
-        self._resolve_default::<BytesCoder>(coder_urn)
-    }
+    type C = BytesCoder;
 }
 
 /// `KV` -> `KVCoder`.
@@ -49,12 +42,9 @@ pub struct KVCoderResolverDefault<K, V> {
 
 impl<K, V> CoderResolver for KVCoderResolverDefault<K, V>
 where
-    K: Send + 'static,
-    V: Send + 'static,
+    K: fmt::Debug + Send + 'static,
+    V: fmt::Debug + Send + 'static,
 {
     type E = KV<K, V>;
-
-    fn resolve(&self, coder_urn: &str) -> Option<Box<dyn CoderI<E = Self::E>>> {
-        self._resolve_default::<KVCoder<KV<K, V>>>(coder_urn)
-    }
+    type C = KVCoder<Self::E>;
 }

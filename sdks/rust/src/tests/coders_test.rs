@@ -164,15 +164,15 @@ mod tests {
             // TODO: generalize
             match coder_type {
                 CoderTypeDiscriminants::Bytes => {
-                    let c = BytesCoder::new();
+                    let c = BytesCoder::default();
                     run_unnested::<BytesCoder>(&c, nested, &spec);
                 }
                 CoderTypeDiscriminants::StrUtf8 => {
-                    let c = StrUtf8Coder::new();
+                    let c = StrUtf8Coder::default();
                     run_unnested::<StrUtf8Coder>(&c, nested, &spec);
                 }
                 CoderTypeDiscriminants::VarIntCoder => {
-                    let c = VarIntCoder::new();
+                    let c = VarIntCoder::default();
                     run_unnested::<VarIntCoder<u64>>(&c, nested, &spec);
                 }
                 _ => todo!(),
@@ -221,7 +221,7 @@ mod tests {
 
         let decoded = coder.decode(&mut reader, &context).unwrap();
 
-        println!("\n---------\nCoder type: {:?}", coder.get_coder_type());
+        println!("\n---------\nCoder type: {:?}", coder);
         println!(
             "\nExpected encoded: {:?}\nGenerated encoded: {:?}\n\nExpected decoded: {:?}\nGenerated decoded: {:?}",
             expected_enc.as_slice(), encoded, expected_dec, decoded
@@ -234,7 +234,7 @@ mod tests {
     #[test]
     fn test_general_object_coder() {
         fn string_test() {
-            let coder: GeneralObjectCoder<String> = GeneralObjectCoder::new();
+            let coder: GeneralObjectCoder<String> = GeneralObjectCoder::default();
             let input = "abcde".to_string();
 
             let mut writer = vec![].writer();
