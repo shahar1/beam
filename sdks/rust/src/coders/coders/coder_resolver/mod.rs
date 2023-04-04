@@ -4,7 +4,6 @@ use crate::{
     coders::{
         coders::CoderI,
         required_coders::{BytesCoder, KVCoder, KV},
-        urns::{BYTES_CODER_URN, KV_CODER_URN},
     },
     elem_types::ElemType,
 };
