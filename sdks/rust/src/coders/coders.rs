@@ -88,6 +88,10 @@ pub trait CoderI {
     /// The type of the elements to be encoded/decoded.
     type E;
 
+    fn get_coder_urn() -> &'static str
+    where
+        Self: Sized;
+
     fn get_coder_type(&self) -> &CoderTypeDiscriminants;
 
     /// Encode an element into a stream of bytes

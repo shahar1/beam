@@ -19,6 +19,13 @@ pub trait CoderResolver {
     ///
     /// `Some(C)` if the coder was resolved, `None` otherwise.
     fn resolve(&self, coder_urn: &str) -> Option<Box<dyn CoderI<E = Self::E>>>;
+
+    fn _resolve_default<C: CoderI<E = Self::E> + Default + 'static>(
+        &self,
+        coder_urn: &str,
+    ) -> Option<Box<dyn CoderI<E = Self::E>>> {
+        (coder_urn == C::get_coder_urn()).then_some(Box::<C>::default())
+    }
 }
 
 /// `Vec<u8>` -> `BytesCoder`.
@@ -29,7 +36,7 @@ impl CoderResolver for BytesCoderResolverDefault {
     type E = Vec<u8>;
 
     fn resolve(&self, coder_urn: &str) -> Option<Box<dyn CoderI<E = Self::E>>> {
-        (coder_urn == BYTES_CODER_URN).then_some(Box::<BytesCoder>::default())
+        self._resolve_default::<BytesCoder>(coder_urn)
     }
 }
 
@@ -47,6 +54,6 @@ where
     type E = KV<K, V>;
 
     fn resolve(&self, coder_urn: &str) -> Option<Box<dyn CoderI<E = Self::E>>> {
-        (coder_urn == KV_CODER_URN).then_some(Box::<KVCoder<KV<K, V>>>::default())
+        self._resolve_default::<KVCoder<KV<K, V>>>(coder_urn)
     }
 }

@@ -39,14 +39,12 @@ use crate::coders::urns::*;
 #[derive(Clone)]
 pub struct StrUtf8Coder {
     coder_type: CoderTypeDiscriminants,
-    urn: &'static str,
 }
 
 impl StrUtf8Coder {
     pub fn new() -> Self {
         Self {
             coder_type: CoderTypeDiscriminants::StrUtf8,
-            urn: STR_UTF8_CODER_URN,
         }
     }
 }
@@ -54,6 +52,10 @@ impl StrUtf8Coder {
 // TODO: accept string references as well?
 impl CoderI for StrUtf8Coder {
     type E = String;
+
+    fn get_coder_urn() -> &'static str {
+        STR_UTF8_CODER_URN
+    }
 
     fn get_coder_type(&self) -> &CoderTypeDiscriminants {
         &self.coder_type
@@ -96,7 +98,7 @@ impl Default for StrUtf8Coder {
 impl fmt::Debug for StrUtf8Coder {
     fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("StrUtf8Coder")
-            .field("urn", &self.urn)
+            .field("urn", &Self::get_coder_urn())
             .finish()
     }
 }
@@ -104,7 +106,6 @@ impl fmt::Debug for StrUtf8Coder {
 #[derive(Clone)]
 pub struct VarIntCoder<N: fmt::Debug + VarInt> {
     coder_type: CoderTypeDiscriminants,
-    urn: &'static str,
     _var_int_type: std::marker::PhantomData<N>,
 }
 
@@ -112,7 +113,6 @@ impl<N: fmt::Debug + VarInt> VarIntCoder<N> {
     pub fn new() -> Self {
         Self {
             coder_type: CoderTypeDiscriminants::VarIntCoder,
-            urn: VARINT_CODER_URN,
             _var_int_type: std::marker::PhantomData,
         }
     }
@@ -125,6 +125,10 @@ where
     N: fmt::Debug + VarInt,
 {
     type E = N;
+
+    fn get_coder_urn() -> &'static str {
+        VARINT_CODER_URN
+    }
 
     fn get_coder_type(&self) -> &CoderTypeDiscriminants {
         &self.coder_type
@@ -154,7 +158,7 @@ impl<N: fmt::Debug + VarInt> Default for VarIntCoder<N> {
 impl<N: fmt::Debug + VarInt> fmt::Debug for VarIntCoder<N> {
     fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("VarIntCoder")
-            .field("urn", &self.urn)
+            .field("urn", &Self::get_coder_urn())
             .finish()
     }
 }

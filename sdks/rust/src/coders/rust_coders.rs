@@ -26,7 +26,6 @@ use crate::coders::{CoderI, CoderTypeDiscriminants};
 #[derive(Eq, PartialEq)]
 pub struct GeneralObjectCoder<T> {
     coder_type: CoderTypeDiscriminants,
-    urn: &'static str,
 
     phantom: PhantomData<T>,
 }
@@ -35,7 +34,6 @@ impl<T> GeneralObjectCoder<T> {
     pub fn new() -> Self {
         Self {
             coder_type: CoderTypeDiscriminants::GeneralObject,
-            urn: GENERAL_OBJECT_CODER_URN,
 
             phantom: PhantomData::default(),
         }
@@ -44,6 +42,10 @@ impl<T> GeneralObjectCoder<T> {
 
 impl CoderI for GeneralObjectCoder<String> {
     type E = String;
+
+    fn get_coder_urn() -> &'static str {
+        GENERAL_OBJECT_CODER_URN
+    }
 
     fn get_coder_type(&self) -> &CoderTypeDiscriminants {
         &self.coder_type
@@ -86,7 +88,7 @@ impl<T> Default for GeneralObjectCoder<T> {
 impl<T> fmt::Debug for GeneralObjectCoder<T> {
     fn fmt(&self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("GeneralObjectCoder")
-            .field("urn", &self.urn)
+            .field("urn", &GENERAL_OBJECT_CODER_URN)
             .finish()
     }
 }
