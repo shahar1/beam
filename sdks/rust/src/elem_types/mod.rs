@@ -15,3 +15,16 @@ where
 }
 
 impl<E: ElemType + fmt::Debug> ElemType for Iterable<E> {}
+
+impl ElemType for String {}
+
+impl ElemType for i8 {}
+impl ElemType for i16 {}
+impl ElemType for i32 {}
+impl ElemType for i64 {}
+impl ElemType for isize {}
+impl ElemType for u8 {}
+impl ElemType for u16 {}
+impl ElemType for u32 {}
+impl ElemType for u64 {}
+impl ElemType for usize {}

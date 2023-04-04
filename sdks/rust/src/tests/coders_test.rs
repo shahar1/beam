@@ -23,7 +23,8 @@ mod tests {
             coders::{
                 coder_resolver::{
                     BytesCoderResolverDefault, CoderResolver, IterableCoderResolverDefault,
-                    KVCoderResolverDefault,
+                    KVCoderResolverDefault, StrUtf8CoderResolverDefault,
+                    VarIntCoderResolverDefault,
                 },
                 *,
             },
@@ -177,6 +178,10 @@ mod tests {
 
     fn run_unnested(coder_urn: &str, nested: bool, spec: &Value) {
         if let Some(c) = BytesCoderResolverDefault::resolve(coder_urn) {
+            _run_unnested(&c, nested, spec)
+        } else if let Some(c) = StrUtf8CoderResolverDefault::resolve(coder_urn) {
+            _run_unnested(&c, nested, spec)
+        } else if let Some(c) = VarIntCoderResolverDefault::<u64>::resolve(coder_urn) {
             _run_unnested(&c, nested, spec)
         } else {
             todo!()

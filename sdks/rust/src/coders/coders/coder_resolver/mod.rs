@@ -1,9 +1,12 @@
 use std::{fmt, marker::PhantomData};
 
+use integer_encoding::VarInt;
+
 use crate::{
     coders::{
         coders::CoderI,
         required_coders::{BytesCoder, Iterable, IterableCoder, KVCoder, KV},
+        standard_coders::{StrUtf8Coder, VarIntCoder},
     },
     elem_types::ElemType,
 };
@@ -64,4 +67,59 @@ where
 {
     type E = Iterable<E>;
     type C = IterableCoder<Self::E>;
+}
+
+/// `String` -> `StrUtf8Coder`.
+#[derive(Debug)]
+pub struct StrUtf8CoderResolverDefault;
+
+impl CoderResolver for StrUtf8CoderResolverDefault {
+    type E = String;
+    type C = StrUtf8Coder;
+}
+
+#[derive(Debug)]
+pub struct VarIntCoderResolverDefault<N: fmt::Debug + VarInt> {
+    phantom: PhantomData<N>,
+}
+
+impl CoderResolver for VarIntCoderResolverDefault<i8> {
+    type E = i8;
+    type C = VarIntCoder<i8>;
+}
+impl CoderResolver for VarIntCoderResolverDefault<i16> {
+    type E = i16;
+    type C = VarIntCoder<i16>;
+}
+impl CoderResolver for VarIntCoderResolverDefault<i32> {
+    type E = i32;
+    type C = VarIntCoder<i32>;
+}
+impl CoderResolver for VarIntCoderResolverDefault<i64> {
+    type E = i64;
+    type C = VarIntCoder<i64>;
+}
+impl CoderResolver for VarIntCoderResolverDefault<isize> {
+    type E = isize;
+    type C = VarIntCoder<isize>;
+}
+impl CoderResolver for VarIntCoderResolverDefault<u8> {
+    type E = u8;
+    type C = VarIntCoder<u8>;
+}
+impl CoderResolver for VarIntCoderResolverDefault<u16> {
+    type E = u16;
+    type C = VarIntCoder<u16>;
+}
+impl CoderResolver for VarIntCoderResolverDefault<u32> {
+    type E = u32;
+    type C = VarIntCoder<u32>;
+}
+impl CoderResolver for VarIntCoderResolverDefault<u64> {
+    type E = u64;
+    type C = VarIntCoder<u64>;
+}
+impl CoderResolver for VarIntCoderResolverDefault<usize> {
+    type E = usize;
+    type C = VarIntCoder<usize>;
 }
