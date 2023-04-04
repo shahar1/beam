@@ -16,28 +16,31 @@
  * limitations under the License.
  */
 
-use std::any::Any;
+use std::{any::Any, fmt};
 
 use super::group_by_key::GroupByKey;
 use super::impulse::Impulse;
 use super::pardo::ParDo;
-use crate::internals::pvalue::{PTransform, PValue};
+use crate::{
+    coders::required_coders::KV,
+    elem_types::ElemType,
+    internals::pvalue::{PTransform, PValue},
+};
 
 pub struct AssertEqualUnordered<T> {
-    expected: Vec<T>,
+    // compare with actual (sorted)
+    expected_sorted: Vec<T>,
 }
 
-impl<T: Any + Ord + Clone> AssertEqualUnordered<T> {
+impl<T: Any + Clone + Ord> AssertEqualUnordered<T> {
     pub fn new(expected_slice: &[T]) -> Self {
-        let mut expected = expected_slice.to_vec();
-        expected.sort();
-        Self { expected }
+        let mut expected_sorted = expected_slice.to_vec();
+        expected_sorted.sort();
+        Self { expected_sorted }
     }
 }
 
-impl<T: Any + Ord + Clone + Sync + Send + std::fmt::Debug> PTransform<T, ()>
-    for AssertEqualUnordered<T>
-{
+impl<T: ElemType + PartialEq + Ord + fmt::Debug> PTransform<T, ()> for AssertEqualUnordered<T> {
     fn expand(&self, input: &PValue<T>) -> PValue<()> {
         // If input is empty, we still need an element to ensure the
         // assertion happens.
@@ -47,16 +50,16 @@ impl<T: Any + Ord + Clone + Sync + Send + std::fmt::Debug> PTransform<T, ()>
         let actual = input
             .clone()
             .apply(ParDo::from_map(|x: &T| -> Option<T> { Some(x.clone()) }));
-        let expected = self.expected.to_vec();
+        let expected = self.expected_sorted;
         PValue::new_array(&vec![singleton, actual])
             .apply(ParDo::from_map(|x: &Option<T>| -> (String, Option<T>) {
                 ("".to_string(), x.clone())
             }))
             .apply(GroupByKey::new())
             .apply(ParDo::from_dyn_map(Box::new(
-                move |kvs: &(String, Vec<Option<T>>)| {
+                move |kvs: &KV<String, Vec<Option<T>>>| {
                     let mut actual: Vec<T> = kvs
-                        .1
+                        .as_values()
                         .iter()
                         .filter(|x| -> bool { x.is_some() })
                         .map(|x| -> T { x.clone().unwrap() })

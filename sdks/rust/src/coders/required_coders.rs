@@ -127,7 +127,7 @@ impl fmt::Debug for BytesCoder {
     }
 }
 
-#[derive(Clone, fmt::Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct KV<K, V> {
     k: K,
     v: V,
@@ -140,6 +140,10 @@ where
 {
     pub fn new(k: K, v: V) -> Self {
         KV { k, v }
+    }
+
+    pub fn as_values(&self) -> &V {
+        &self.v
     }
 }
 
