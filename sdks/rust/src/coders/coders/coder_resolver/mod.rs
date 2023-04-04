@@ -3,7 +3,7 @@ use std::{fmt, marker::PhantomData};
 use crate::{
     coders::{
         coders::CoderI,
-        required_coders::{BytesCoder, KVCoder, KV},
+        required_coders::{BytesCoder, Iterable, IterableCoder, KVCoder, KV},
     },
     elem_types::ElemType,
 };
@@ -47,4 +47,21 @@ where
 {
     type E = KV<K, V>;
     type C = KVCoder<Self::E>;
+}
+
+/// `Iterable` -> `IterableCoder`.
+#[derive(Debug)]
+pub struct IterableCoderResolverDefault<E>
+where
+    E: ElemType,
+{
+    phantom: PhantomData<E>,
+}
+
+impl<E> CoderResolver for IterableCoderResolverDefault<E>
+where
+    E: ElemType + fmt::Debug,
+{
+    type E = Iterable<E>;
+    type C = IterableCoder<Self::E>;
 }

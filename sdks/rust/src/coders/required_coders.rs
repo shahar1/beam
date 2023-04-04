@@ -37,6 +37,7 @@ use integer_encoding::{VarIntReader, VarIntWriter};
 
 use crate::coders::coders::{CoderI, Context};
 use crate::coders::urns::*;
+use crate::elem_types::ElemType;
 
 /// Coder for byte-array data types
 #[derive(Clone, Default)]
@@ -204,20 +205,26 @@ where
 
 /// A coder for a 'list' or a series of elements of the same type
 #[derive(Clone, Debug)]
-pub struct IterableCoder<T> {
-    phantom: PhantomData<T>,
+pub struct IterableCoder<E>
+where
+    E: ElemType,
+{
+    phantom: PhantomData<E>,
 }
 
 #[derive(Debug)]
-pub struct Iterable<T> {
-    phantom: PhantomData<T>,
+pub struct Iterable<E>
+where
+    E: ElemType,
+{
+    phantom: PhantomData<E>,
 }
 
-impl<T> CoderI for IterableCoder<T>
+impl<ItE> CoderI for IterableCoder<ItE>
 where
-    T: fmt::Debug,
+    ItE: ElemType + fmt::Debug,
 {
-    type E = Iterable<T>;
+    type E = ItE;
 
     fn get_coder_urn() -> &'static str {
         ITERABLE_CODER_URN
@@ -233,7 +240,7 @@ where
     /// Then, each element is encoded individually in `Context::NeedsDelimiters`.
     fn encode(
         &self,
-        element: Iterable<T>,
+        element: ItE,
         writer: &mut dyn Write,
         context: &Context,
     ) -> Result<usize, io::Error> {
@@ -241,12 +248,15 @@ where
     }
 
     /// Decode the input byte stream into a `Iterable` element
-    fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<Iterable<T>, io::Error> {
+    fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<ItE, io::Error> {
         todo!()
     }
 }
 
-impl<T> Default for IterableCoder<T> {
+impl<E> Default for IterableCoder<E>
+where
+    E: ElemType,
+{
     fn default() -> Self {
         Self {
             phantom: PhantomData::default(),

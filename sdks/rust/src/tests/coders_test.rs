@@ -18,7 +18,21 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::coders::{required_coders::*, rust_coders::*, standard_coders::*, *};
+    use crate::{
+        coders::{
+            coders::{
+                coder_resolver::{
+                    BytesCoderResolverDefault, CoderResolver, IterableCoderResolverDefault,
+                    KVCoderResolverDefault,
+                },
+                *,
+            },
+            required_coders::*,
+            rust_coders::*,
+            standard_coders::*,
+        },
+        elem_types::ElemType,
+    };
 
     use std::any::Any;
     use std::fmt;
@@ -28,7 +42,7 @@ mod tests {
     use serde_yaml::{Deserializer, Value};
 
     // TODO: empty this list
-    const UNSUPPORTED_CODERS: [&str; 13] = [
+    const UNSUPPORTED_CODERS: [&'static str; 13] = [
         "beam:coder:bool:v1",
         "beam:coder:kv:v1",
         "beam:coder:interval_window:v1",
@@ -79,22 +93,22 @@ mod tests {
 
         fn parse_yaml_value(
             &self,
-            _value: &serde_yaml::Value,
+            value: &serde_yaml::Value,
         ) -> <KVCoder<KV<K, V>> as CoderTestUtils>::InternalCoderType {
             todo!()
         }
     }
 
-    impl<T> CoderTestUtils for IterableCoder<T>
+    impl<E> CoderTestUtils for IterableCoder<E>
     where
-        T: Clone + fmt::Debug,
+        E: ElemType + Clone + fmt::Debug,
     {
-        type InternalCoderType = T;
+        type InternalCoderType = E;
 
         fn parse_yaml_value(
             &self,
-            _value: &serde_yaml::Value,
-        ) -> <IterableCoder<T> as CoderTestUtils>::InternalCoderType {
+            value: &serde_yaml::Value,
+        ) -> <IterableCoder<E> as CoderTestUtils>::InternalCoderType {
             todo!()
         }
     }
@@ -127,8 +141,6 @@ mod tests {
 
     #[test]
     fn test_standard_coders() {
-        let coder_registry = CoderRegistry::new();
-
         // TODO: Move this to utils module
         let current_dir = std::env::current_dir().unwrap();
         let beam_root_dir = current_dir.as_path().parent().unwrap().parent().unwrap();
@@ -158,29 +170,20 @@ mod tests {
                 continue;
             }
 
-            let coder_type = coder_registry.get_coder_type(urn);
             let nested = false;
-
-            // TODO: generalize
-            match coder_type {
-                CoderTypeDiscriminants::Bytes => {
-                    let c = BytesCoder::default();
-                    run_unnested::<BytesCoder>(&c, nested, &spec);
-                }
-                CoderTypeDiscriminants::StrUtf8 => {
-                    let c = StrUtf8Coder::default();
-                    run_unnested::<StrUtf8Coder>(&c, nested, &spec);
-                }
-                CoderTypeDiscriminants::VarIntCoder => {
-                    let c = VarIntCoder::default();
-                    run_unnested::<VarIntCoder<u64>>(&c, nested, &spec);
-                }
-                _ => todo!(),
-            }
+            run_unnested(urn, nested, &spec);
         }
     }
 
-    fn run_unnested<'a, C>(coder: &C, _nested: bool, spec: &Value)
+    fn run_unnested(coder_urn: &str, nested: bool, spec: &Value) {
+        if let Some(c) = BytesCoderResolverDefault::resolve(coder_urn) {
+            _run_unnested(&c, nested, spec)
+        } else {
+            todo!()
+        }
+    }
+
+    fn _run_unnested<'a, C>(coder: &C, _nested: bool, spec: &Value)
     where
         C: CoderI + CoderTestUtils + CoderTestUtils<InternalCoderType = C::E> + 'a,
         C::E: Clone + std::fmt::Debug + PartialEq,

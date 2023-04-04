@@ -1,4 +1,6 @@
-use crate::coders::required_coders::KV;
+use std::fmt;
+
+use crate::coders::required_coders::{Iterable, KV};
 
 /// Element types used in Beam pipelines (including PTransforms, PCollections, Coders, etc.)
 pub trait ElemType: Send + 'static {}
@@ -11,3 +13,5 @@ where
     V: Send + 'static,
 {
 }
+
+impl<E: ElemType + fmt::Debug> ElemType for Iterable<E> {}
