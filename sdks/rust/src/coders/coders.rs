@@ -18,70 +18,8 @@
 
 pub mod coder_resolver;
 
-use std::collections::HashMap;
 use std::fmt;
 use std::io::{self, Read, Write};
-
-use crate::coders::urns::*;
-
-pub struct CoderRegistry {
-    internal_registry: HashMap<&'static str, CoderTypeDiscriminants>,
-}
-
-impl CoderRegistry {
-    pub fn new() -> Self {
-        let internal_registry: HashMap<&'static str, CoderTypeDiscriminants> = HashMap::from([
-            (BYTES_CODER_URN, CoderTypeDiscriminants::Bytes),
-            (
-                GENERAL_OBJECT_CODER_URN,
-                CoderTypeDiscriminants::GeneralObject,
-            ),
-            (KV_CODER_URN, CoderTypeDiscriminants::KV),
-            (ITERABLE_CODER_URN, CoderTypeDiscriminants::Iterable),
-            (STR_UTF8_CODER_URN, CoderTypeDiscriminants::StrUtf8),
-            (VARINT_CODER_URN, CoderTypeDiscriminants::VarIntCoder),
-        ]);
-
-        Self { internal_registry }
-    }
-
-    pub fn get_coder_type(&self, urn: &str) -> &CoderTypeDiscriminants {
-        let coder_type = self
-            .internal_registry
-            .get(urn)
-            .unwrap_or_else(|| panic!("No coder type registered for URN {urn}"));
-
-        coder_type
-    }
-
-    pub fn register(&mut self, urn: &'static str, coder_type: CoderTypeDiscriminants) {
-        self.internal_registry.insert(urn, coder_type);
-    }
-}
-
-impl Default for CoderRegistry {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[derive(Clone, EnumDiscriminants)]
-pub enum CoderType {
-    // ******* Required coders *******
-    Bytes,
-    Iterable,
-    KV,
-
-    // ******* Rust coders *******
-    GeneralObject,
-
-    // ******* Standard coders *******
-    StrUtf8,
-    VarIntCoder,
-}
-
-// TODO: create and use separate AnyCoder trait instead of Any
-// ...
 
 /// This is the base interface for coders, which are responsible in Apache Beam to encode and decode
 ///  elements of a PCollection.
