@@ -32,9 +32,9 @@ use std::io::{self, ErrorKind, Read, Write};
 
 use integer_encoding::{VarInt, VarIntReader, VarIntWriter};
 
+use crate::coders::coders::{CoderI, CoderTypeDiscriminants, Context};
 use crate::coders::required_coders::BytesCoder;
 use crate::coders::urns::*;
-use crate::coders::{CoderI, CoderTypeDiscriminants, Context};
 
 #[derive(Clone)]
 pub struct StrUtf8Coder {
@@ -52,7 +52,9 @@ impl StrUtf8Coder {
 }
 
 // TODO: accept string references as well?
-impl CoderI<String> for StrUtf8Coder {
+impl CoderI for StrUtf8Coder {
+    type E = String;
+
     fn get_coder_type(&self) -> &CoderTypeDiscriminants {
         &self.coder_type
     }
@@ -92,7 +94,7 @@ impl Default for StrUtf8Coder {
 }
 
 impl fmt::Debug for StrUtf8Coder {
-    fn fmt(&self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("StrUtf8Coder")
             .field("urn", &self.urn)
             .finish()
@@ -100,26 +102,30 @@ impl fmt::Debug for StrUtf8Coder {
 }
 
 #[derive(Clone)]
-pub struct VarIntCoder {
+pub struct VarIntCoder<N: fmt::Debug + VarInt> {
     coder_type: CoderTypeDiscriminants,
     urn: &'static str,
+    _var_int_type: std::marker::PhantomData<N>,
 }
 
-impl VarIntCoder {
+impl<N: fmt::Debug + VarInt> VarIntCoder<N> {
     pub fn new() -> Self {
         Self {
             coder_type: CoderTypeDiscriminants::VarIntCoder,
             urn: VARINT_CODER_URN,
+            _var_int_type: std::marker::PhantomData,
         }
     }
 }
 
 // TODO: passes tests for -1 if it gets casted to u64 and encoded as such.
 // Revisit this later
-impl<N> CoderI<N> for VarIntCoder
+impl<N> CoderI for VarIntCoder<N>
 where
     N: fmt::Debug + VarInt,
 {
+    type E = N;
+
     fn get_coder_type(&self) -> &CoderTypeDiscriminants {
         &self.coder_type
     }
@@ -139,14 +145,14 @@ where
     }
 }
 
-impl Default for VarIntCoder {
+impl<N: fmt::Debug + VarInt> Default for VarIntCoder<N> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl fmt::Debug for VarIntCoder {
-    fn fmt(&self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+impl<N: fmt::Debug + VarInt> fmt::Debug for VarIntCoder<N> {
+    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("VarIntCoder")
             .field("urn", &self.urn)
             .finish()

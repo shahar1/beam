@@ -103,14 +103,14 @@ impl<'a> Pipeline {
         self.proto.clone()
     }
 
-    pub fn get_coder<C: CoderI<E> + Clone + 'static, E>(&self, coder_type: &TypeId) -> C {
+    pub fn get_coder<C: CoderI + Clone + 'static>(&self, coder_type: &TypeId) -> C {
         let pipeline_coders = self.coders.lock().unwrap();
 
         let coder = pipeline_coders.get(coder_type).unwrap();
         coder.downcast_ref::<C>().unwrap().clone()
     }
 
-    pub fn register_coder<C: CoderI<E> + 'a, E>(&self, coder: Box<dyn Any + Send + 'a>) -> TypeId {
+    pub fn register_coder<C: CoderI + 'a>(&self, coder: Box<dyn Any + Send + 'a>) -> TypeId {
         let mut coders = self.coders.lock().unwrap();
         let concrete_coder = coder.downcast_ref::<C>().unwrap();
         let concrete_coder_type_id = concrete_coder.type_id();

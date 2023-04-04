@@ -110,13 +110,13 @@ mod tests {
         }
     }
 
-    impl CoderTestUtils for VarIntCoder {
+    impl CoderTestUtils for VarIntCoder<u64> {
         type InternalCoderType = u64;
 
         fn parse_yaml_value(
             &self,
             value: &serde_yaml::Value,
-        ) -> <VarIntCoder as CoderTestUtils>::InternalCoderType {
+        ) -> <VarIntCoder<u64> as CoderTestUtils>::InternalCoderType {
             if !value.is_u64() {
                 return value.as_i64().unwrap() as u64;
             }
@@ -165,38 +165,38 @@ mod tests {
             match coder_type {
                 CoderTypeDiscriminants::Bytes => {
                     let c = BytesCoder::new();
-                    run_unnested::<BytesCoder, Vec<u8>>(&c, nested, &spec);
+                    run_unnested::<BytesCoder>(&c, nested, &spec);
                 }
                 CoderTypeDiscriminants::StrUtf8 => {
                     let c = StrUtf8Coder::new();
-                    run_unnested::<StrUtf8Coder, String>(&c, nested, &spec);
+                    run_unnested::<StrUtf8Coder>(&c, nested, &spec);
                 }
                 CoderTypeDiscriminants::VarIntCoder => {
                     let c = VarIntCoder::new();
-                    run_unnested::<VarIntCoder, u64>(&c, nested, &spec);
+                    run_unnested::<VarIntCoder<u64>>(&c, nested, &spec);
                 }
                 _ => todo!(),
             }
         }
     }
 
-    fn run_unnested<'a, C, E>(coder: &C, _nested: bool, spec: &Value)
+    fn run_unnested<'a, C>(coder: &C, _nested: bool, spec: &Value)
     where
-        C: CoderI<E> + CoderTestUtils + CoderTestUtils<InternalCoderType = E> + 'a,
-        E: Clone + std::fmt::Debug + PartialEq,
+        C: CoderI + CoderTestUtils + CoderTestUtils<InternalCoderType = C::E> + 'a,
+        C::E: Clone + std::fmt::Debug + PartialEq,
     {
         let examples = spec.get("examples").unwrap().as_mapping().unwrap();
 
         for (expected, original) in examples.iter() {
             // TODO: test coders for both Context types
-            run_case::<C, E>(coder, expected, original);
+            run_case::<C>(coder, expected, original);
         }
     }
 
-    fn run_case<'a, C, E>(coder: &C, expected_encoded: &Value, original: &Value)
+    fn run_case<'a, C>(coder: &C, expected_encoded: &Value, original: &Value)
     where
-        C: CoderI<E> + CoderTestUtils + CoderTestUtils<InternalCoderType = E> + 'a,
-        E: Clone + std::fmt::Debug + PartialEq,
+        C: CoderI + CoderTestUtils + CoderTestUtils<InternalCoderType = C::E> + 'a,
+        C::E: Clone + std::fmt::Debug + PartialEq,
     {
         // The expected encodings in standard_coders.yaml need to be read as UTF-16
         let expected_enc_utf16: Vec<u16> =
@@ -214,7 +214,8 @@ mod tests {
 
         let expected_dec = coder.parse_yaml_value(original);
 
-        coder.encode(expected_dec.clone(), &mut writer, &context)
+        coder
+            .encode(expected_dec.clone(), &mut writer, &context)
             .unwrap();
         let encoded = writer.into_inner();
 

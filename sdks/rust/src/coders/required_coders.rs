@@ -54,7 +54,9 @@ impl BytesCoder {
     }
 }
 
-impl CoderI<Vec<u8>> for BytesCoder {
+impl CoderI for BytesCoder {
+    type E = Vec<u8>;
+
     fn get_coder_type(&self) -> &CoderTypeDiscriminants {
         &self.coder_type
     }
@@ -180,7 +182,9 @@ pub struct KVCoder<KV> {
     phantom: PhantomData<KV>,
 }
 
-impl<K, V> CoderI<KV<K, V>> for KVCoder<KV<K, V>> {
+impl<K, V> CoderI for KVCoder<KV<K, V>> {
+    type E = KV<K, V>;
+
     fn get_coder_type(&self) -> &CoderTypeDiscriminants {
         &self.coder_type
     }
@@ -216,7 +220,9 @@ pub struct Iterable<T> {
     phantom: PhantomData<T>,
 }
 
-impl<T> CoderI<Iterable<T>> for IterableCoder<T> {
+impl<T> CoderI for IterableCoder<T> {
+    type E = Iterable<T>;
+
     fn get_coder_type(&self) -> &CoderTypeDiscriminants {
         &self.coder_type
     }

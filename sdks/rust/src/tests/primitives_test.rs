@@ -122,7 +122,7 @@ mod tests {
         //     .unwrap();
 
         let bytes_coder_type_id = BytesCoder::new().type_id();
-        let coder = p.get_coder::<BytesCoder, Vec<u8>>(&bytes_coder_type_id);
+        let coder = p.get_coder::<BytesCoder>(&bytes_coder_type_id);
 
         assert_eq!(*pcoll.get_type(), PType::PCollection);
         assert_eq!(coder.type_id(), bytes_coder_type_id);

@@ -74,7 +74,7 @@ where
             component_coder_ids: Vec::with_capacity(0),
         });
 
-        pipeline.register_coder::<BytesCoder, Vec<u8>>(Box::new(BytesCoder::new()));
+        pipeline.register_coder::<BytesCoder>(Box::new(BytesCoder::new()));
 
         let output_proto = proto_pipeline::PCollection {
             unique_name: pcoll_name.clone(),
@@ -105,11 +105,11 @@ where
         )
     }
 
-    pub fn register_pipeline_coder<'a, C: CoderI<E> + 'a, E>(
+    pub fn register_pipeline_coder<'a, C: CoderI + 'a>(
         &self,
         coder: Box<dyn Any + Send + 'a>,
     ) -> TypeId {
-        self.pipeline.register_coder::<C, E>(coder)
+        self.pipeline.register_coder::<C>(coder)
     }
 
     pub fn register_pipeline_coder_proto(&self, coder_proto: proto_pipeline::Coder) -> String {

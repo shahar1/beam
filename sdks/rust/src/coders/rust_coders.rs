@@ -42,7 +42,9 @@ impl<T> GeneralObjectCoder<T> {
     }
 }
 
-impl CoderI<String> for GeneralObjectCoder<String> {
+impl CoderI for GeneralObjectCoder<String> {
+    type E = String;
+
     fn get_coder_type(&self) -> &CoderTypeDiscriminants {
         &self.coder_type
     }
