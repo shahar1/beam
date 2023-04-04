@@ -461,7 +461,7 @@ struct GroupByKeyWithinBundleOperator {
     key_extractor: &'static Box<dyn serialize::KeyExtractor>,
     // TODO: Operator requiring locking for structures only ever manipulated in
     // a single thread seems inefficient and overkill.
-    grouped_values: Arc<Mutex<HashMap<String, Box<Vec<Box<dyn Any + Send>>>>>>,
+    grouped_values: Arc<Mutex<HashMap<String, Box<Vec<Box<dyn Any + Send + Sync>>>>>>,
 }
 
 impl OperatorI for GroupByKeyWithinBundleOperator {
