@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-use std::any::{Any, TypeId};
+use std::any::TypeId;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::sync::Arc;
@@ -74,8 +74,6 @@ where
             component_coder_ids: Vec::with_capacity(0),
         });
 
-        pipeline.register_coder::<BytesCoder>(Box::<BytesCoder>::default());
-
         let output_proto = proto_pipeline::PCollection {
             unique_name: pcoll_name.clone(),
             coder_id: proto_coder_id,
@@ -103,13 +101,6 @@ where
             pipeline,
             crate::internals::utils::get_bad_id(),
         )
-    }
-
-    pub fn register_pipeline_coder<'a, C: CoderI + 'a>(
-        &self,
-        coder: Box<dyn Any + Send + 'a>,
-    ) -> TypeId {
-        self.pipeline.register_coder::<C>(coder)
     }
 
     pub fn register_pipeline_coder_proto(&self, coder_proto: proto_pipeline::Coder) -> String {

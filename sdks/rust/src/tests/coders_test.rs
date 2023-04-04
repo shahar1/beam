@@ -35,7 +35,7 @@ mod tests {
         elem_types::ElemType,
     };
 
-    use std::any::Any;
+
     use std::fmt;
 
     use bytes::{Buf, BufMut};
