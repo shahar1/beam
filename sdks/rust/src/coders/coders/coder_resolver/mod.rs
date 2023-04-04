@@ -10,6 +10,8 @@ use crate::{
 };
 
 /// Resolve a coder (implementing `CoderI) from a coder URN and an `ElemType`.
+///
+/// You may use original coders by implementing the `CoderResolver` trait.
 pub trait CoderResolver {
     type E: ElemType;
 
