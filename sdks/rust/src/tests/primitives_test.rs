@@ -20,7 +20,6 @@
 mod tests {
     use std::sync::Arc;
 
-    use crate::coders::required_coders::BytesCoder;
     use crate::internals::pipeline::Pipeline;
     use crate::internals::pvalue::{PType, PValue};
     use crate::runners::direct_runner::DirectRunner;

@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-use std::iter::Iterator;
 use std::marker::PhantomData;
 use std::sync::Arc;
 

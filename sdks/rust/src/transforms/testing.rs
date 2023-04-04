@@ -17,9 +17,7 @@
  */
 
 use std::any::Any;
-use std::sync::Arc;
 
-use super::flatten::Flatten;
 use super::group_by_key::GroupByKey;
 use super::impulse::Impulse;
 use super::pardo::ParDo;
@@ -56,7 +54,7 @@ impl<T: Any + Ord + Clone + Sync + Send + std::fmt::Debug> PTransform<T, ()>
             }))
             .apply(GroupByKey::new())
             .apply(ParDo::from_dyn_map(Box::new(
-                move |kvs: &(String, Vec<Option<T>>)| -> () {
+                move |kvs: &(String, Vec<Option<T>>)| {
                     let mut actual: Vec<T> = kvs
                         .1
                         .iter()
