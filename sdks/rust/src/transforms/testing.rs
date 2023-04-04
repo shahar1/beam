@@ -22,8 +22,7 @@ use super::group_by_key::GroupByKey;
 use super::impulse::Impulse;
 use super::pardo::ParDo;
 use crate::{
-    coders::required_coders::KV,
-    elem_types::ElemType,
+    elem_types::{kv::KV, ElemType},
     internals::pvalue::{PTransform, PValue},
 };
 

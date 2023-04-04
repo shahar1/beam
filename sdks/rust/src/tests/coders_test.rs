@@ -20,21 +20,17 @@
 mod tests {
     use crate::{
         coders::{
-            coders::{
-                coder_resolver::{
-                    BytesCoderResolverDefault, CoderResolver, IterableCoderResolverDefault,
-                    KVCoderResolverDefault, StrUtf8CoderResolverDefault,
-                    VarIntCoderResolverDefault,
-                },
-                *,
+            coder_resolver::{
+                BytesCoderResolverDefault, CoderResolver, StrUtf8CoderResolverDefault,
+                VarIntCoderResolverDefault,
             },
             required_coders::*,
             rust_coders::*,
             standard_coders::*,
+            CoderI, Context,
         },
-        elem_types::ElemType,
+        elem_types::{kv::KV, ElemType},
     };
-
 
     use std::fmt;
 
@@ -43,7 +39,7 @@ mod tests {
     use serde_yaml::{Deserializer, Value};
 
     // TODO: empty this list
-    const UNSUPPORTED_CODERS: [&'static str; 13] = [
+    const UNSUPPORTED_CODERS: [&str; 13] = [
         "beam:coder:bool:v1",
         "beam:coder:kv:v1",
         "beam:coder:interval_window:v1",
@@ -94,7 +90,7 @@ mod tests {
 
         fn parse_yaml_value(
             &self,
-            value: &serde_yaml::Value,
+            _value: &serde_yaml::Value,
         ) -> <KVCoder<KV<K, V>> as CoderTestUtils>::InternalCoderType {
             todo!()
         }
@@ -108,7 +104,7 @@ mod tests {
 
         fn parse_yaml_value(
             &self,
-            value: &serde_yaml::Value,
+            _value: &serde_yaml::Value,
         ) -> <IterableCoder<E> as CoderTestUtils>::InternalCoderType {
             todo!()
         }

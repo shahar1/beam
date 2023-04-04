@@ -1,6 +1,8 @@
+pub mod kv;
+
 use std::fmt;
 
-use crate::coders::required_coders::{Iterable, KV};
+use crate::{coders::required_coders::Iterable, elem_types::kv::KV};
 
 /// Element types used in Beam pipelines (including PTransforms, PCollections, Coders, etc.)
 pub trait ElemType: Clone + Send + 'static {}

@@ -35,8 +35,9 @@ use std::marker::PhantomData;
 
 use integer_encoding::{VarIntReader, VarIntWriter};
 
-use crate::coders::coders::{CoderI, Context};
 use crate::coders::urns::*;
+use crate::coders::{CoderI, Context};
+use crate::elem_types::kv::KV;
 use crate::elem_types::ElemType;
 
 /// Coder for byte-array data types
@@ -120,30 +121,10 @@ impl CoderI for BytesCoder {
 }
 
 impl fmt::Debug for BytesCoder {
-    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("BytesCoder")
             .field("urn", &Self::get_coder_urn())
             .finish()
-    }
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct KV<K, V> {
-    k: K,
-    v: V,
-}
-
-impl<K, V> KV<K, V>
-where
-    K: Clone + fmt::Debug + Send,
-    V: Clone + fmt::Debug + Send,
-{
-    pub fn new(k: K, v: V) -> Self {
-        KV { k, v }
-    }
-
-    pub fn as_values(&self) -> &V {
-        &self.v
     }
 }
 
@@ -169,15 +150,15 @@ where
     /// the input context of the `KVCoder`.
     fn encode(
         &self,
-        element: KV<K, V>,
-        writer: &mut dyn Write,
-        context: &Context,
+        _element: KV<K, V>,
+        _writer: &mut dyn Write,
+        _context: &Context,
     ) -> Result<usize, io::Error> {
         todo!()
     }
 
     /// Decode the input byte stream into a `KV` element
-    fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<KV<K, V>, io::Error> {
+    fn decode(&self, _reader: &mut dyn Read, _context: &Context) -> Result<KV<K, V>, io::Error> {
         todo!()
     }
 }
@@ -231,15 +212,15 @@ where
     /// Then, each element is encoded individually in `Context::NeedsDelimiters`.
     fn encode(
         &self,
-        element: ItE,
-        writer: &mut dyn Write,
-        context: &Context,
+        _element: ItE,
+        _writer: &mut dyn Write,
+        _context: &Context,
     ) -> Result<usize, io::Error> {
         todo!()
     }
 
     /// Decode the input byte stream into a `Iterable` element
-    fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<ItE, io::Error> {
+    fn decode(&self, _reader: &mut dyn Read, _context: &Context) -> Result<ItE, io::Error> {
         todo!()
     }
 }

@@ -4,11 +4,11 @@ use integer_encoding::VarInt;
 
 use crate::{
     coders::{
-        coders::CoderI,
-        required_coders::{BytesCoder, Iterable, IterableCoder, KVCoder, KV},
+        required_coders::{BytesCoder, Iterable, IterableCoder, KVCoder},
         standard_coders::{StrUtf8Coder, VarIntCoder},
+        CoderI,
     },
-    elem_types::ElemType,
+    elem_types::{kv::KV, ElemType},
 };
 
 /// Resolve a coder (implementing `CoderI) from a coder URN and an `ElemType`.
@@ -45,8 +45,8 @@ pub struct KVCoderResolverDefault<K, V> {
 
 impl<K, V> CoderResolver for KVCoderResolverDefault<K, V>
 where
-    K: Clone + fmt::Debug + Send + 'static,
-    V: Clone + fmt::Debug + Send + 'static,
+    K: Clone + fmt::Debug + Send + Sync + 'static,
+    V: Clone + fmt::Debug + Send + Sync + 'static,
 {
     type E = KV<K, V>;
     type C = KVCoder<Self::E>;
