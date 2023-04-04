@@ -17,6 +17,7 @@
  */
 
 pub mod coders;
+pub mod elem_types;
 pub mod internals;
 pub mod proto;
 pub mod runners;

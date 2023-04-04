@@ -152,8 +152,8 @@ pub struct KV<K, V> {
 
 impl<K, V> KV<K, V>
 where
-    K: Clone + fmt::Debug,
-    V: Clone + fmt::Debug,
+    K: Clone + fmt::Debug + Send,
+    V: Clone + fmt::Debug + Send,
 {
     pub fn new() -> Self {
         KV {
@@ -165,8 +165,8 @@ where
 
 impl<K, V> Default for KV<K, V>
 where
-    K: Clone + fmt::Debug,
-    V: Clone + fmt::Debug,
+    K: Clone + fmt::Debug + Send,
+    V: Clone + fmt::Debug + Send,
 {
     fn default() -> Self {
         Self::new()
@@ -204,6 +204,21 @@ impl<K, V> CoderI for KVCoder<KV<K, V>> {
     /// Decode the input byte stream into a `KV` element
     fn decode(&self, _reader: &mut dyn Read, _context: &Context) -> Result<KV<K, V>, io::Error> {
         todo!()
+    }
+}
+
+impl<K, V> Default for KVCoder<KV<K, V>>
+where
+    K: Send,
+    V: Send,
+{
+    fn default() -> Self {
+        Self {
+            coder_type: CoderTypeDiscriminants::KV,
+            urn: KV_CODER_URN,
+
+            phantom: PhantomData::default(),
+        }
     }
 }
 

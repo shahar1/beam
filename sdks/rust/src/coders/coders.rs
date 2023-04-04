@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+pub mod coder_resolver;
+
 use std::collections::HashMap;
 use std::io::{self, Read, Write};
 
