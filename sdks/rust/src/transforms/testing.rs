@@ -49,7 +49,7 @@ impl<T: ElemType + PartialEq + Ord + fmt::Debug> PTransform<T, ()> for AssertEqu
         let actual = input
             .clone()
             .apply(ParDo::from_map(|x: &T| -> Option<T> { Some(x.clone()) }));
-        let expected = self.expected_sorted;
+        let expected = self.expected_sorted.clone();
         PValue::new_array(&vec![singleton, actual])
             .apply(ParDo::from_map(|x: &Option<T>| -> KV<String, Option<T>> {
                 KV::new("".to_string(), x.clone())
