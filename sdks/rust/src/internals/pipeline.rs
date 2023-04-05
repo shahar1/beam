@@ -67,7 +67,7 @@ pub struct Pipeline {
     coder_proto_counter: Mutex<usize>,
 }
 
-impl<'a> Pipeline {
+impl Pipeline {
     pub fn new(component_prefix: String) -> Self {
         let proto = proto_pipeline::Pipeline {
             components: Some(proto_pipeline::Components {
