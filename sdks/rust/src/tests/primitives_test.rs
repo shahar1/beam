@@ -110,7 +110,7 @@ mod tests {
     #[tokio::test]
     async fn run_impulse_expansion() {
         let p = Arc::new(Pipeline::default());
-        let root = PValue::new_root(p.clone());
+        let root = PValue::new_root(p);
 
         let pcoll = root.apply(Impulse::new());
 
