@@ -86,7 +86,7 @@ pub trait KeyExtractor: Sync + Send {
     fn extract(&self, kv: &dyn Any) -> (String, Box<dyn Any + Sync + Send>);
     fn recombine(
         &self,
-        key: &String,
+        key: &str,
         values: &Box<Vec<Box<dyn Any + Sync + Send>>>,
     ) -> Box<dyn Any + Sync + Send>;
 }
@@ -110,13 +110,13 @@ impl<V: Clone + Sync + Send + 'static> KeyExtractor for TypedKeyExtractor<V> {
     }
     fn recombine(
         &self,
-        key: &String,
+        key: &str,
         values: &Box<Vec<Box<dyn Any + Sync + Send>>>,
     ) -> Box<dyn Any + Sync + Send> {
         let mut typed_values: Vec<V> = Vec::new();
         for untyped_value in values.iter() {
             typed_values.push(untyped_value.downcast_ref::<V>().unwrap().clone());
         }
-        Box::new((key.clone(), typed_values))
+        Box::new((key.to_string(), typed_values))
     }
 }
