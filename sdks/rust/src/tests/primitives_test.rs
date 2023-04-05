@@ -53,7 +53,8 @@ mod tests {
             .await;
     }
 
-    //#[tokio::test]
+    #[tokio::test]
+    #[ignore]
     #[should_panic]
     async fn ensure_assert_fails_on_empty() {
         DirectRunner::new()

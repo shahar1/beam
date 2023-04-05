@@ -35,7 +35,7 @@ pub type GenericDoFn =
     Box<dyn Fn(&dyn Any) -> Box<dyn Iterator<Item = Box<dyn Any>>> + Sync + Send>;
 
 struct GenericDoFnWrapper {
-    func: GenericDoFn,
+    _func: GenericDoFn,
 }
 
 unsafe impl std::marker::Send for GenericDoFnWrapper {}

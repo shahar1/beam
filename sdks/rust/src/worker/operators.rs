@@ -43,11 +43,11 @@ static OPERATORS_BY_URN: Lazy<Mutex<OperatorMap>> = Lazy::new(|| {
         // Test operators
         (urns::CREATE_URN, OperatorDiscriminants::Create),
         (urns::RECORDING_URN, OperatorDiscriminants::Recording),
-        (urns::PARTITION_URN, OperatorDiscriminants::Partitioning),
+        (urns::PARTITION_URN, OperatorDiscriminants::_Partitioning),
         (urns::IMPULSE_URN, OperatorDiscriminants::Impulse),
         (urns::GROUP_BY_KEY_URN, OperatorDiscriminants::GroupByKey),
         // Production operators
-        (urns::DATA_INPUT_URN, OperatorDiscriminants::DataSource),
+        (urns::DATA_INPUT_URN, OperatorDiscriminants::_DataSource),
         (urns::PAR_DO_URN, OperatorDiscriminants::ParDo),
         (urns::FLATTEN_URN, OperatorDiscriminants::Flatten),
     ]);
@@ -79,12 +79,12 @@ pub enum Operator {
     // Test operators
     Create(CreateOperator),
     Recording(RecordingOperator),
-    Partitioning,
+    _Partitioning,
     GroupByKey(GroupByKeyWithinBundleOperator),
     Impulse(ImpulsePerBundleOperator),
 
     // Production operators
-    DataSource,
+    _DataSource,
     ParDo(ParDoOperator),
     Flatten(FlattenOperator),
 }
@@ -530,10 +530,10 @@ impl std::fmt::Debug for GroupByKeyWithinBundleOperator {
 // ******* Production Operator definitions *******
 
 pub struct ParDoOperator {
-    transform_id: Arc<String>,
-    transform: Arc<PTransform>,
-    context: Arc<OperatorContext>,
-    operator_discriminant: OperatorDiscriminants,
+    _transform_id: Arc<String>,
+    _transform: Arc<PTransform>,
+    _context: Arc<OperatorContext>,
+    _operator_discriminant: OperatorDiscriminants,
 
     receivers: Vec<Arc<Receiver>>,
     dofn: &'static serialize::GenericDoFn,
@@ -562,10 +562,10 @@ impl OperatorI for ParDoOperator {
         .unwrap();
 
         Self {
-            transform_id,
-            transform: transform_proto,
-            context,
-            operator_discriminant,
+            _transform_id: transform_id,
+            _transform: transform_proto,
+            _context: context,
+            _operator_discriminant: operator_discriminant,
             receivers,
             dofn,
         }
