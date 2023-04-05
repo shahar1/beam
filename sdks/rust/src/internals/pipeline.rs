@@ -130,7 +130,7 @@ impl Pipeline {
 
     pub fn pre_apply_transform<In, Out, F>(
         &self,
-        transform: &F,
+        _transform: &F,
         input: &PValue<In>,
     ) -> (String, proto_pipeline::PTransform)
     where
@@ -184,8 +184,8 @@ impl Pipeline {
 
         let flattened = flatten_pvalue(input.clone(), None);
         let mut inputs: HashMap<String, String> = HashMap::new();
-        for (name, pvalue) in flattened {
-            inputs.insert(name.clone(), pvalue.get_id());
+        for (name, id) in flattened {
+            inputs.insert(name.clone(), id);
         }
 
         let transform_proto = proto_pipeline::PTransform {
@@ -220,18 +220,52 @@ impl Pipeline {
         Out: ElemType,
         F: PTransform<In, Out> + Send,
     {
-        let (transform_id, transform_proto) = self.pre_apply_transform(&transform, input);
+        // TODO: Inline pre_apply and post_apply.
+        // (They exist in typescript only to share code between the sync and
+        // async variants).
+        let (transform_id, mut transform_proto) = self.pre_apply_transform(&transform, input);
 
-        let mut transform_stack = self.transform_stack.lock().unwrap();
+        {
+            let mut transform_stack = self.transform_stack.lock().unwrap();
+            transform_stack.push(transform_id.clone());
+            drop(transform_stack);
+        }
 
-        transform_stack.push(transform_id);
+        let result = transform.expand_internal(input, pipeline, &mut transform_proto);
 
-        let result = transform.expand_internal(input, pipeline, transform_proto.clone());
+        for (name, id) in flatten_pvalue(result.clone(), None) {
+            // Causes test to hang...
+            transform_proto.outputs.insert(name.clone(), id);
+        }
+
+        // Re-insert the transform with its outputs and any mutation that
+        // expand_internal performed.
+        let mut pipeline_proto = self.proto.lock().unwrap();
+        // This may have been mutated.
+        // TODO: Perhaps only insert at the end?
+        transform_proto.subtransforms = pipeline_proto
+            .components
+            .as_mut()
+            .unwrap()
+            .transforms
+            .get(&transform_id)
+            .unwrap()
+            .subtransforms
+            .clone();
+        pipeline_proto
+            .components
+            .as_mut()
+            .unwrap()
+            .transforms
+            .insert(transform_id, transform_proto.clone());
+        drop(pipeline_proto);
 
         // TODO: ensure this happens even if an error takes place above
-        transform_stack.pop();
-
-        drop(transform_stack);
+        {
+            let mut transform_stack = self.transform_stack.lock().unwrap();
+            transform_stack.pop();
+            drop(transform_stack);
+        }
 
         self.post_apply_transform(transform, transform_proto, result)
     }
@@ -239,8 +273,8 @@ impl Pipeline {
     // TODO: deal with bounds and windows
     pub fn post_apply_transform<In, Out, F>(
         &self,
-        transform: F,
-        transform_proto: proto_pipeline::PTransform,
+        _transform: F,
+        _transform_proto: proto_pipeline::PTransform,
         result: PValue<Out>,
     ) -> PValue<Out>
     where
@@ -262,7 +296,6 @@ impl Pipeline {
         // TODO: remove pcoll_proto arg
         PValue::new(
             crate::internals::pvalue::PType::PCollection,
-            proto_pipeline::PCollection::default(),
             pipeline,
             self.create_pcollection_id_internal(coder_id),
         )
@@ -270,9 +303,11 @@ impl Pipeline {
 
     pub fn create_pcollection_id_internal(&self, coder_id: String) -> String {
         let pcoll_id = self.context.create_unique_name("pc".to_string());
-        let mut pcoll_proto: proto_pipeline::PCollection = proto_pipeline::PCollection::default();
-        pcoll_proto.unique_name = pcoll_id.clone();
-        pcoll_proto.coder_id = coder_id;
+        let pcoll_proto: proto_pipeline::PCollection = proto_pipeline::PCollection {
+            unique_name: pcoll_id.clone(),
+            coder_id,
+            ..Default::default()
+        };
 
         let mut pipeline_proto = self.proto.lock().unwrap();
         pipeline_proto
