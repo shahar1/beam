@@ -18,6 +18,7 @@
 
 use std::sync::Arc;
 
+use crate::elem_types::ElemType;
 use crate::internals::pipeline::Pipeline;
 use crate::internals::pvalue::{PTransform, PValue};
 use crate::internals::urns::FLATTEN_URN;
@@ -32,13 +33,13 @@ impl Flatten {
 }
 
 // TODO: The type signature should indicate only PCollection arrays are accepted.
-impl<T: Clone + Sync + Send + 'static> PTransform<T, T> for Flatten {
+impl<E: ElemType> PTransform<E, E> for Flatten {
     fn expand_internal(
         &self,
-        input: &PValue<T>,
+        _input: &PValue<E>,
         pipeline: Arc<Pipeline>,
         transform_proto: &mut proto_pipeline::PTransform,
-    ) -> PValue<T> {
+    ) -> PValue<E> {
         let spec = proto_pipeline::FunctionSpec {
             urn: FLATTEN_URN.to_string(),
             payload: crate::internals::urns::IMPULSE_BUFFER.to_vec(), // Should be able to omit.

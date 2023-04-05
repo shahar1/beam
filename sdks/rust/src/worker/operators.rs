@@ -427,10 +427,10 @@ pub struct ImpulsePerBundleOperator {
 
 impl OperatorI for ImpulsePerBundleOperator {
     fn new(
-        transform_id: Arc<String>,
+        _transform_id: Arc<String>,
         transform: Arc<PTransform>,
         context: Arc<OperatorContext>,
-        operator_discriminant: OperatorDiscriminants,
+        _operator_discriminant: OperatorDiscriminants,
     ) -> Self {
         let receivers = transform
             .outputs
@@ -451,7 +451,7 @@ impl OperatorI for ImpulsePerBundleOperator {
         }
     }
 
-    fn process(&self, value: &WindowedValue) {}
+    fn process(&self, _value: &WindowedValue) {}
 
     fn finish_bundle(&self) {}
 }
@@ -466,10 +466,10 @@ struct GroupByKeyWithinBundleOperator {
 
 impl OperatorI for GroupByKeyWithinBundleOperator {
     fn new(
-        transform_id: Arc<String>,
+        _transform_id: Arc<String>,
         transform_proto: Arc<PTransform>,
         context: Arc<OperatorContext>,
-        operator_discriminant: OperatorDiscriminants,
+        _operator_discriminant: OperatorDiscriminants,
     ) -> Self {
         // TODO: Shared by all operators, move up?
         let receivers = transform_proto
@@ -599,10 +599,10 @@ pub struct FlattenOperator {
 
 impl OperatorI for FlattenOperator {
     fn new(
-        transform_id: Arc<String>,
+        _transform_id: Arc<String>,
         transform: Arc<PTransform>,
         context: Arc<OperatorContext>,
-        operator_discriminant: OperatorDiscriminants,
+        _operator_discriminant: OperatorDiscriminants,
     ) -> Self {
         let receivers = transform
             .outputs
