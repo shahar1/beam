@@ -85,7 +85,7 @@ mod tests {
                     KV::new("a".to_string(), 2),
                     KV::new("b".to_string(), 3),
                 ]))
-                .apply(GroupByKey::new())
+                .apply(GroupByKey::default())
                 .apply(AssertEqualUnordered::new(&[
                     KV::new("a".to_string(), vec![1, 2]),
                     KV::new("b".to_string(), vec![3]),

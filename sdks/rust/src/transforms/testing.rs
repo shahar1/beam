@@ -54,7 +54,7 @@ impl<T: ElemType + PartialEq + Ord + fmt::Debug> PTransform<T, ()> for AssertEqu
             .apply(ParDo::from_map(|x: &Option<T>| -> KV<String, Option<T>> {
                 KV::new("".to_string(), x.clone())
             }))
-            .apply(GroupByKey::new())
+            .apply(GroupByKey::default())
             .apply(ParDo::from_dyn_map(Box::new(
                 move |kvs: &KV<String, Vec<Option<T>>>| {
                     let mut actual: Vec<T> = kvs

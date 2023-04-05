@@ -19,8 +19,8 @@
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use crate::elem_types::ElemType;
 use crate::elem_types::kv::KV;
+use crate::elem_types::ElemType;
 use crate::internals::pipeline::Pipeline;
 use crate::internals::pvalue::{PTransform, PValue};
 use crate::internals::serialize;
@@ -35,8 +35,8 @@ pub struct GroupByKey<K, V> {
 }
 
 // TODO: Use coders to allow arbitrary keys.
-impl<V: ElemType> GroupByKey<String, V> {
-    pub fn new() -> Self {
+impl<V: ElemType> Default for GroupByKey<String, V> {
+    fn default() -> Self {
         Self {
             payload: serialize::serialize_fn::<Box<dyn serialize::KeyExtractor>>(Box::new(
                 Box::new(serialize::TypedKeyExtractor::<V>::default()),
