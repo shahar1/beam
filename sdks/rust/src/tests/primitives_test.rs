@@ -100,7 +100,7 @@ mod tests {
             .run(|root| {
                 let first = root.clone().apply(Create::new(&[1, 2, 3]));
                 let second = root.apply(Create::new(&[100, 200]));
-                PValue::new_array(&vec![first, second])
+                PValue::new_array(&[first, second])
                     .apply(Flatten::new())
                     .apply(AssertEqualUnordered::new(&[1, 2, 3, 100, 200]))
             })
