@@ -95,8 +95,8 @@ pub struct TypedKeyExtractor<V: Clone + Sync + Send + 'static> {
     phantom_data: PhantomData<V>,
 }
 
-impl<V: Clone + Sync + Send + 'static> TypedKeyExtractor<V> {
-    pub fn default() -> Self {
+impl<V: Clone + Sync + Send + 'static> Default for TypedKeyExtractor<V> {
+    fn default() -> Self {
         Self {
             phantom_data: PhantomData,
         }
