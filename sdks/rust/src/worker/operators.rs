@@ -55,7 +55,7 @@ static OPERATORS_BY_URN: Lazy<Mutex<OperatorMap>> = Lazy::new(|| {
     Mutex::new(m)
 });
 
-pub trait OperatorI {
+pub(crate) trait OperatorI {
     fn new(
         transform_id: Arc<String>,
         transform: Arc<PTransform>,
@@ -75,7 +75,7 @@ pub trait OperatorI {
 }
 
 #[derive(fmt::Debug, EnumDiscriminants)]
-pub enum Operator {
+pub(crate) enum Operator {
     // Test operators
     Create(CreateOperator),
     Recording(RecordingOperator),
@@ -156,7 +156,7 @@ impl OperatorI for Operator {
     }
 }
 
-pub fn create_operator(transform_id: &str, context: Arc<OperatorContext>) -> Operator {
+pub(crate) fn create_operator(transform_id: &str, context: Arc<OperatorContext>) -> Operator {
     let descriptor: &ProcessBundleDescriptor = context.descriptor.as_ref();
 
     let transform = descriptor
@@ -228,7 +228,7 @@ pub struct Receiver {
 }
 
 impl Receiver {
-    pub fn new(operators: Vec<Arc<Operator>>) -> Self {
+    pub(crate) fn new(operators: Vec<Arc<Operator>>) -> Self {
         Receiver { operators }
     }
 
@@ -456,7 +456,7 @@ impl OperatorI for ImpulsePerBundleOperator {
     fn finish_bundle(&self) {}
 }
 
-struct GroupByKeyWithinBundleOperator {
+pub(crate) struct GroupByKeyWithinBundleOperator {
     receivers: Vec<Arc<Receiver>>,
     key_extractor: &'static Box<dyn serialize::KeyExtractor>,
     // TODO: Operator requiring locking for structures only ever manipulated in
