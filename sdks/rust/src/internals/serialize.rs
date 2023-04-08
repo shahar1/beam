@@ -8,12 +8,15 @@ use std::sync::Mutex;
 
 use once_cell::sync::Lazy;
 
+use crate::elem_types::kv::KV;
+
 static SERIALIZED_FNS: Lazy<Mutex<HashMap<String, Box<dyn Any + Sync + Send>>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
 pub fn serialize_fn<T: Any + Sync + Send>(obj: Box<T>) -> String {
-    let name = format!("object{}", SERIALIZED_FNS.lock().unwrap().len());
-    SERIALIZED_FNS.lock().unwrap().insert(name.to_string(), obj);
+    let mut serialized_fns = SERIALIZED_FNS.lock().unwrap();
+    let name = format!("object{}", serialized_fns.len());
+    serialized_fns.insert(name.to_string(), obj);
     name
 }
 
@@ -83,7 +86,7 @@ pub fn to_generic_dofn_dyn<T: Any, O: Any, I: IntoIterator<Item = O> + 'static>(
 }
 
 pub trait KeyExtractor: Sync + Send {
-    fn extract(&self, kv: &dyn Any) -> (String, Box<dyn Any + Sync + Send>);
+    fn extract(&self, kv: &dyn Any) -> KV<String, Box<dyn Any + Sync + Send>>;
     fn recombine(
         &self,
         key: &str,
@@ -104,9 +107,12 @@ impl<V: Clone + Sync + Send + 'static> Default for TypedKeyExtractor<V> {
 }
 
 impl<V: Clone + Sync + Send + 'static> KeyExtractor for TypedKeyExtractor<V> {
-    fn extract(&self, kv: &dyn Any) -> (String, Box<dyn Any + Sync + Send>) {
-        let typed_kv = kv.downcast_ref::<(String, V)>().unwrap();
-        (typed_kv.0.clone(), Box::new(typed_kv.1.clone()))
+    fn extract(&self, kv: &dyn Any) -> KV<String, Box<dyn Any + Sync + Send>> {
+        let typed_kv = kv.downcast_ref::<KV<String, V>>().unwrap();
+        KV {
+            k: typed_kv.k.clone(),
+            v: Box::new(typed_kv.v.clone()),
+        }
     }
     fn recombine(
         &self,
@@ -117,6 +123,9 @@ impl<V: Clone + Sync + Send + 'static> KeyExtractor for TypedKeyExtractor<V> {
         for untyped_value in values.iter() {
             typed_values.push(untyped_value.downcast_ref::<V>().unwrap().clone());
         }
-        Box::new((key.to_string(), typed_values))
+        Box::new(KV {
+            k: key.to_string(),
+            v: typed_values,
+        })
     }
 }

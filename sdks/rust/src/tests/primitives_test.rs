@@ -39,8 +39,6 @@ mod tests {
             .await;
     }
 
-    // TODO: Enabling these tests seem to cause random failures in other
-    // tests in this file.
     #[tokio::test]
     #[should_panic]
     // This tests that AssertEqualUnordered is actually doing its job.
@@ -54,7 +52,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore]
     #[should_panic]
     async fn ensure_assert_fails_on_empty() {
         DirectRunner::new()

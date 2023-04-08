@@ -27,6 +27,7 @@ use std::sync::{Arc, Mutex};
 use once_cell::sync::Lazy;
 use serde_json;
 
+use crate::elem_types::kv::KV;
 use crate::internals::serialize;
 use crate::internals::urns;
 use crate::proto::beam_api::fn_execution::ProcessBundleDescriptor;
@@ -500,7 +501,7 @@ impl OperatorI for GroupByKeyWithinBundleOperator {
     fn process(&self, element: &WindowedValue) {
         // TODO: assumes global window
         let untyped_value: &dyn Any = &*element.value;
-        let (key, value) = self.key_extractor.extract(untyped_value);
+        let KV { k: key, v: value } = self.key_extractor.extract(untyped_value);
         let mut grouped_values = self.grouped_values.lock().unwrap();
         if !grouped_values.contains_key(&key) {
             grouped_values.insert(key.clone(), Box::default());

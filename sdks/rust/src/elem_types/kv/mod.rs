@@ -2,8 +2,8 @@ use std::{cmp, fmt};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct KV<K, V> {
-    k: K,
-    v: V,
+    pub k: K,
+    pub v: V,
 }
 
 impl<K, V> KV<K, V>
