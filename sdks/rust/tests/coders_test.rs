@@ -18,7 +18,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::{
+    use apache_beam::{
         coders::{
             coder_resolver::{
                 BytesCoderResolverDefault, CoderResolver, StrUtf8CoderResolverDefault,

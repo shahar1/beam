@@ -22,13 +22,13 @@ mod tests {
 
     use serde_json;
 
-    use crate::internals::urns;
-    use crate::proto::beam_api::{
+    use apache_beam::internals::urns;
+    use apache_beam::proto::beam_api::{
         fn_execution::ProcessBundleDescriptor,
         pipeline::{FunctionSpec, PTransform},
     };
 
-    use crate::{
+    use apache_beam::{
         worker::sdk_worker::BundleProcessor,
         worker::test_utils::{reset_log, RECORDING_OPERATOR_LOGS},
     };

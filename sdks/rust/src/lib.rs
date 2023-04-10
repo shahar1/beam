@@ -24,7 +24,5 @@ pub mod runners;
 pub mod transforms;
 pub mod worker;
 
-mod tests;
-
 #[macro_use]
 extern crate strum_macros;

@@ -20,17 +20,17 @@
 mod tests {
     use std::sync::Arc;
 
-    use crate::elem_types::kv::KV;
-    use crate::internals::pipeline::Pipeline;
-    use crate::internals::pvalue::{PType, PValue};
-    use crate::runners::direct_runner::DirectRunner;
-    use crate::runners::runner::RunnerI;
-    use crate::transforms::create::Create;
-    use crate::transforms::flatten::Flatten;
-    use crate::transforms::group_by_key::GroupByKey;
-    use crate::transforms::impulse::Impulse;
-    use crate::transforms::pardo::ParDo;
-    use crate::transforms::testing::AssertEqualUnordered;
+    use apache_beam::elem_types::kv::KV;
+    use apache_beam::internals::pipeline::Pipeline;
+    use apache_beam::internals::pvalue::{PType, PValue};
+    use apache_beam::runners::direct_runner::DirectRunner;
+    use apache_beam::runners::runner::RunnerI;
+    use apache_beam::transforms::create::Create;
+    use apache_beam::transforms::flatten::Flatten;
+    use apache_beam::transforms::group_by_key::GroupByKey;
+    use apache_beam::transforms::impulse::Impulse;
+    use apache_beam::transforms::pardo::ParDo;
+    use apache_beam::transforms::testing::AssertEqualUnordered;
 
     #[tokio::test]
     async fn run_direct_runner() {
