@@ -20,6 +20,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
+use std::str::from_utf8;
 use std::sync::{Arc, Mutex};
 
 //use std::borrow::{Borrow, BorrowMut};
@@ -27,7 +28,7 @@ use std::sync::{Arc, Mutex};
 use once_cell::sync::Lazy;
 use serde_json;
 
-use crate::elem_types::kv::KV;
+use crate::elem_types::ElemType;
 use crate::internals::serialize;
 use crate::internals::urns;
 use crate::proto::beam_api::fn_execution::ProcessBundleDescriptor;
@@ -68,14 +69,14 @@ pub(crate) trait OperatorI {
 
     fn start_bundle(&self);
 
-    fn process(&self, value: &WindowedValue);
+    fn process(&self, value: DynamicWindowedValue);
 
     fn finish_bundle(&self) {
         todo!()
     }
 }
 
-#[derive(fmt::Debug, EnumDiscriminants)]
+#[derive(Clone, fmt::Debug, EnumDiscriminants)]
 pub(crate) enum Operator {
     // Test operators
     Create(CreateOperator),
@@ -120,7 +121,7 @@ impl OperatorI for Operator {
         };
     }
 
-    fn process(&self, value: &WindowedValue) {
+    fn process(&self, value: DynamicWindowedValue) {
         match self {
             Operator::Create(create_op) => {
                 create_op.process(value);
@@ -233,7 +234,7 @@ impl Receiver {
         Receiver { operators }
     }
 
-    pub fn receive(&self, value: &WindowedValue) {
+    pub fn receive(&self, value: DynamicWindowedValue) {
         for op in &self.operators {
             op.process(value);
         }
@@ -266,17 +267,29 @@ pub struct GlobalWindow;
 
 impl Window for GlobalWindow {}
 
+#[derive(Clone, Copy)]
+pub struct DynamicWindowedValue<'a>(&'a dyn Any);
+
+impl<'a> DynamicWindowedValue<'a> {
+    pub fn new<In: ElemType>(value: &'a WindowedValue<In>) -> DynamicWindowedValue<'a> {
+        DynamicWindowedValue(value)
+    }
+    pub fn downcast_ref<In: ElemType>(self) -> &'a WindowedValue<In> {
+        self.0.downcast_ref::<WindowedValue<In>>().unwrap()
+    }
+}
+
 #[derive(Debug)]
-pub struct WindowedValue {
+pub struct WindowedValue<In: ElemType> {
     windows: Rc<Vec<Box<dyn Window>>>,
     timestamp: std::time::Instant,
     pane_info: Box<[u8]>,
-    value: Box<dyn Any>,
+    pub value: In,
 }
 
-impl WindowedValue {
-    fn in_global_window(value: Box<dyn Any>) -> WindowedValue {
-        WindowedValue {
+impl<In: ElemType> WindowedValue<In> {
+    pub fn in_global_window(value: In) -> Self {
+        Self {
             windows: Rc::new(vec![Box::new(GlobalWindow {})]),
             timestamp: std::time::Instant::now(), // TODO: MinTimestamp
             pane_info: Box::new([]),
@@ -284,8 +297,8 @@ impl WindowedValue {
         }
     }
 
-    fn with_value(&self, value: Box<dyn Any>) -> WindowedValue {
-        WindowedValue {
+    pub fn with_value<Out: ElemType>(&self, value: Out) -> WindowedValue<Out> {
+        WindowedValue::<Out> {
             windows: self.windows.clone(),
             timestamp: self.timestamp,
             pane_info: self.pane_info.clone(),
@@ -296,7 +309,7 @@ impl WindowedValue {
 
 // ******* Test Operator definitions *******
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CreateOperator {
     _transform_id: Arc<String>,
     _transform: Arc<PTransform>,
@@ -345,19 +358,19 @@ impl OperatorI for CreateOperator {
 
     fn start_bundle(&self) {
         for datum in &self.data {
-            let wv = WindowedValue::in_global_window(Box::new(datum.clone()));
+            let wv = WindowedValue::in_global_window(datum.clone());
             for rec in self.receivers.iter() {
-                rec.receive(&wv);
+                rec.receive(DynamicWindowedValue(&wv));
             }
         }
     }
 
-    fn process(&self, _value: &WindowedValue) {}
+    fn process(&self, _value: DynamicWindowedValue) {}
 
     fn finish_bundle(&self) {}
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct RecordingOperator {
     transform_id: Arc<String>,
     _transform: Arc<PTransform>,
@@ -397,16 +410,13 @@ impl OperatorI for RecordingOperator {
         log.push(format!("{}.start_bundle()", self.transform_id));
     }
 
-    fn process(&self, value: &WindowedValue) {
+    fn process(&self, value: DynamicWindowedValue) {
         unsafe {
             let mut log = RECORDING_OPERATOR_LOGS.lock().unwrap();
             log.push(format!(
                 "{}.process({:?})",
                 self.transform_id,
-                value
-                    .value
-                    .downcast_ref::<String>()
-                    .unwrap_or(&"{any}".to_string())
+                value.downcast_ref::<String>().value
             ));
         }
 
@@ -421,7 +431,7 @@ impl OperatorI for RecordingOperator {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ImpulsePerBundleOperator {
     receivers: Vec<Arc<Receiver>>,
 }
@@ -446,23 +456,42 @@ impl OperatorI for ImpulsePerBundleOperator {
     }
 
     fn start_bundle(&self) {
-        let wv = WindowedValue::in_global_window(Box::new(Vec::<u8>::new()));
+        let wv = WindowedValue::in_global_window(Vec::<u8>::new());
         for rec in self.receivers.iter() {
-            rec.receive(&wv);
+            rec.receive(DynamicWindowedValue::new(&wv));
         }
     }
 
-    fn process(&self, _value: &WindowedValue) {}
+    fn process(&self, _value: DynamicWindowedValue) {}
 
     fn finish_bundle(&self) {}
 }
 
+// We could use trait DynamicGroupedValues: Any + Send + Sync once
+// trait upclassing stabilizes https://github.com/rust-lang/rust/issues/65991
+pub struct DynamicGroupedValues(Box<dyn Any + Send + Sync>);
+
+impl DynamicGroupedValues {
+    pub fn new<V: ElemType>() -> Self {
+        DynamicGroupedValues(Box::new(HashMap::<String, Vec<V>>::new()))
+    }
+
+    pub fn downcast_mut<V: ElemType>(&mut self) -> &mut HashMap<String, Vec<V>> {
+        self.0.downcast_mut::<HashMap<String, Vec<V>>>().unwrap()
+    }
+
+    pub fn downcast_ref<V: ElemType>(&self) -> &HashMap<String, Vec<V>> {
+        self.0.downcast_ref::<HashMap<String, Vec<V>>>().unwrap()
+    }
+}
+
+#[derive(Clone)]
 pub(crate) struct GroupByKeyWithinBundleOperator {
     receivers: Vec<Arc<Receiver>>,
-    key_extractor: &'static Box<dyn serialize::KeyExtractor>,
+    key_extractor: &'static dyn serialize::DynamicKeyExtractor,
     // TODO: Operator requiring locking for structures only ever manipulated in
     // a single thread seems inefficient and overkill.
-    grouped_values: Arc<Mutex<HashMap<String, Box<Vec<Box<dyn Any + Send + Sync>>>>>>,
+    grouped_values: Arc<Mutex<DynamicGroupedValues>>,
 }
 
 impl OperatorI for GroupByKeyWithinBundleOperator {
@@ -482,7 +511,7 @@ impl OperatorI for GroupByKeyWithinBundleOperator {
             })
             .collect();
 
-        let key_extractor = serialize::deserialize_fn::<Box<dyn serialize::KeyExtractor>>(
+        let key_extractor = serialize::get_extractor(
             &String::from_utf8(transform_proto.spec.as_ref().unwrap().payload.clone()).unwrap(),
         )
         .unwrap();
@@ -490,35 +519,24 @@ impl OperatorI for GroupByKeyWithinBundleOperator {
         Self {
             receivers,
             key_extractor,
-            grouped_values: Arc::new(Mutex::new(HashMap::new())),
+            grouped_values: Arc::new(Mutex::new(key_extractor.new_grouped_values())),
         }
     }
 
     fn start_bundle(&self) {
-        self.grouped_values.lock().unwrap().clear();
+        self.key_extractor
+            .clear_grouped_values(&mut self.grouped_values.lock().unwrap());
     }
 
-    fn process(&self, element: &WindowedValue) {
+    fn process(&self, element: DynamicWindowedValue) {
         // TODO: assumes global window
-        let untyped_value: &dyn Any = &*element.value;
-        let KV { k: key, v: value } = self.key_extractor.extract(untyped_value);
-        let mut grouped_values = self.grouped_values.lock().unwrap();
-        if !grouped_values.contains_key(&key) {
-            grouped_values.insert(key.clone(), Box::default());
-        }
-        grouped_values.get_mut(&key).unwrap().push(value);
+        self.key_extractor
+            .extract(element, &mut self.grouped_values.lock().unwrap());
     }
 
     fn finish_bundle(&self) {
-        for (key, values) in self.grouped_values.lock().unwrap().iter() {
-            // TODO: timestamp and pane info are wrong
-            for receiver in self.receivers.iter() {
-                // TODO: End-of-window timestamp, only firing pane.
-                receiver.receive(&WindowedValue::in_global_window(
-                    self.key_extractor.recombine(key, values),
-                ));
-            }
-        }
+        self.key_extractor
+            .recombine(&self.grouped_values.lock().unwrap(), &self.receivers)
     }
 }
 
@@ -529,7 +547,7 @@ impl std::fmt::Debug for GroupByKeyWithinBundleOperator {
 }
 
 // ******* Production Operator definitions *******
-
+#[derive(Clone)]
 pub struct ParDoOperator {
     _transform_id: Arc<String>,
     _transform: Arc<PTransform>,
@@ -537,7 +555,7 @@ pub struct ParDoOperator {
     _operator_discriminant: OperatorDiscriminants,
 
     receivers: Vec<Arc<Receiver>>,
-    dofn: &'static serialize::GenericDoFn,
+    dofn: &'static dyn serialize::DynamicDoFn,
 }
 
 impl OperatorI for ParDoOperator {
@@ -557,8 +575,8 @@ impl OperatorI for ParDoOperator {
             })
             .collect();
 
-        let dofn = serialize::deserialize_fn::<serialize::GenericDoFn>(
-            &String::from_utf8(transform_proto.spec.as_ref().unwrap().payload.clone()).unwrap(),
+        let dofn = serialize::get_do_fn(
+            from_utf8(&transform_proto.spec.as_ref().unwrap().payload.clone()).unwrap(),
         )
         .unwrap();
 
@@ -572,19 +590,17 @@ impl OperatorI for ParDoOperator {
         }
     }
 
-    fn start_bundle(&self) {}
-
-    fn process(&self, windowed_element: &WindowedValue) {
-        let func = self.dofn; // Can't use self.func directly in a call.
-        for output in &mut func(&*windowed_element.value) {
-            let windowed_output = windowed_element.with_value(output);
-            for rec in self.receivers.iter() {
-                rec.receive(&windowed_output);
-            }
-        }
+    fn start_bundle(&self) {
+        self.dofn.start_bundle_dyn()
     }
 
-    fn finish_bundle(&self) {}
+    fn process(&self, windowed_element: DynamicWindowedValue) {
+        self.dofn.process_dyn(windowed_element, &self.receivers)
+    }
+
+    fn finish_bundle(&self) {
+        self.dofn.finish_bundle_dyn()
+    }
 }
 
 impl std::fmt::Debug for ParDoOperator {
@@ -593,7 +609,7 @@ impl std::fmt::Debug for ParDoOperator {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct FlattenOperator {
     receivers: Vec<Arc<Receiver>>,
 }
@@ -619,7 +635,7 @@ impl OperatorI for FlattenOperator {
 
     fn start_bundle(&self) {}
 
-    fn process(&self, value: &WindowedValue) {
+    fn process(&self, value: DynamicWindowedValue) {
         for rec in self.receivers.iter() {
             rec.receive(value);
         }

@@ -23,12 +23,12 @@ use crate::{
     internals::pvalue::{PTransform, PValue},
 };
 
-pub struct Create<T> {
-    elements: Vec<T>,
+pub struct Create<Out> {
+    elements: Vec<Out>,
 }
 
-impl<T: Clone> Create<T> {
-    pub fn new(elements: &[T]) -> Self {
+impl<Out: ElemType> Create<Out> {
+    pub fn new(elements: &[Out]) -> Self {
         Self {
             elements: elements.to_vec(),
         }
@@ -39,15 +39,15 @@ impl<T: Clone> Create<T> {
 // https://github.com/rust-lang/rust/issues/35121
 pub type Never = ();
 
-impl<E: ElemType> PTransform<Never, E> for Create<E> {
-    fn expand(&self, input: &PValue<Never>) -> PValue<E> {
+impl<Out: ElemType> PTransform<Never, Out> for Create<Out> {
+    fn expand(&self, input: &PValue<Never>) -> PValue<Out> {
         let elements = self.elements.to_vec();
         // TODO: Consider reshuffling.
         input
             .clone()
             .apply(Impulse::new())
-            .apply(ParDo::from_flatmap_with_context(Box::new(
-                move |_x| -> Vec<E> { elements.to_vec() },
-            )))
+            .apply(ParDo::from_flat_map(move |_x| -> Vec<Out> {
+                elements.to_vec()
+            }))
     }
 }

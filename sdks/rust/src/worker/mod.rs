@@ -17,9 +17,10 @@
  */
 
 mod external_worker_service;
-mod operators;
+pub mod operators;
 
 pub use external_worker_service::ExternalWorkerPool;
+pub use operators::Receiver;
 pub mod sdk_worker;
 pub mod worker_main;
 

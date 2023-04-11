@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-use std::{any::Any, fmt};
+use std::fmt;
 
 use super::group_by_key::GroupByKey;
 use super::impulse::Impulse;
@@ -31,7 +31,7 @@ pub struct AssertEqualUnordered<T> {
     expected_sorted: Vec<T>,
 }
 
-impl<T: Any + Clone + Ord> AssertEqualUnordered<T> {
+impl<T: ElemType + Ord> AssertEqualUnordered<T> {
     pub fn new(expected_slice: &[T]) -> Self {
         let mut expected_sorted = expected_slice.to_vec();
         expected_sorted.sort();
@@ -55,22 +55,20 @@ impl<T: ElemType + PartialEq + Ord + fmt::Debug> PTransform<T, ()> for AssertEqu
                 KV::new("".to_string(), x.clone())
             }))
             .apply(GroupByKey::default())
-            .apply(ParDo::from_map_with_context(Box::new(
-                move |kvs: &KV<String, Vec<Option<T>>>| {
-                    let mut actual: Vec<T> = kvs
-                        .as_values()
-                        .iter()
-                        .filter(|x| -> bool { x.is_some() })
-                        .map(|x| -> T { x.clone().unwrap() })
-                        .collect();
-                    actual.sort();
-                    assert!(
-                        actual == expected,
-                        "Actual values ({:?}) do not equal expected values ({:?}).",
-                        actual,
-                        expected
-                    );
-                },
-            )))
+            .apply(ParDo::from_map(move |kvs: &KV<String, Vec<Option<T>>>| {
+                let mut actual: Vec<T> = kvs
+                    .as_values()
+                    .iter()
+                    .filter(|x| -> bool { x.is_some() })
+                    .map(|x| -> T { x.clone().unwrap() })
+                    .collect();
+                actual.sort();
+                assert!(
+                    actual == expected,
+                    "Actual values ({:?}) do not equal expected values ({:?}).",
+                    actual,
+                    expected
+                );
+            }))
     }
 }

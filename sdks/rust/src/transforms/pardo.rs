@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+use std::iter;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
@@ -27,76 +28,75 @@ use crate::internals::urns;
 
 use crate::proto::beam_api::pipeline as proto_pipeline;
 
-pub struct DoFn;
+pub trait DoFn: Send + Sync {
+    type In: ElemType;
+    type Out: ElemType;
+    type I: IntoIterator<Item = Self::Out>;
 
-impl DoFn {
-    pub fn process() {
-        todo!()
-    }
+    fn process(&self, elem: &Self::In) -> Self::I;
+    fn start_bundle(&self) {}
+    fn finish_bundle(&self) {}
+}
 
-    pub fn start_bundle() {
-        todo!()
-    }
+struct DoFnFromFlatmap<In, Out, I, F: Fn(&In) -> I>(F, PhantomData<(In, Out, I)>);
 
-    pub fn finish_bundle() {
-        todo!()
+impl<
+        In: ElemType,
+        Out: ElemType,
+        I: IntoIterator<Item = Out> + Send + Sync,
+        F: Fn(&In) -> I + Send + Sync,
+    > DoFn for DoFnFromFlatmap<In, Out, I, F>
+{
+    type In = In;
+    type Out = Out;
+    type I = I;
+
+    fn process(&self, elem: &In) -> I {
+        self.0(elem)
     }
 }
 
-pub struct ParDo<T, O> {
+pub struct ParDo<In, Out> {
     payload: String,
-    phantom_t: PhantomData<T>,
-    phantom_o: PhantomData<O>,
+    phantom: PhantomData<(In, Out)>,
 }
 
 // TODO: Is the Sync + Send stuff needed?
-impl<T: 'static, O: 'static> ParDo<T, O> {
-    // TODO: These should correspond to methods on PCollection<T> (but not on PValue).
-    /// Creates a ParDo from a function that maps a single input element to a single output element.
-    /// The function must not have any context. See [Understanding Closures in Rust](https://medium.com/swlh/understanding-closures-in-rust-21f286ed1759) for detail.
-    pub fn from_map(func: fn(&T) -> O) -> Self {
-        Self::from_map_with_context(Box::new(func))
-    }
-
-    /// Creates a ParDo from a function that maps a single input element to a single output element.
-    /// The function may have an immutable context. See [Understanding Closures in Rust](https://medium.com/swlh/understanding-closures-in-rust-21f286ed1759) for detail.
-    pub fn from_map_with_context(func: Box<dyn Fn(&T) -> O + Send + Sync>) -> Self {
-        Self::from_flatmap_with_context(Box::new(move |x: &T| -> Vec<O> { vec![func(x)] }))
-    }
-
-    /// Creates a ParDo from a function that maps a single input element to a collection of output elements.
-    /// The function must not have any context. See [Understanding Closures in Rust](https://medium.com/swlh/understanding-closures-in-rust-21f286ed1759) for detail.
-    pub fn from_flatmap<I: IntoIterator<Item = O> + 'static>(func: fn(&T) -> I) -> Self {
-        Self::from_flatmap_with_context(Box::new(func))
-    }
-
-    /// Creates a ParDo from a function that maps a single input element to a collection of output elements.
-    /// The function may have an immutable context. See [Understanding Closures in Rust](https://medium.com/swlh/understanding-closures-in-rust-21f286ed1759) for detail.
-    pub fn from_flatmap_with_context<I: IntoIterator<Item = O> + 'static>(
-        func: Box<dyn Fn(&T) -> I + Send + Sync>,
-    ) -> Self {
+impl<In: ElemType, Out: ElemType> ParDo<In, Out> {
+    pub fn of<D: DoFn<In = In, Out = Out> + 'static>(do_fn: D) -> Self {
         Self {
-            payload: serialize::serialize_fn::<serialize::GenericDoFn>(Box::new(
-                serialize::to_generic_dofn_dyn(func),
-            )),
-            phantom_t: PhantomData,
-            phantom_o: PhantomData,
+            payload: serialize::store_do_fn(do_fn),
+            phantom: PhantomData,
         }
+    }
+
+    // TODO: These should correspond to methods on PCollection<T> (but not on PValue).
+    pub fn from_flat_map<
+        I: IntoIterator<Item = Out> + Send + Sync + 'static,
+        F: Fn(&In) -> I + Send + Sync + 'static,
+    >(
+        func: F,
+    ) -> Self {
+        Self::of(DoFnFromFlatmap(func, PhantomData))
+    }
+
+    pub fn from_map<F: Fn(&In) -> Out + Send + Sync + 'static>(func: F) -> Self {
+        Self::from_flat_map(move |t| iter::once(func(t)))
     }
 }
 
-impl<T: ElemType, O: ElemType> PTransform<T, O> for ParDo<T, O> {
+impl<In: ElemType, Out: ElemType> PTransform<In, Out> for ParDo<In, Out> {
     fn expand_internal(
         &self,
-        _input: &PValue<T>, // really a PCollection<T>
+        _input: &PValue<In>, // really a PCollection<T>
         pipeline: Arc<Pipeline>,
         transform_proto: &mut proto_pipeline::PTransform,
-    ) -> PValue<O> // really a PCollection<O>
+    ) -> PValue<Out> // really a PCollection<O>
     {
         // Update the spec to say how it's created.
         transform_proto.spec = Some(proto_pipeline::FunctionSpec {
             urn: urns::PAR_DO_URN.to_string(),
-            payload: self.payload.clone().into(),
+            payload: self.payload.as_bytes().to_owned(),
         });
         pipeline.create_pcollection_internal("".to_string(), pipeline.clone())
     }

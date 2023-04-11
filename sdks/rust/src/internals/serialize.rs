@@ -1,131 +1,114 @@
 use std::collections::HashMap;
-use std::iter::Iterator;
-use std::marker::PhantomData;
 
-use std::any::Any;
 use std::boxed::Box;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use once_cell::sync::Lazy;
 
 use crate::elem_types::kv::KV;
+use crate::elem_types::ElemType;
+use crate::transforms::group_by_key::KeyExtractor;
+use crate::transforms::pardo::DoFn;
+use crate::worker::operators::{DynamicGroupedValues, DynamicWindowedValue, WindowedValue};
+use crate::worker::Receiver;
 
-static SERIALIZED_FNS: Lazy<Mutex<HashMap<String, Box<dyn Any + Sync + Send>>>> =
+static DO_FNS: Lazy<Mutex<HashMap<String, &'static dyn DynamicDoFn>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
-pub fn serialize_fn<T: Any + Sync + Send>(obj: Box<T>) -> String {
-    let mut serialized_fns = SERIALIZED_FNS.lock().unwrap();
-    let name = format!("object{}", serialized_fns.len());
-    serialized_fns.insert(name.to_string(), obj);
+static KEY_EXTRACTORS: Lazy<Mutex<HashMap<String, &'static dyn DynamicKeyExtractor>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+
+pub fn store_do_fn(do_fn: impl DoFn + 'static) -> String {
+    let mut do_fns = DO_FNS.lock().unwrap();
+    let name = format!("object{}", do_fns.len());
+    do_fns.insert(name.to_string(), Box::leak(Box::new(do_fn)));
     name
 }
 
-pub fn deserialize_fn<T: Any + Sync + Send>(name: &String) -> Option<&'static T> {
-    let binding = SERIALIZED_FNS.lock().unwrap();
-    let untyped = binding.get(name);
-    let typed = match untyped {
-        Some(x) => x.downcast_ref::<T>(),
-        None => None,
-    };
-
-    unsafe { std::mem::transmute::<Option<&T>, Option<&'static T>>(typed) }
+pub fn get_do_fn(name: &str) -> Option<&'static dyn DynamicDoFn> {
+    let binding = DO_FNS.lock().unwrap();
+    binding.get(name).copied()
 }
 
-// ******* DoFn Wrappers, perhaps move elsewhere? *******
-
-// TODO: Give these start/finish_bundles, etc.
-pub type GenericDoFn =
-    Box<dyn Fn(&dyn Any) -> Box<dyn Iterator<Item = Box<dyn Any>>> + Sync + Send>;
-
-struct GenericDoFnWrapper {
-    _func: GenericDoFn,
+pub fn store_key_extractor(ke: impl DynamicKeyExtractor + 'static) -> String {
+    let mut kes = KEY_EXTRACTORS.lock().unwrap();
+    let name = format!("object{}", kes.len());
+    kes.insert(name.to_string(), Box::leak(Box::new(ke)));
+    name
 }
 
-unsafe impl std::marker::Send for GenericDoFnWrapper {}
-
-struct BoxedIter<O: Any, I: IntoIterator<Item = O>> {
-    typed_iter: I::IntoIter,
+pub fn get_extractor(name: &str) -> Option<&'static dyn DynamicKeyExtractor> {
+    KEY_EXTRACTORS.lock().unwrap().get(name).copied()
 }
 
-impl<O: Any, I: IntoIterator<Item = O>> Iterator for BoxedIter<O, I> {
-    type Item = Box<dyn Any>;
+pub trait DynamicDoFn: Send + Sync {
+    fn process_dyn(&self, elem: DynamicWindowedValue, receivers: &[Arc<Receiver>]);
+    fn start_bundle_dyn(&self);
+    fn finish_bundle_dyn(&self);
+}
 
-    fn next(&mut self) -> Option<Box<dyn Any>> {
-        if let Some(x) = self.typed_iter.next() {
-            Some(Box::new(x))
-        } else {
-            None
+impl<D: DoFn> DynamicDoFn for D {
+    fn process_dyn(&self, elem: DynamicWindowedValue, receivers: &[Arc<Receiver>]) {
+        let typed_elem = elem.downcast_ref::<D::In>();
+        for value in self.process(&typed_elem.value) {
+            let windowed_value = typed_elem.with_value(value);
+            for receiver in receivers {
+                receiver.receive(DynamicWindowedValue::new(&windowed_value))
+            }
         }
+    }
+
+    fn start_bundle_dyn(&self) {
+        self.start_bundle()
+    }
+
+    fn finish_bundle_dyn(&self) {
+        self.finish_bundle()
     }
 }
 
-pub fn to_generic_dofn<T: Any, O: Any, I: IntoIterator<Item = O> + 'static>(
-    func: fn(&T) -> I,
-) -> GenericDoFn {
-    Box::new(
-        move |untyped_input: &dyn Any| -> Box<dyn Iterator<Item = Box<dyn Any>>> {
-            let typed_input: &T = untyped_input.downcast_ref::<T>().unwrap();
-            Box::new(BoxedIter::<O, I> {
-                typed_iter: func(typed_input).into_iter(),
-            })
-        },
-    )
+pub trait DynamicKeyExtractor: Sync + Send {
+    fn new_grouped_values(&self) -> DynamicGroupedValues;
+    fn clear_grouped_values(&self, grouped_values: &mut DynamicGroupedValues);
+    fn extract(&self, kv: DynamicWindowedValue, grouped_values: &mut DynamicGroupedValues);
+    fn recombine(&self, grouped_values: &DynamicGroupedValues, receivers: &[Arc<Receiver>]);
 }
 
-pub fn to_generic_dofn_dyn<T: Any, O: Any, I: IntoIterator<Item = O> + 'static>(
-    func: Box<dyn Fn(&T) -> I + Sync + Send>,
-) -> GenericDoFn {
-    Box::new(
-        move |untyped_input: &dyn Any| -> Box<dyn Iterator<Item = Box<dyn Any>>> {
-            let typed_input: &T = untyped_input.downcast_ref::<T>().unwrap();
-            Box::new(BoxedIter::<O, I> {
-                typed_iter: func(typed_input).into_iter(),
-            })
-        },
-    )
-}
-
-pub trait KeyExtractor: Sync + Send {
-    fn extract(&self, kv: &dyn Any) -> KV<String, Box<dyn Any + Sync + Send>>;
-    fn recombine(
-        &self,
-        key: &str,
-        values: &Box<Vec<Box<dyn Any + Sync + Send>>>,
-    ) -> Box<dyn Any + Sync + Send>;
-}
-
-pub struct TypedKeyExtractor<V: Clone + Sync + Send + 'static> {
-    phantom_data: PhantomData<V>,
-}
-
-impl<V: Clone + Sync + Send + 'static> Default for TypedKeyExtractor<V> {
-    fn default() -> Self {
-        Self {
-            phantom_data: PhantomData,
-        }
+impl<V: ElemType> DynamicKeyExtractor for KeyExtractor<V> {
+    fn new_grouped_values(&self) -> DynamicGroupedValues {
+        DynamicGroupedValues::new::<V>()
     }
-}
-
-impl<V: Clone + Sync + Send + 'static> KeyExtractor for TypedKeyExtractor<V> {
-    fn extract(&self, kv: &dyn Any) -> KV<String, Box<dyn Any + Sync + Send>> {
-        let typed_kv = kv.downcast_ref::<KV<String, V>>().unwrap();
-        KV {
-            k: typed_kv.k.clone(),
-            v: Box::new(typed_kv.v.clone()),
-        }
+    fn clear_grouped_values(&self, grouped_values: &mut DynamicGroupedValues) {
+        grouped_values.downcast_mut::<V>().clear()
     }
-    fn recombine(
-        &self,
-        key: &str,
-        values: &Box<Vec<Box<dyn Any + Sync + Send>>>,
-    ) -> Box<dyn Any + Sync + Send> {
-        let mut typed_values: Vec<V> = Vec::new();
-        for untyped_value in values.iter() {
-            typed_values.push(untyped_value.downcast_ref::<V>().unwrap().clone());
+    fn extract(&self, kv: DynamicWindowedValue, grouped_values: &mut DynamicGroupedValues) {
+        let KV { k, v } = &kv.downcast_ref::<KV<String, V>>().value;
+        let grouped_values = grouped_values.downcast_mut::<V>();
+
+        if !grouped_values.contains_key(k) {
+            grouped_values.insert(k.clone(), Vec::new());
         }
-        Box::new(KV {
-            k: key.to_string(),
-            v: typed_values,
-        })
+        grouped_values.get_mut(k).unwrap().push(v.clone());
+    }
+
+    fn recombine(&self, grouped_values: &DynamicGroupedValues, receivers: &[Arc<Receiver>]) {
+        let typed_grouped_values = grouped_values.downcast_ref::<V>();
+        for (key, values) in typed_grouped_values.iter() {
+            // TODO: timestamp and pane info are wrong
+            for receiver in receivers.iter() {
+                // TODO: End-of-window timestamp, only firing pane.
+                let mut typed_values: Vec<V> = Vec::new();
+                for value in values.iter() {
+                    typed_values.push(value.clone());
+                }
+                let res = KV {
+                    k: key.to_string(),
+                    v: typed_values,
+                };
+                receiver.receive(DynamicWindowedValue::new(&WindowedValue::in_global_window(
+                    res,
+                )));
+            }
+        }
     }
 }

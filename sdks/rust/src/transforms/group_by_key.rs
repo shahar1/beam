@@ -30,19 +30,17 @@ use crate::proto::beam_api::pipeline as proto_pipeline;
 
 pub struct GroupByKey<K, V> {
     payload: String,
-    phantom_k: PhantomData<K>,
-    phantom_v: PhantomData<V>,
+    phantom: PhantomData<(K, V)>,
 }
+
+pub struct KeyExtractor<V: ElemType>(PhantomData<V>);
 
 // TODO: Use coders to allow arbitrary keys.
 impl<V: ElemType> Default for GroupByKey<String, V> {
     fn default() -> Self {
         Self {
-            payload: serialize::serialize_fn::<Box<dyn serialize::KeyExtractor>>(Box::new(
-                Box::new(serialize::TypedKeyExtractor::<V>::default()),
-            )),
-            phantom_k: PhantomData,
-            phantom_v: PhantomData,
+            payload: serialize::store_key_extractor(KeyExtractor::<V>(PhantomData)),
+            phantom: PhantomData,
         }
     }
 }
