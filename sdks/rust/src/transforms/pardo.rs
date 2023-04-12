@@ -19,6 +19,7 @@
 use std::marker::PhantomData;
 use std::sync::Arc;
 
+use crate::elem_types::ElemType;
 use crate::internals::pipeline::Pipeline;
 use crate::internals::pvalue::{PTransform, PValue};
 use crate::internals::serialize;
@@ -51,17 +52,28 @@ pub struct ParDo<T, O> {
 // TODO: Is the Sync + Send stuff needed?
 impl<T: 'static, O: 'static> ParDo<T, O> {
     // TODO: These should correspond to methods on PCollection<T> (but not on PValue).
+    /// Creates a ParDo from a function that maps a single input element to a single output element.
+    /// The function must not have any context. See [Understanding Closures in Rust](https://medium.com/swlh/understanding-closures-in-rust-21f286ed1759) for detail.
     pub fn from_map(func: fn(&T) -> O) -> Self {
-        Self::from_dyn_map(Box::new(func))
+        Self::from_map_with_context(Box::new(func))
     }
-    pub fn from_dyn_map(func: Box<dyn Fn(&T) -> O + Sync + Send>) -> Self {
-        Self::from_dyn_flat_map(Box::new(move |x: &T| -> Vec<O> { vec![func(x)] }))
+
+    /// Creates a ParDo from a function that maps a single input element to a single output element.
+    /// The function may have an immutable context. See [Understanding Closures in Rust](https://medium.com/swlh/understanding-closures-in-rust-21f286ed1759) for detail.
+    pub fn from_map_with_context(func: Box<dyn Fn(&T) -> O + Send + Sync>) -> Self {
+        Self::from_flatmap_with_context(Box::new(move |x: &T| -> Vec<O> { vec![func(x)] }))
     }
-    pub fn from_flat_map<I: IntoIterator<Item = O> + 'static>(func: fn(&T) -> I) -> Self {
-        Self::from_dyn_flat_map(Box::new(func))
+
+    /// Creates a ParDo from a function that maps a single input element to a collection of output elements.
+    /// The function must not have any context. See [Understanding Closures in Rust](https://medium.com/swlh/understanding-closures-in-rust-21f286ed1759) for detail.
+    pub fn from_flatmap<I: IntoIterator<Item = O> + 'static>(func: fn(&T) -> I) -> Self {
+        Self::from_flatmap_with_context(Box::new(func))
     }
-    pub fn from_dyn_flat_map<I: IntoIterator<Item = O> + 'static>(
-        func: Box<dyn Fn(&T) -> I + Sync + Send>,
+
+    /// Creates a ParDo from a function that maps a single input element to a collection of output elements.
+    /// The function may have an immutable context. See [Understanding Closures in Rust](https://medium.com/swlh/understanding-closures-in-rust-21f286ed1759) for detail.
+    pub fn from_flatmap_with_context<I: IntoIterator<Item = O> + 'static>(
+        func: Box<dyn Fn(&T) -> I + Send + Sync>,
     ) -> Self {
         Self {
             payload: serialize::serialize_fn::<serialize::GenericDoFn>(Box::new(
@@ -73,7 +85,7 @@ impl<T: 'static, O: 'static> ParDo<T, O> {
     }
 }
 
-impl<T: Clone + std::marker::Send, O: Clone + std::marker::Send> PTransform<T, O> for ParDo<T, O> {
+impl<T: ElemType, O: ElemType> PTransform<T, O> for ParDo<T, O> {
     fn expand_internal(
         &self,
         _input: &PValue<T>, // really a PCollection<T>

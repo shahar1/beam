@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-use std::any::Any;
-use std::sync::Arc;
-
 use super::impulse::Impulse;
 use super::pardo::ParDo;
-use crate::internals::pvalue::{PTransform, PValue};
+use crate::{
+    elem_types::ElemType,
+    internals::pvalue::{PTransform, PValue},
+};
 
 pub struct Create<T> {
     elements: Vec<T>,
@@ -37,17 +37,17 @@ impl<T: Clone> Create<T> {
 
 // Input type should be never(!)
 // https://github.com/rust-lang/rust/issues/35121
-pub type Never = bool;
+pub type Never = ();
 
-impl<T: Any + Clone + Sync + Send + std::fmt::Debug> PTransform<Never, T> for Create<T> {
-    fn expand(&self, input: &PValue<Never>) -> PValue<T> {
+impl<E: ElemType> PTransform<Never, E> for Create<E> {
+    fn expand(&self, input: &PValue<Never>) -> PValue<E> {
         let elements = self.elements.to_vec();
         // TODO: Consider reshuffling.
         input
             .clone()
             .apply(Impulse::new())
-            .apply(ParDo::from_dyn_flat_map(Box::new(move |_x| -> Vec<T> {
-                elements.to_vec()
-            })))
+            .apply(ParDo::from_flatmap_with_context(Box::new(
+                move |_x| -> Vec<E> { elements.to_vec() },
+            )))
     }
 }
