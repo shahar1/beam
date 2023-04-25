@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+#![forbid(unsafe_code)]
+
 pub mod coders;
 pub mod elem_types;
 pub mod internals;
