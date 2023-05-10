@@ -26,7 +26,7 @@ use std::fmt;
 use std::io::{self, Read, Write};
 
 /// This is the base interface for coders, which are responsible in Apache Beam to encode and decode
-///  elements of a PCollection.
+/// elements of a PCollection.
 ///
 /// # Example
 ///

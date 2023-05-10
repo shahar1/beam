@@ -100,7 +100,7 @@ where
         VARINT_CODER_URN
     }
 
-    // TODO: try to adapt CoderI such that the context arg is not mandatory
+    // TODO: try to adapt Coder such that the context arg is not mandatory
     fn encode(
         &self,
         element: N,

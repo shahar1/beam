@@ -11,7 +11,7 @@ use crate::{
     elem_types::{kv::KV, ElemType},
 };
 
-/// Resolve a coder (implementing `CoderI) from a coder URN and an `ElemType`.
+/// Resolve a coder (implementing `Coder`) from a coder URN and an `ElemType`.
 ///
 /// You may use original coders by implementing the `CoderResolver` trait.
 pub trait CoderResolver {
