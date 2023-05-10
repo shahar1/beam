@@ -16,90 +16,59 @@
  * limitations under the License.
  */
 
+pub mod coder_resolver;
 pub mod required_coders;
 pub mod rust_coders;
 pub mod standard_coders;
 pub mod urns;
 
-use std::collections::HashMap;
+use std::fmt;
 use std::io::{self, Read, Write};
-
-use crate::coders::urns::*;
-
-pub struct CoderRegistry {
-    internal_registry: HashMap<&'static str, CoderTypeDiscriminants>,
-}
-
-impl CoderRegistry {
-    pub fn new() -> Self {
-        let internal_registry: HashMap<&'static str, CoderTypeDiscriminants> = HashMap::from([
-            (BYTES_CODER_URN, CoderTypeDiscriminants::Bytes),
-            (
-                GENERAL_OBJECT_CODER_URN,
-                CoderTypeDiscriminants::GeneralObject,
-            ),
-            (KV_CODER_URN, CoderTypeDiscriminants::KV),
-            (ITERABLE_CODER_URN, CoderTypeDiscriminants::Iterable),
-            (STR_UTF8_CODER_URN, CoderTypeDiscriminants::StrUtf8),
-            (VARINT_CODER_URN, CoderTypeDiscriminants::VarIntCoder),
-        ]);
-
-        Self { internal_registry }
-    }
-
-    pub fn get_coder_type(&self, urn: &str) -> &CoderTypeDiscriminants {
-        let coder_type = self
-            .internal_registry
-            .get(urn)
-            .unwrap_or_else(|| panic!("No coder type registered for URN {urn}"));
-
-        coder_type
-    }
-
-    pub fn register(&mut self, urn: &'static str, coder_type: CoderTypeDiscriminants) {
-        self.internal_registry.insert(urn, coder_type);
-    }
-}
-
-impl Default for CoderRegistry {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[derive(Clone, EnumDiscriminants)]
-pub enum CoderType {
-    // ******* Required coders *******
-    Bytes,
-    Iterable,
-    KV,
-
-    // ******* Rust coders *******
-    GeneralObject,
-
-    // ******* Standard coders *******
-    StrUtf8,
-    VarIntCoder,
-}
-
-// TODO: create and use separate AnyCoder trait instead of Any
-// ...
 
 /// This is the base interface for coders, which are responsible in Apache Beam to encode and decode
 ///  elements of a PCollection.
-pub trait CoderI<T> {
-    fn get_coder_type(&self) -> &CoderTypeDiscriminants;
+///
+/// # Example
+///
+/// ```
+/// use apache_beam::coders::{CoderI, standard_coders::StrUtf8Coder, Context};
+/// use bytes::buf::BufMut;
+/// use std::io::Write;
+///
+/// let coder = StrUtf8Coder::default();
+///
+/// let mut w1 = vec![].writer();
+/// coder
+///     .encode("my string".to_string(), &mut w1, &Context::WholeStream)
+///     .unwrap();
+/// w1.flush().unwrap();
+/// println!("{:?}", w1.into_inner()); // <= Prints the pure byte-encoding of the string
+///
+/// let mut w2 = vec![].writer();
+/// coder
+///     .encode("my string".to_string(), &mut w2, &Context::NeedsDelimiters)
+///     .unwrap();
+/// w2.flush().unwrap();
+/// println!("{:?}", w2.into_inner()); // <= Prints a length-prefix string of bytes
+/// ```
+pub trait CoderI: fmt::Debug + Default {
+    /// The type of the elements to be encoded/decoded.
+    type E;
+
+    fn get_coder_urn() -> &'static str
+    where
+        Self: Sized;
 
     /// Encode an element into a stream of bytes
     fn encode(
         &self,
-        element: T,
+        element: Self::E,
         writer: &mut dyn Write,
         context: &Context,
     ) -> Result<usize, io::Error>;
 
     /// Decode an element from an incoming stream of bytes
-    fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<T, io::Error>;
+    fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<Self::E, io::Error>;
 }
 
 /// The context for encoding a PCollection element.
