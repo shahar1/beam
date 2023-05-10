@@ -61,6 +61,10 @@ impl Coder for GeneralObjectCoder<String> {
 
         StrUtf8Coder::default().decode(reader, context)
     }
+
+    fn to_proto(&self) -> crate::proto::beam_api::pipeline::Coder {
+        unimplemented!()
+    }
 }
 
 impl<T> Default for GeneralObjectCoder<T> {

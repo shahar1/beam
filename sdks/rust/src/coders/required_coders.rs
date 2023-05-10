@@ -39,6 +39,7 @@ use crate::coders::urns::*;
 use crate::coders::{Coder, Context};
 use crate::elem_types::kv::KV;
 use crate::elem_types::ElemType;
+use crate::proto::beam_api::pipeline as proto_pipeline;
 
 /// Coder for byte-array data types
 #[derive(Clone, Default)]
@@ -118,6 +119,16 @@ impl Coder for BytesCoder {
             }
         }
     }
+
+    fn to_proto(&self) -> proto_pipeline::Coder {
+        proto_pipeline::Coder {
+            spec: Some(proto_pipeline::FunctionSpec {
+                urn: String::from(BYTES_CODER_URN),
+                payload: Vec::with_capacity(0),
+            }),
+            component_coder_ids: Vec::with_capacity(0),
+        }
+    }
 }
 
 impl fmt::Debug for BytesCoder {
@@ -159,6 +170,10 @@ where
 
     /// Decode the input byte stream into a `KV` element
     fn decode(&self, _reader: &mut dyn Read, _context: &Context) -> Result<KV<K, V>, io::Error> {
+        todo!()
+    }
+
+    fn to_proto(&self) -> proto_pipeline::Coder {
         todo!()
     }
 }
@@ -221,6 +236,10 @@ where
 
     /// Decode the input byte stream into a `Iterable` element
     fn decode(&self, _reader: &mut dyn Read, _context: &Context) -> Result<ItE, io::Error> {
+        todo!()
+    }
+
+    fn to_proto(&self) -> proto_pipeline::Coder {
         todo!()
     }
 }

@@ -22,6 +22,7 @@ pub mod rust_coders;
 pub mod standard_coders;
 pub mod urns;
 
+use crate::proto::beam_api::pipeline as proto_pipeline;
 use std::fmt;
 use std::io::{self, Read, Write};
 
@@ -80,6 +81,11 @@ pub trait Coder: fmt::Debug + Default {
     /// - `reader` - a reader that interfaces the coder with the input byte stream
     /// - `context` - the context within which the element should be encoded
     fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<Self::E, io::Error>;
+
+    /// Convert this coder into its protocol buffer representation for the Runner API.
+    /// A coder in protobuf format can be shared with other components such as Beam runners,
+    /// SDK workers; and reconstructed into its runtime representation if necessary.
+    fn to_proto(&self) -> proto_pipeline::Coder;
 }
 
 /// The context for encoding a PCollection element.
