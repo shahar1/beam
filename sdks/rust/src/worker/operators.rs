@@ -411,12 +411,14 @@ impl OperatorI for RecordingOperator {
     }
 
     fn process(&self, value: DynamicWindowedValue) {
-        let mut log = RECORDING_OPERATOR_LOGS.lock().unwrap();
-        log.push(format!(
-            "{}.process({:?})",
-            self.transform_id,
-            value.downcast_ref::<String>().value
-        ));
+        unsafe {
+            let mut log = RECORDING_OPERATOR_LOGS.lock().unwrap();
+            log.push(format!(
+                "{}.process({:?})",
+                self.transform_id,
+                value.downcast_ref::<String>().value
+            ));
+        }
 
         for rec in self.receivers.iter() {
             rec.receive(value);
