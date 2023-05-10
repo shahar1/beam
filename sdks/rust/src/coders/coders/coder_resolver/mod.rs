@@ -6,7 +6,7 @@ use crate::{
     coders::{
         required_coders::{BytesCoder, Iterable, IterableCoder, KVCoder},
         standard_coders::{StrUtf8Coder, VarIntCoder},
-        CoderI,
+        Coder,
     },
     elem_types::{kv::KV, ElemType},
 };
@@ -16,7 +16,7 @@ use crate::{
 /// You may use original coders by implementing the `CoderResolver` trait.
 pub trait CoderResolver {
     type E: ElemType;
-    type C: CoderI<E = Self::E>;
+    type C: Coder<E = Self::E>;
 
     /// Resolve a coder from a coder URN.
     ///

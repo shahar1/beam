@@ -31,7 +31,7 @@ use std::io::{self, Read, Write};
 /// # Example
 ///
 /// ```
-/// use apache_beam::coders::{CoderI, standard_coders::StrUtf8Coder, Context};
+/// use apache_beam::coders::{Coder, standard_coders::StrUtf8Coder, Context};
 /// use bytes::buf::BufMut;
 /// use std::io::Write;
 ///
@@ -51,7 +51,7 @@ use std::io::{self, Read, Write};
 /// w2.flush().unwrap();
 /// println!("{:?}", w2.into_inner()); // <= Prints a length-prefix string of bytes
 /// ```
-pub trait CoderI: fmt::Debug + Default {
+pub trait Coder: fmt::Debug + Default {
     /// The type of the elements to be encoded/decoded.
     type E;
 

@@ -36,7 +36,7 @@ use std::marker::PhantomData;
 use integer_encoding::{VarIntReader, VarIntWriter};
 
 use crate::coders::urns::*;
-use crate::coders::{CoderI, Context};
+use crate::coders::{Coder, Context};
 use crate::elem_types::kv::KV;
 use crate::elem_types::ElemType;
 
@@ -44,7 +44,7 @@ use crate::elem_types::ElemType;
 #[derive(Clone, Default)]
 pub struct BytesCoder {}
 
-impl CoderI for BytesCoder {
+impl Coder for BytesCoder {
     type E = Vec<u8>;
 
     fn get_coder_urn() -> &'static str {
@@ -134,7 +134,7 @@ pub struct KVCoder<KV> {
     phantom: PhantomData<KV>,
 }
 
-impl<K, V> CoderI for KVCoder<KV<K, V>>
+impl<K, V> Coder for KVCoder<KV<K, V>>
 where
     K: fmt::Debug + Send + 'static,
     V: fmt::Debug + Send + 'static,
@@ -192,7 +192,7 @@ where
     phantom: PhantomData<E>,
 }
 
-impl<ItE> CoderI for IterableCoder<ItE>
+impl<ItE> Coder for IterableCoder<ItE>
 where
     ItE: ElemType + fmt::Debug,
 {

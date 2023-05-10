@@ -32,15 +32,15 @@ use std::io::{self, ErrorKind, Read, Write};
 
 use integer_encoding::{VarInt, VarIntReader, VarIntWriter};
 
-use crate::coders::coders::{CoderI, Context};
 use crate::coders::required_coders::BytesCoder;
 use crate::coders::urns::*;
+use crate::coders::{Coder, Context};
 
 #[derive(Clone, Default)]
 pub struct StrUtf8Coder {}
 
 // TODO: accept string references as well?
-impl CoderI for StrUtf8Coder {
+impl Coder for StrUtf8Coder {
     type E = String;
 
     fn get_coder_urn() -> &'static str {
@@ -76,7 +76,7 @@ impl CoderI for StrUtf8Coder {
 }
 
 impl fmt::Debug for StrUtf8Coder {
-    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("StrUtf8Coder")
             .field("urn", &Self::get_coder_urn())
             .finish()
@@ -90,7 +90,7 @@ pub struct VarIntCoder<N: fmt::Debug + VarInt> {
 
 // TODO: passes tests for -1 if it gets casted to u64 and encoded as such.
 // Revisit this later
-impl<N> CoderI for VarIntCoder<N>
+impl<N> Coder for VarIntCoder<N>
 where
     N: fmt::Debug + VarInt,
 {
@@ -124,7 +124,7 @@ impl<N: fmt::Debug + VarInt> Default for VarIntCoder<N> {
 }
 
 impl<N: fmt::Debug + VarInt> fmt::Debug for VarIntCoder<N> {
-    fn fmt<'a>(&'a self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("VarIntCoder")
             .field("urn", &Self::get_coder_urn())
             .finish()

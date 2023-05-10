@@ -27,7 +27,7 @@ mod tests {
             required_coders::*,
             rust_coders::*,
             standard_coders::*,
-            CoderI, Context,
+            Coder, Context,
         },
         elem_types::{kv::KV, ElemType},
     };
@@ -186,7 +186,7 @@ mod tests {
 
     fn _run_unnested<'a, C>(coder: &C, _nested: bool, spec: &Value)
     where
-        C: CoderI + CoderTestUtils + CoderTestUtils<InternalCoderType = C::E> + 'a,
+        C: Coder + CoderTestUtils + CoderTestUtils<InternalCoderType = C::E> + 'a,
         C::E: Clone + std::fmt::Debug + PartialEq,
     {
         let examples = spec.get("examples").unwrap().as_mapping().unwrap();
@@ -199,7 +199,7 @@ mod tests {
 
     fn run_case<'a, C>(coder: &C, expected_encoded: &Value, original: &Value)
     where
-        C: CoderI + CoderTestUtils + CoderTestUtils<InternalCoderType = C::E> + 'a,
+        C: Coder + CoderTestUtils + CoderTestUtils<InternalCoderType = C::E> + 'a,
         C::E: Clone + std::fmt::Debug + PartialEq,
     {
         // The expected encodings in standard_coders.yaml need to be read as UTF-16
