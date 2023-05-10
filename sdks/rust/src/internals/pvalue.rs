@@ -69,14 +69,6 @@ where
         )
     }
 
-    pub fn register_pipeline_coder_proto(&self, coder_proto: proto_pipeline::Coder) -> String {
-        self.pipeline.register_coder_proto(coder_proto)
-    }
-
-    pub fn register_pipeline_proto_transform(&self, transform: proto_pipeline::PTransform) {
-        self.pipeline.register_proto_transform(transform)
-    }
-
     pub fn get_pipeline_arc(&self) -> Arc<Pipeline> {
         self.pipeline.clone()
     }
