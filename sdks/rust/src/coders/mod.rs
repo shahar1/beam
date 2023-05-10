@@ -60,6 +60,12 @@ pub trait Coder: fmt::Debug + Default {
         Self: Sized;
 
     /// Encode an element into a stream of bytes
+    ///
+    /// # Arguments
+    ///
+    /// - `element` - an element within a PCollection
+    /// - `writer` - a writer that interfaces the coder with the output byte stream
+    /// - `context` - the context within which the element should be encoded
     fn encode(
         &self,
         element: Self::E,
@@ -68,6 +74,11 @@ pub trait Coder: fmt::Debug + Default {
     ) -> Result<usize, io::Error>;
 
     /// Decode an element from an incoming stream of bytes
+    ///
+    /// # Arguments
+    ///
+    /// - `reader` - a reader that interfaces the coder with the input byte stream
+    /// - `context` - the context within which the element should be encoded
     fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<Self::E, io::Error>;
 }
 
