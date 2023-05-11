@@ -23,7 +23,7 @@ use super::impulse::Impulse;
 use super::pardo::ParDo;
 use crate::{
     elem_types::{kv::KV, ElemType},
-    internals::pvalue::{PTransform, PValue},
+    internals::pvalue::{PTransform, PType, PValue},
 };
 
 pub struct AssertEqualUnordered<T> {
@@ -41,16 +41,18 @@ impl<T: ElemType + Ord> AssertEqualUnordered<T> {
 
 impl<T: ElemType + PartialEq + Ord + fmt::Debug> PTransform<T, ()> for AssertEqualUnordered<T> {
     fn expand(&self, input: &PValue<T>) -> PValue<()> {
-        // If input is empty, we still need an element to ensure the
-        // assertion happens.
-        let singleton = PValue::new_root(input.get_pipeline_arc())
+        // If input is empty, we still need an element to ensure the assertion happens.
+        let dummy = dummy_root(input)
             .apply(Impulse::new())
-            .apply(ParDo::from_map(|_x| -> Option<T> { None }));
+            .apply(ParDo::from_map(|_x| -> Option<T> { None })); // None values are filtered out later.
+
         let actual = input
             .clone()
             .apply(ParDo::from_map(|x: &T| -> Option<T> { Some(x.clone()) }));
+
         let expected = self.expected_sorted.clone();
-        PValue::new_array(&[singleton, actual])
+
+        PValue::new_array(&[dummy, actual])
             .apply(ParDo::from_map(|x: &Option<T>| -> KV<String, Option<T>> {
                 KV::new("".to_string(), x.clone())
             }))
@@ -59,7 +61,7 @@ impl<T: ElemType + PartialEq + Ord + fmt::Debug> PTransform<T, ()> for AssertEqu
                 let mut actual: Vec<T> = kvs
                     .as_values()
                     .iter()
-                    .filter(|x| -> bool { x.is_some() })
+                    .filter(|x| -> bool { x.is_some() }) // filter-out the `dummy`
                     .map(|x| -> T { x.clone().unwrap() })
                     .collect();
                 actual.sort();
@@ -71,4 +73,9 @@ impl<T: ElemType + PartialEq + Ord + fmt::Debug> PTransform<T, ()> for AssertEqu
                 );
             }))
     }
+}
+
+fn dummy_root<T: ElemType + PartialEq + Ord + fmt::Debug>(input: &PValue<T>) -> PValue<()> {
+    let pipeline = input.get_pipeline_arc();
+    PValue::new(PType::Root, pipeline, crate::internals::utils::get_bad_id())
 }

@@ -22,7 +22,6 @@ use std::{pin::Pin, sync::Arc};
 use async_trait::async_trait;
 
 use crate::elem_types::ElemType;
-use crate::internals::pipeline::Pipeline;
 use crate::internals::pvalue::PValue;
 use crate::proto::beam_api::pipeline as proto_pipeline;
 
@@ -57,11 +56,12 @@ pub trait RunnerI {
         Out: ElemType,
         F: FnOnce(PValue<In>) -> PValue<Out> + Send,
     {
-        let p = Arc::new(Pipeline::default());
-        let root = PValue::new_root(p.clone());
+        let root = PValue::root();
+        let inner_pipeline = root.get_pipeline_arc();
 
-        (pipeline)(root);
-        self.run_pipeline(p.get_proto()).await;
+        (pipeline)(root); // pipeline construction, affecting root's inner pipeline object
+
+        self.run_pipeline(inner_pipeline.get_proto()).await;
     }
 
     async fn run_pipeline(&self, pipeline: Arc<std::sync::Mutex<proto_pipeline::Pipeline>>);

@@ -43,7 +43,7 @@ impl<E> PValue<E>
 where
     E: ElemType,
 {
-    pub fn new(ptype: PType, pipeline: Arc<Pipeline>, id: String) -> Self {
+    pub(crate) fn new(ptype: PType, pipeline: Arc<Pipeline>, id: String) -> Self {
         Self {
             id,
             ptype,
@@ -53,7 +53,8 @@ where
         }
     }
 
-    pub fn new_root(pipeline: Arc<Pipeline>) -> Self {
+    pub fn root() -> Self {
+        let pipeline = Arc::new(Pipeline::default());
         PValue::new(PType::Root, pipeline, crate::internals::utils::get_bad_id())
     }
 
@@ -69,7 +70,7 @@ where
         )
     }
 
-    pub fn get_pipeline_arc(&self) -> Arc<Pipeline> {
+    pub(crate) fn get_pipeline_arc(&self) -> Arc<Pipeline> {
         self.pipeline.clone()
     }
 

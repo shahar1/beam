@@ -18,10 +18,7 @@
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
     use apache_beam::elem_types::kv::KV;
-    use apache_beam::internals::pipeline::Pipeline;
     use apache_beam::internals::pvalue::{PType, PValue};
     use apache_beam::runners::direct_runner::DirectRunner;
     use apache_beam::runners::runner::RunnerI;
@@ -106,8 +103,7 @@ mod tests {
 
     #[tokio::test]
     async fn run_impulse_expansion() {
-        let p = Arc::new(Pipeline::default());
-        let root = PValue::new_root(p);
+        let root = PValue::root();
 
         let pcoll = root.apply(Impulse::new());
 
