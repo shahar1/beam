@@ -26,6 +26,7 @@ use crate::internals::pvalue::{flatten_pvalue, PTransform, PValue};
 
 const _CODER_ID_PREFIX: &str = "coder_";
 
+/// A part of a `Pipeline` to help construct / look up it.
 pub struct PipelineContext {
     component_prefix: String,
     counter: Arc<Mutex<usize>>,
@@ -56,6 +57,10 @@ impl PipelineContext {
     }
 }
 
+/// Corresponds to the `Pipeline` in Runner API's proto.
+/// 
+/// The pipeline is instantiated on `Runner::run()`, and used by a (remote or direct) runner.
+/// 
 // TODO: move coders to PipelineContext
 pub struct Pipeline {
     context: PipelineContext,
