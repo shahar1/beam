@@ -411,7 +411,7 @@ impl OperatorI for RecordingOperator {
     }
 
     fn process(&self, value: DynamicWindowedValue) {
-        unsafe {
+        {
             let mut log = RECORDING_OPERATOR_LOGS.lock().unwrap();
             log.push(format!(
                 "{}.process({:?})",

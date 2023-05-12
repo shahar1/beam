@@ -16,9 +16,8 @@
  * limitations under the License.
  */
 
-#[macro_use]
+#[forbid(unsafe_code)]
 pub mod coders;
-
 pub mod elem_types;
 pub mod internals;
 pub mod proto;
