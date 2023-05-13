@@ -97,6 +97,10 @@ pub trait Coder: fmt::Debug + Default {
             component_coder_ids,
         }
     }
+
+    fn from_proto(coder_proto: &proto_pipeline::Coder) -> Box<Self> {
+        todo!("call CoderUrnRegistry::lookup(Self::get_coder_urn())")
+    }
 }
 
 /// The context for encoding a PCollection element.
