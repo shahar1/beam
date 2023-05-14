@@ -56,9 +56,7 @@ pub trait Coder: fmt::Debug + Default {
     /// The type of the elements to be encoded/decoded.
     type E;
 
-    fn get_coder_urn() -> &'static str
-    where
-        Self: Sized;
+    const URN: &'static str;
 
     /// Encode an element into a stream of bytes
     ///

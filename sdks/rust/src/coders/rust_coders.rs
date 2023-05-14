@@ -31,9 +31,7 @@ pub struct GeneralObjectCoder<T> {
 impl Coder for GeneralObjectCoder<String> {
     type E = String;
 
-    fn get_coder_urn() -> &'static str {
-        GENERAL_OBJECT_CODER_URN
-    }
+    const URN: &'static str = GENERAL_OBJECT_CODER_URN;
 
     fn encode(
         &self,

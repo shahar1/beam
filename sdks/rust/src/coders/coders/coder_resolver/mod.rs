@@ -24,7 +24,7 @@ pub trait CoderResolver {
     ///
     /// `Some(C)` if the coder was resolved, `None` otherwise.
     fn resolve(coder_urn: &str) -> Option<Self::C> {
-        (coder_urn == Self::C::get_coder_urn()).then_some(Self::C::default())
+        (coder_urn == Self::C::URN).then_some(Self::C::default())
     }
 }
 

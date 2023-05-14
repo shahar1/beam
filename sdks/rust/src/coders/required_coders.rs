@@ -48,9 +48,7 @@ pub struct BytesCoder {}
 impl Coder for BytesCoder {
     type E = Vec<u8>;
 
-    fn get_coder_urn() -> &'static str {
-        BYTES_CODER_URN
-    }
+    const URN: &'static str = BYTES_CODER_URN;
 
     /// Encode the input element (a byte-string) into the output byte stream from `writer`.
     /// If context is `NeedsDelimiters`, the byte string is encoded prefixed with a
@@ -134,7 +132,7 @@ impl Coder for BytesCoder {
 impl fmt::Debug for BytesCoder {
     fn fmt(&self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("BytesCoder")
-            .field("urn", &Self::get_coder_urn())
+            .field("urn", &Self::URN)
             .finish()
     }
 }
@@ -152,9 +150,7 @@ where
 {
     type E = KV<K, V>;
 
-    fn get_coder_urn() -> &'static str {
-        KV_CODER_URN
-    }
+    const URN: &'static str = KV_CODER_URN;
 
     /// Encode the input element (a key-value pair) into a byte output stream. They key and value are encoded one after the
     /// other (first key, then value). The key is encoded with `Context::NeedsDelimiters`, while the value is encoded with
@@ -213,9 +209,7 @@ where
 {
     type E = ItE;
 
-    fn get_coder_urn() -> &'static str {
-        ITERABLE_CODER_URN
-    }
+    const URN: &'static str = ITERABLE_CODER_URN;
 
     /// Encode the input iterable into a byte output stream. Elements can be encoded in two different ways:
     ///

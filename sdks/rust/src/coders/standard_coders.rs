@@ -43,9 +43,7 @@ pub struct StrUtf8Coder {}
 impl Coder for StrUtf8Coder {
     type E = String;
 
-    fn get_coder_urn() -> &'static str {
-        STR_UTF8_CODER_URN
-    }
+    const URN: &'static str = STR_UTF8_CODER_URN;
 
     fn encode(
         &self,
@@ -82,7 +80,7 @@ impl Coder for StrUtf8Coder {
 impl fmt::Debug for StrUtf8Coder {
     fn fmt(&self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("StrUtf8Coder")
-            .field("urn", &Self::get_coder_urn())
+            .field("urn", &Self::URN)
             .finish()
     }
 }
@@ -100,9 +98,7 @@ where
 {
     type E = N;
 
-    fn get_coder_urn() -> &'static str {
-        VARINT_CODER_URN
-    }
+    const URN: &'static str = VARINT_CODER_URN;
 
     // TODO: try to adapt Coder such that the context arg is not mandatory
     fn encode(
@@ -134,7 +130,7 @@ impl<N: fmt::Debug + VarInt> Default for VarIntCoder<N> {
 impl<N: fmt::Debug + VarInt> fmt::Debug for VarIntCoder<N> {
     fn fmt(&self, o: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         o.debug_struct("VarIntCoder")
-            .field("urn", &Self::get_coder_urn())
+            .field("urn", &Self::URN)
             .finish()
     }
 }
