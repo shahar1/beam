@@ -27,17 +27,6 @@ use crate::proto::beam_api::pipeline as proto_pipeline;
 use std::fmt;
 use std::io::{self, Read, Write};
 
-// TODO move
-pub trait AsAny {
-    fn as_any(&self) -> &dyn std::any::Any;
-}
-
-impl<E: ElemType> AsAny for E {
-    fn as_any(&self) -> &dyn std::any::Any {
-        self as &dyn std::any::Any
-    }
-}
-
 /// This is the base interface for coders, which are responsible in Apache Beam to encode and decode
 /// elements of a PCollection.
 ///

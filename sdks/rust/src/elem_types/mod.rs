@@ -1,11 +1,21 @@
 pub mod kv;
 
-use std::fmt;
+use std::{any::Any, fmt};
 
-use crate::{
-    coders::{required_coders::Iterable, AsAny},
-    elem_types::kv::KV,
-};
+use crate::{coders::required_coders::Iterable, elem_types::kv::KV};
+
+/// `&dyn ElemType` is often downcasted.
+///
+/// `AsAny` is a utility trait to make to convert `ElemType` into `Any`, in order to use `Any::downcast_ref()`.
+pub trait AsAny {
+    fn as_any(&self) -> &dyn Any;
+}
+
+impl<E: ElemType> AsAny for E {
+    fn as_any(&self) -> &dyn Any {
+        self as &dyn Any
+    }
+}
 
 /// Element types used in Beam pipelines (including PTransforms, PCollections, Coders, etc.)
 pub trait ElemType: AsAny + Send + Sync + 'static {}
