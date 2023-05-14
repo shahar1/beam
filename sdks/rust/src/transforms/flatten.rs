@@ -33,13 +33,17 @@ impl Flatten {
 }
 
 // TODO: The type signature should indicate only PCollection arrays are accepted.
-impl<E: ElemType> PTransform<E, E> for Flatten {
+impl<In, Out> PTransform<In, Out> for Flatten
+where
+    In: ElemType,
+    Out: ElemType + Clone,
+{
     fn expand_internal(
         &self,
-        _input: &PValue<E>,
+        _input: &PValue<In>,
         pipeline: Arc<Pipeline>,
         transform_proto: &mut proto_pipeline::PTransform,
-    ) -> PValue<E> {
+    ) -> PValue<Out> {
         let spec = proto_pipeline::FunctionSpec {
             urn: FLATTEN_URN.to_string(),
             payload: crate::internals::urns::IMPULSE_BUFFER.to_vec(), // Should be able to omit.

@@ -74,7 +74,7 @@ pub trait DynamicKeyExtractor: Sync + Send {
     fn recombine(&self, grouped_values: &DynamicGroupedValues, receivers: &[Arc<Receiver>]);
 }
 
-impl<V: ElemType> DynamicKeyExtractor for KeyExtractor<V> {
+impl<V: ElemType + Clone> DynamicKeyExtractor for KeyExtractor<V> {
     fn new_grouped_values(&self) -> DynamicGroupedValues {
         DynamicGroupedValues::new::<V>()
     }

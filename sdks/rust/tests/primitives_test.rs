@@ -92,7 +92,7 @@ mod tests {
     async fn run_flatten() {
         DirectRunner::new()
             .run(|root| {
-                let first = root.clone().apply(Create::new(vec![1, 2, 3]));
+                let first = root.apply(Create::new(vec![1, 2, 3]));
                 let second = root.apply(Create::new(vec![100, 200]));
                 PValue::new_array(&[first, second])
                     .apply(Flatten::new())

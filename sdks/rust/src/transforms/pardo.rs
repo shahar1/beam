@@ -85,7 +85,11 @@ impl<In: ElemType, Out: ElemType> ParDo<In, Out> {
     }
 }
 
-impl<In: ElemType, Out: ElemType> PTransform<In, Out> for ParDo<In, Out> {
+impl<In, Out> PTransform<In, Out> for ParDo<In, Out>
+where
+    In: ElemType,
+    Out: ElemType + Clone,
+{
     fn expand_internal(
         &self,
         _input: &PValue<In>, // really a PCollection<T>

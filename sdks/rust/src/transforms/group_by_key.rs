@@ -36,7 +36,7 @@ pub struct GroupByKey<K, V> {
 pub struct KeyExtractor<V: ElemType>(PhantomData<V>);
 
 // TODO: Use coders to allow arbitrary keys.
-impl<V: ElemType> Default for GroupByKey<String, V> {
+impl<V: ElemType + Clone> Default for GroupByKey<String, V> {
     fn default() -> Self {
         Self {
             payload: serialize::store_key_extractor(KeyExtractor::<V>(PhantomData)),
@@ -47,7 +47,9 @@ impl<V: ElemType> Default for GroupByKey<String, V> {
 
 // TODO: The return value should be something like dyn IntoIterator<Item = V, IntoIter = Box<dyn Iterator<Item = V>>> + Clone + Sync + Send + 'static,
 // to avoid requiring it to be in memory.
-impl<K: ElemType, V: ElemType> PTransform<KV<K, V>, KV<K, Vec<V>>> for GroupByKey<K, V> {
+impl<K: ElemType + Clone, V: ElemType + Clone> PTransform<KV<K, V>, KV<K, Vec<V>>>
+    for GroupByKey<K, V>
+{
     fn expand_internal(
         &self,
         _input: &PValue<KV<K, V>>, // really a PCollection

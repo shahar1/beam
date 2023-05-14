@@ -31,38 +31,38 @@ pub struct AssertEqualUnordered<T> {
     expected_sorted: Vec<T>,
 }
 
-impl<T: ElemType + Ord> AssertEqualUnordered<T> {
-    pub fn new(expected_slice: &[T]) -> Self {
+impl<E: ElemType + Clone + Ord> AssertEqualUnordered<E> {
+    pub fn new(expected_slice: &[E]) -> Self {
         let mut expected_sorted = expected_slice.to_vec();
         expected_sorted.sort();
         Self { expected_sorted }
     }
 }
 
-impl<T: ElemType + PartialEq + Ord + fmt::Debug> PTransform<T, ()> for AssertEqualUnordered<T> {
-    fn expand(&self, input: &PValue<T>) -> PValue<()> {
+impl<E: ElemType + Clone + PartialEq + Ord + fmt::Debug> PTransform<E, ()>
+    for AssertEqualUnordered<E>
+{
+    fn expand(&self, input: &PValue<E>) -> PValue<()> {
         // If input is empty, we still need an element to ensure the assertion happens.
         let dummy = dummy_root(input)
             .apply(Impulse::new())
-            .apply(ParDo::from_map(|_x| -> Option<T> { None })); // None values are filtered out later.
+            .apply(ParDo::from_map(|_x| -> Option<E> { None })); // None values are filtered out later.
 
-        let actual = input
-            .clone()
-            .apply(ParDo::from_map(|x: &T| -> Option<T> { Some(x.clone()) }));
+        let actual = input.apply(ParDo::from_map(|x: &E| -> Option<E> { Some(x.clone()) }));
 
         let expected = self.expected_sorted.clone();
 
         PValue::new_array(&[dummy, actual])
-            .apply(ParDo::from_map(|x: &Option<T>| -> KV<String, Option<T>> {
+            .apply(ParDo::from_map(|x: &Option<E>| -> KV<String, Option<E>> {
                 KV::new("".to_string(), x.clone())
             }))
             .apply(GroupByKey::default())
-            .apply(ParDo::from_map(move |kvs: &KV<String, Vec<Option<T>>>| {
-                let mut actual: Vec<T> = kvs
+            .apply(ParDo::from_map(move |kvs: &KV<String, Vec<Option<E>>>| {
+                let mut actual: Vec<E> = kvs
                     .as_values()
                     .iter()
                     .filter(|x| -> bool { x.is_some() }) // filter-out the `dummy`
-                    .map(|x| -> T { x.clone().unwrap() })
+                    .map(|x| -> E { x.clone().unwrap() })
                     .collect();
                 actual.sort();
                 assert!(

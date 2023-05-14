@@ -37,12 +37,11 @@ impl<Out: ElemType> Create<Out> {
 // https://github.com/rust-lang/rust/issues/35121
 pub type Never = ();
 
-impl<Out: ElemType> PTransform<Never, Out> for Create<Out> {
+impl<Out: ElemType + Clone> PTransform<Never, Out> for Create<Out> {
     fn expand(&self, input: &PValue<Never>) -> PValue<Out> {
         let elements = self.elements.to_vec();
         // TODO: Consider reshuffling.
         input
-            .clone()
             .apply(Impulse::new())
             .apply(ParDo::from_flat_map(move |_x| -> Vec<Out> {
                 elements.to_vec()

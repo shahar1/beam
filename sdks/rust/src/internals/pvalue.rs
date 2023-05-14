@@ -27,7 +27,6 @@ use crate::internals::pipeline::Pipeline;
 
 // T should be never(!) for Root
 // https://github.com/rust-lang/rust/issues/35121
-#[derive(Clone)]
 pub struct PValue<E>
 where
     E: ElemType,
@@ -61,7 +60,7 @@ where
     pub fn new_array(pcolls: &[PValue<E>]) -> Self {
         PValue::new(
             PType::PValueArr,
-            pcolls[0].clone().pipeline,
+            pcolls[0].pipeline.clone(),
             pcolls
                 .iter()
                 .map(|pcoll| -> String { pcoll.id.clone() })
@@ -81,13 +80,13 @@ where
         self.id.clone()
     }
 
-    pub fn apply<F, Out>(self, transform: F) -> PValue<Out>
+    pub fn apply<F, Out>(&self, transform: F) -> PValue<Out>
     where
-        Out: ElemType,
+        Out: ElemType + Clone,
         F: PTransform<E, Out> + Send,
     {
         self.pipeline
-            .apply_transform(transform, &self, self.pipeline.clone())
+            .apply_transform(transform, self, self.pipeline.clone())
     }
 
     // pub fn map(&self, callable: impl Fn() -> PValue) -> PValue {
@@ -99,9 +98,9 @@ where
 ///
 /// The full set of PCollections reachable by this PValue will be returned,
 /// with keys corresponding roughly to the path taken to get there
-pub fn flatten_pvalue<T>(pvalue: PValue<T>, prefix: Option<String>) -> HashMap<String, String>
+pub fn flatten_pvalue<E>(pvalue: &PValue<E>, prefix: Option<String>) -> HashMap<String, String>
 where
-    T: ElemType,
+    E: ElemType,
 {
     let mut result: HashMap<String, String> = HashMap::new();
     match pvalue.ptype {
@@ -141,7 +140,7 @@ pub enum PType {
 pub trait PTransform<In, Out>
 where
     In: ElemType,
-    Out: ElemType,
+    Out: ElemType + Clone,
 {
     fn expand(&self, _input: &PValue<In>) -> PValue<Out>
     where

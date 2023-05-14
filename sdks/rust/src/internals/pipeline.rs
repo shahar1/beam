@@ -140,7 +140,7 @@ impl Pipeline {
     ) -> (String, proto_pipeline::PTransform)
     where
         In: ElemType,
-        Out: ElemType,
+        Out: ElemType + Clone,
         F: PTransform<In, Out> + Send,
     {
         let transform_id = self.context.create_unique_name("transform".to_string());
@@ -187,7 +187,7 @@ impl Pipeline {
             used_stage_names.insert(unique_name.clone());
         }
 
-        let flattened = flatten_pvalue(input.clone(), None);
+        let flattened = flatten_pvalue(input, None);
         let mut inputs: HashMap<String, String> = HashMap::new();
         for (name, id) in flattened {
             inputs.insert(name.clone(), id);
@@ -222,7 +222,7 @@ impl Pipeline {
     ) -> PValue<Out>
     where
         In: ElemType,
-        Out: ElemType,
+        Out: ElemType + Clone,
         F: PTransform<In, Out> + Send,
     {
         // TODO: Inline pre_apply and post_apply.
@@ -238,7 +238,7 @@ impl Pipeline {
 
         let result = transform.expand_internal(input, pipeline, &mut transform_proto);
 
-        for (name, id) in flatten_pvalue(result.clone(), None) {
+        for (name, id) in flatten_pvalue(&result, None) {
             // Causes test to hang...
             transform_proto.outputs.insert(name.clone(), id);
         }
@@ -284,7 +284,7 @@ impl Pipeline {
     ) -> PValue<Out>
     where
         In: ElemType,
-        Out: ElemType,
+        Out: ElemType + Clone,
         F: PTransform<In, Out> + Send,
     {
         result
