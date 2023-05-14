@@ -22,6 +22,8 @@ pub mod rust_coders;
 pub mod standard_coders;
 pub mod urns;
 
+mod register_coders;
+
 use once_cell::sync::OnceCell;
 
 use crate::elem_types::ElemType;
@@ -113,36 +115,6 @@ pub enum Context {
     /// Needs-delimiters encoding means that the encoding of data must be such that when decoding,
     /// the coder is able to stop decoding data at the end of the current element.
     NeedsDelimiters,
-}
-
-/// Must be called in outside of the main() function.
-///
-/// TODO example
-#[macro_export]
-macro_rules! register_coders {
-    ($($coder:ident),*) => {
-        fn encode_from_urn(urn: &str, elem: &dyn $crate::elem_types::ElemType, writer: &mut dyn std::io::Write, context: &$crate::coders::Context) -> Result<usize, std::io::Error> {
-            match urn {
-                $($coder::URN => $coder.encode(elem, writer, context),)*
-                _ => panic!("unknown urn"),
-            }
-        }
-
-        fn decode_from_urn(urn: &str, reader: &mut dyn std::io::Read, context: &$crate::coders::Context) -> Result<Box<dyn $crate::elem_types::ElemType>, std::io::Error> {
-            match urn {
-                $($coder::URN => $coder.decode(reader, context),)*
-                _ => panic!("unknown urn"),
-            }
-        }
-
-        #[ctor::ctor]
-        fn init_coders_from_urn() {
-            $crate::coders::CODERS_FROM_URN.set($crate::coders::CodersFromUrn {
-                enc: encode_from_urn,
-                dec: decode_from_urn,
-            }).unwrap();
-        }
-    }
 }
 
 type EncodeFromUrnFn = fn(
