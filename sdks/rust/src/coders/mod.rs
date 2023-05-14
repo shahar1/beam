@@ -29,6 +29,11 @@ use crate::proto::beam_api::pipeline as proto_pipeline;
 use std::fmt;
 use std::io::{self, Read, Write};
 
+/// For custom coders, register_coders!() macro implements this trait for you.
+pub trait CoderUrn {
+    const URN: &'static str;
+}
+
 /// This is the base interface for coders, which are responsible in Apache Beam to encode and decode
 /// elements of a PCollection.
 ///
@@ -91,9 +96,7 @@ use std::io::{self, Read, Write};
 ///
 /// 1. The SDK harness receives the serialized coder's URN and its ID from Fn API.
 /// 2. The SDK harness deserializes the coder's URN and creates an instance of the coder specified by the URN.
-pub trait Coder: fmt::Debug + Default {
-    const URN: &'static str;
-
+pub trait Coder: CoderUrn + fmt::Debug + Default {
     /// Encode an element into a stream of bytes
     ///
     /// # Arguments

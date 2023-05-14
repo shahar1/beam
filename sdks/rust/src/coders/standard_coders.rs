@@ -33,17 +33,19 @@ use std::io::{self, ErrorKind, Read, Write};
 use integer_encoding::{VarInt, VarIntReader, VarIntWriter};
 
 use crate::coders::required_coders::BytesCoder;
-use crate::coders::urns::*;
+use crate::coders::{urns::*, CoderUrn};
 use crate::coders::{Coder, Context};
 use crate::elem_types::ElemType;
 
 #[derive(Clone, Default)]
 pub struct StrUtf8Coder {}
 
+impl CoderUrn for StrUtf8Coder {
+    const URN: &'static str = STR_UTF8_CODER_URN;
+}
+
 // TODO: accept string references as well?
 impl Coder for StrUtf8Coder {
-    const URN: &'static str = STR_UTF8_CODER_URN;
-
     fn encode(
         &self,
         element: &dyn ElemType,
@@ -92,14 +94,19 @@ pub struct VarIntCoder<N: fmt::Debug + VarInt> {
     _var_int_type: std::marker::PhantomData<N>,
 }
 
+impl<N> CoderUrn for VarIntCoder<N>
+where
+    N: fmt::Debug + VarInt + ElemType,
+{
+    const URN: &'static str = VARINT_CODER_URN;
+}
+
 // TODO: passes tests for -1 if it gets casted to u64 and encoded as such.
 // Revisit this later
 impl<N> Coder for VarIntCoder<N>
 where
     N: fmt::Debug + VarInt + ElemType,
 {
-    const URN: &'static str = VARINT_CODER_URN;
-
     // TODO: try to adapt Coder such that the context arg is not mandatory
     fn encode(
         &self,

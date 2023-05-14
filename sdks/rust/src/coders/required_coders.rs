@@ -35,7 +35,7 @@ use std::marker::PhantomData;
 
 use integer_encoding::{VarIntReader, VarIntWriter};
 
-use crate::coders::urns::*;
+use crate::coders::{urns::*, CoderUrn};
 use crate::coders::{Coder, Context};
 use crate::elem_types::kv::KV;
 use crate::elem_types::ElemType;
@@ -44,9 +44,11 @@ use crate::elem_types::ElemType;
 #[derive(Clone, Default)]
 pub struct BytesCoder {}
 
-impl Coder for BytesCoder {
+impl CoderUrn for BytesCoder {
     const URN: &'static str = BYTES_CODER_URN;
+}
 
+impl Coder for BytesCoder {
     /// Encode the input element (a byte-string) into the output byte stream from `writer`.
     /// If context is `NeedsDelimiters`, the byte string is encoded prefixed with a
     /// varint representing its length.
@@ -136,13 +138,19 @@ pub struct KVCoder<KV> {
     phantom: PhantomData<KV>,
 }
 
-impl<K, V> Coder for KVCoder<KV<K, V>>
+impl<K, V> CoderUrn for KVCoder<KV<K, V>>
 where
     K: ElemType + Clone + fmt::Debug,
     V: ElemType + Clone + fmt::Debug,
 {
     const URN: &'static str = KV_CODER_URN;
+}
 
+impl<K, V> Coder for KVCoder<KV<K, V>>
+where
+    K: ElemType + Clone + fmt::Debug,
+    V: ElemType + Clone + fmt::Debug,
+{
     /// Encode the input element (a key-value pair) into a byte output stream. They key and value are encoded one after the
     /// other (first key, then value). The key is encoded with `Context::NeedsDelimiters`, while the value is encoded with
     /// the input context of the `KVCoder`.
@@ -194,12 +202,17 @@ where
     phantom: PhantomData<E>,
 }
 
-impl<ItE> Coder for IterableCoder<ItE>
+impl<ItE> CoderUrn for IterableCoder<ItE>
 where
     ItE: ElemType + fmt::Debug,
 {
     const URN: &'static str = ITERABLE_CODER_URN;
+}
 
+impl<ItE> Coder for IterableCoder<ItE>
+where
+    ItE: ElemType + fmt::Debug,
+{
     /// Encode the input iterable into a byte output stream. Elements can be encoded in two different ways:
     ///
     /// - If the length of the input iterable is known a-priori, then the length is encoded with a 32-bit

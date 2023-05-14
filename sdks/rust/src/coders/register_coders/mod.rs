@@ -1,15 +1,15 @@
 /// Must be called in outside of the main() function.
 ///
 /// # Example
-/// 
+///
 /// ```ignore
 /// struct MyCustomCoder1;
 /// impl Coder MyCustomCoder1 { /* ... */ }
-/// 
+///
 /// // ...
-/// 
+///
 /// register_coders!(MyCustomCoder1, MyCustomCoder2);
-/// 
+///
 /// fn main() {
 ///    // ...
 /// }
@@ -17,7 +17,15 @@
 #[macro_export]
 macro_rules! register_coders {
     ($($coder:ident),*) => {
+        $(
+            impl $crate::coders::CoderUrn for $coder {
+                const URN: &'static str = concat!("beam:coder:rustsdk:1.0:", stringify!($coder));
+            }
+        )*
+
         fn encode_from_urn(urn: &str, elem: &dyn $crate::elem_types::ElemType, writer: &mut dyn std::io::Write, context: &$crate::coders::Context) -> Result<usize, std::io::Error> {
+            use $crate::coders::CoderUrn;
+
             match urn {
                 $($coder::URN => $coder::default().encode(elem, writer, context),)*
                 _ => panic!("unknown urn: {}", urn),
@@ -25,6 +33,8 @@ macro_rules! register_coders {
         }
 
         fn decode_from_urn(urn: &str, reader: &mut dyn std::io::Read, context: &$crate::coders::Context) -> Result<Box<dyn $crate::elem_types::ElemType>, std::io::Error> {
+            use $crate::coders::CoderUrn;
+
             match urn {
                 $($coder::URN => $coder::default().decode(reader, context),)*
                 _ => panic!("unknown urn: {}", urn),

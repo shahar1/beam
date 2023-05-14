@@ -18,8 +18,6 @@ mod sdk_launcher {
     struct MyCoder;
 
     impl Coder for MyCoder {
-        const URN: &'static str = "beam:dofn:rustsdk:1.0:MyCoder"; // TODO auto-gen via #[derive(Coder)]
-
         fn encode(
             &self,
             element: &dyn ElemType,

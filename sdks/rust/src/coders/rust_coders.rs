@@ -22,6 +22,7 @@ use std::marker::PhantomData;
 use crate::coders::standard_coders::*;
 use crate::coders::urns::*;
 use crate::coders::Coder;
+use crate::coders::CoderUrn;
 use crate::elem_types::ElemType;
 
 #[derive(Eq, PartialEq)]
@@ -29,9 +30,11 @@ pub struct GeneralObjectCoder<T> {
     phantom: PhantomData<T>,
 }
 
-impl Coder for GeneralObjectCoder<String> {
+impl CoderUrn for GeneralObjectCoder<String> {
     const URN: &'static str = GENERAL_OBJECT_CODER_URN;
+}
 
+impl Coder for GeneralObjectCoder<String> {
     fn encode(
         &self,
         element: &dyn ElemType,
