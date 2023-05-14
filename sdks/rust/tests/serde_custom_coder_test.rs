@@ -63,9 +63,8 @@ mod sdk_harness {
     use std::io;
 
     use apache_beam::{
-        coders::{CodersFromUrn, Context},
-        elem_types::ElemType,
-        proto::beam_api::pipeline as proto_pipeline,
+        coders::Context, elem_types::ElemType, proto::beam_api::pipeline as proto_pipeline,
+        worker::CoderFromUrn,
     };
 
     fn receive_coder() -> proto_pipeline::Coder {
@@ -84,7 +83,7 @@ mod sdk_harness {
         let urn = &coder.spec.as_ref().unwrap().urn;
 
         let mut encoded_element = vec![];
-        CodersFromUrn::global()
+        CoderFromUrn::global()
             .encode_from_urn(urn, element, &mut encoded_element, &Context::WholeStream)
             .unwrap();
 
@@ -97,7 +96,7 @@ mod sdk_harness {
     ) -> Box<dyn ElemType> {
         let urn = &coder.spec.as_ref().unwrap().urn;
 
-        let decoded_element_dyn = CodersFromUrn::global()
+        let decoded_element_dyn = CoderFromUrn::global()
             .decode_from_urn(urn, elem_reader, &Context::WholeStream)
             .unwrap();
 

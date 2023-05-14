@@ -20,10 +20,24 @@ macro_rules! register_coders {
 
         #[ctor::ctor]
         fn init_coders_from_urn() {
-            $crate::coders::CODERS_FROM_URN.set($crate::coders::CodersFromUrn {
+            $crate::worker::CODER_FROM_URN.set($crate::worker::CoderFromUrn {
                 enc: encode_from_urn,
                 dec: decode_from_urn,
             }).unwrap();
         }
     }
 }
+
+pub(crate) type EncodeFromUrnFn = fn(
+    &str,
+    &dyn crate::elem_types::ElemType,
+    &mut dyn std::io::Write,
+    &crate::coders::Context,
+) -> Result<usize, std::io::Error>;
+
+pub(crate) type DecodeFromUrnFn =
+    fn(
+        &str,
+        &mut dyn std::io::Read,
+        &crate::coders::Context,
+    ) -> Result<Box<dyn crate::elem_types::ElemType>, std::io::Error>;

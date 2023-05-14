@@ -19,6 +19,9 @@
 mod external_worker_service;
 pub mod operators;
 
+mod coder_from_urn;
+pub use coder_from_urn::{CoderFromUrn, CODER_FROM_URN};
+
 pub use external_worker_service::ExternalWorkerPool;
 pub use operators::Receiver;
 

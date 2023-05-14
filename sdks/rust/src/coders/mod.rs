@@ -23,8 +23,7 @@ pub mod standard_coders;
 pub mod urns;
 
 mod register_coders;
-
-use once_cell::sync::OnceCell;
+pub(crate) use register_coders::{DecodeFromUrnFn, EncodeFromUrnFn};
 
 use crate::elem_types::ElemType;
 use crate::proto::beam_api::pipeline as proto_pipeline;
@@ -116,56 +115,3 @@ pub enum Context {
     /// the coder is able to stop decoding data at the end of the current element.
     NeedsDelimiters,
 }
-
-type EncodeFromUrnFn = fn(
-    &str,
-    &dyn crate::elem_types::ElemType,
-    &mut dyn std::io::Write,
-    &crate::coders::Context,
-) -> Result<usize, std::io::Error>;
-
-type DecodeFromUrnFn = fn(
-    &str,
-    &mut dyn std::io::Read,
-    &crate::coders::Context,
-) -> Result<Box<dyn crate::elem_types::ElemType>, std::io::Error>;
-
-pub struct CodersFromUrn {
-    pub enc: EncodeFromUrnFn,
-    pub dec: DecodeFromUrnFn,
-}
-
-impl CodersFromUrn {
-    pub fn global() -> &'static CodersFromUrn {
-        crate::coders::CODERS_FROM_URN
-            .get()
-            .expect("you might forget calling `register_coders!(CustomCoder1, CustomCoder2)`")
-    }
-
-    pub fn encode_from_urn(
-        &self,
-        urn: &str,
-        elem: &dyn crate::elem_types::ElemType,
-        writer: &mut dyn std::io::Write,
-        context: &crate::coders::Context,
-    ) -> Result<usize, std::io::Error> {
-        (self.enc)(urn, elem, writer, context)
-    }
-
-    pub fn decode_from_urn(
-        &self,
-        urn: &str,
-        reader: &mut dyn std::io::Read,
-        context: &crate::coders::Context,
-    ) -> Result<Box<dyn crate::elem_types::ElemType>, std::io::Error> {
-        (self.dec)(urn, reader, context)
-    }
-}
-
-impl fmt::Debug for CodersFromUrn {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("CodersFromUrn").finish()
-    }
-}
-
-pub static CODERS_FROM_URN: OnceCell<CodersFromUrn> = OnceCell::new();
