@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-pub mod coder_resolver;
 pub mod required_coders;
 pub mod rust_coders;
 pub mod standard_coders;
@@ -60,7 +59,7 @@ use std::io::{self, Read, Write};
 ///
 /// # Coders' lifecycle
 ///
-/// Coders, including their associated element types, are statically defined in the SDK (here we call them preset coders) or SDK users' code (custom coders).
+/// Coders, including their associated element types, are either defined in the SDK (here we call them preset coders) or SDK users' code (custom coders).
 /// They are serialized in proto and sent to the runner, and then to the SDK harness.
 /// Then the SDK harness deserializes a proto coder and instantiate it.
 ///

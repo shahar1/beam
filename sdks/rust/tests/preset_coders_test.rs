@@ -20,13 +20,10 @@
 mod tests {
     use apache_beam::{
         coders::{
-            coder_resolver::{
-                BytesCoderResolverDefault, CoderResolver, StrUtf8CoderResolverDefault,
-                VarIntCoderResolverDefault,
-            },
             required_coders::*,
             rust_coders::*,
             standard_coders::*,
+            urns::{BYTES_CODER_URN, STR_UTF8_CODER_URN, VARINT_CODER_URN},
             Coder, Context,
         },
         elem_types::{kv::KV, ElemType},
@@ -173,14 +170,11 @@ mod tests {
     }
 
     fn run_unnested(coder_urn: &str, nested: bool, spec: &Value) {
-        if let Some(c) = BytesCoderResolverDefault::resolve(coder_urn) {
-            _run_unnested(&c, nested, spec)
-        } else if let Some(c) = StrUtf8CoderResolverDefault::resolve(coder_urn) {
-            _run_unnested(&c, nested, spec)
-        } else if let Some(c) = VarIntCoderResolverDefault::<u64>::resolve(coder_urn) {
-            _run_unnested(&c, nested, spec)
-        } else {
-            todo!()
+        match coder_urn {
+            BYTES_CODER_URN => _run_unnested(&BytesCoder::default(), nested, spec),
+            STR_UTF8_CODER_URN => _run_unnested(&StrUtf8Coder::default(), nested, spec),
+            VARINT_CODER_URN => _run_unnested(&VarIntCoder::<u64>::default(), nested, spec),
+            _ => unimplemented!(),
         }
     }
 
