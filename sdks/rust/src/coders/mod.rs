@@ -24,6 +24,7 @@ pub mod urns;
 
 use crate::elem_types::ElemType;
 use crate::proto::beam_api::pipeline as proto_pipeline;
+use std::any::Any;
 use std::fmt;
 use std::io::{self, Read, Write};
 
@@ -96,10 +97,6 @@ pub trait Coder: fmt::Debug + Default {
             spec: Some(spec),
             component_coder_ids,
         }
-    }
-
-    fn from_proto(coder_proto: &proto_pipeline::Coder) -> Box<Self> {
-        todo!("call CoderUrnRegistry::lookup(Self::get_coder_urn())")
     }
 }
 
