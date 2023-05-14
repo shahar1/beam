@@ -19,14 +19,14 @@ macro_rules! register_coders {
     ($($coder:ident),*) => {
         fn encode_from_urn(urn: &str, elem: &dyn $crate::elem_types::ElemType, writer: &mut dyn std::io::Write, context: &$crate::coders::Context) -> Result<usize, std::io::Error> {
             match urn {
-                $($coder::URN => $coder.encode(elem, writer, context),)*
+                $($coder::URN => $coder::default().encode(elem, writer, context),)*
                 _ => panic!("unknown urn: {}", urn),
             }
         }
 
         fn decode_from_urn(urn: &str, reader: &mut dyn std::io::Read, context: &$crate::coders::Context) -> Result<Box<dyn $crate::elem_types::ElemType>, std::io::Error> {
             match urn {
-                $($coder::URN => $coder.decode(reader, context),)*
+                $($coder::URN => $coder::default().decode(reader, context),)*
                 _ => panic!("unknown urn: {}", urn),
             }
         }
