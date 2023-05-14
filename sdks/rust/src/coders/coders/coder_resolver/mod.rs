@@ -45,8 +45,8 @@ pub struct KVCoderResolverDefault<K, V> {
 
 impl<K, V> CoderResolver for KVCoderResolverDefault<K, V>
 where
-    K: Clone + fmt::Debug + Send + Sync + 'static,
-    V: Clone + fmt::Debug + Send + Sync + 'static,
+    K: Clone + fmt::Debug + ElemType,
+    V: Clone + fmt::Debug + ElemType,
 {
     type E = KV<K, V>;
     type C = KVCoder<Self::E>;

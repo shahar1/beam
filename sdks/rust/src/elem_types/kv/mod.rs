@@ -1,4 +1,6 @@
-use std::{cmp, fmt};
+use std::cmp;
+
+use crate::elem_types::ElemType;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct KV<K, V> {
@@ -8,8 +10,8 @@ pub struct KV<K, V> {
 
 impl<K, V> KV<K, V>
 where
-    K: Clone + fmt::Debug + Send,
-    V: Clone + fmt::Debug + Send,
+    K: ElemType,
+    V: ElemType,
 {
     pub fn new(k: K, v: V) -> Self {
         KV { k, v }

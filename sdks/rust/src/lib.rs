@@ -16,7 +16,9 @@
  * limitations under the License.
  */
 
+#[macro_use]
 pub mod coders;
+
 pub mod elem_types;
 pub mod internals;
 pub mod proto;

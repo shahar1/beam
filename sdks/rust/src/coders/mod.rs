@@ -24,7 +24,6 @@ pub mod urns;
 
 use crate::elem_types::ElemType;
 use crate::proto::beam_api::pipeline as proto_pipeline;
-use std::any::Any;
 use std::fmt;
 use std::io::{self, Read, Write};
 
@@ -112,4 +111,22 @@ pub enum Context {
     /// Needs-delimiters encoding means that the encoding of data must be such that when decoding,
     /// the coder is able to stop decoding data at the end of the current element.
     NeedsDelimiters,
+}
+
+macro_rules! register_coders {
+    ($($coder:ident),*) => {
+        fn encode_from_urn(urn: &str, elem: &dyn crate::elem_types::ElemType, writer: &mut dyn std::io::Write, context: &crate::coders::Context) -> Result<usize, std::io::Error> {
+            match urn {
+                $($coder::URN => $coder.encode(elem, writer, context),)*
+                _ => panic!("unknown urn"),
+            }
+        }
+
+        fn decode_from_urn(urn: &str, reader: &mut dyn std::io::Read, context: &crate::coders::Context) -> Result<Box<dyn crate::elem_types::ElemType>, std::io::Error> {
+            match urn {
+                $($coder::URN => $coder.decode(reader, context),)*
+                _ => panic!("unknown urn"),
+            }
+        }
+    }
 }

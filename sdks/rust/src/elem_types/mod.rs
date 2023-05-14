@@ -20,7 +20,7 @@ impl<E: ElemType> AsAny for E {
 /// Element types used in Beam pipelines (including PTransforms, PCollections, Coders, etc.)
 pub trait ElemType: AsAny + Send + Sync + 'static {}
 
-impl ElemType for Vec<u8> {}
+impl<E: ElemType> ElemType for Vec<E> {}
 
 impl<K, V> ElemType for KV<K, V>
 where

@@ -138,8 +138,8 @@ pub struct KVCoder<KV> {
 
 impl<K, V> Coder for KVCoder<KV<K, V>>
 where
-    K: fmt::Debug + Send + 'static,
-    V: fmt::Debug + Send + 'static,
+    K: ElemType + Clone + fmt::Debug,
+    V: ElemType + Clone + fmt::Debug,
 {
     const URN: &'static str = KV_CODER_URN;
 
