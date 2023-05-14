@@ -22,9 +22,21 @@ pub mod rust_coders;
 pub mod standard_coders;
 pub mod urns;
 
+use crate::elem_types::ElemType;
 use crate::proto::beam_api::pipeline as proto_pipeline;
 use std::fmt;
 use std::io::{self, Read, Write};
+
+// TODO move
+pub trait AsAny {
+    fn as_any(&self) -> &dyn std::any::Any;
+}
+
+impl<E: ElemType> AsAny for E {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self as &dyn std::any::Any
+    }
+}
 
 /// This is the base interface for coders, which are responsible in Apache Beam to encode and decode
 /// elements of a PCollection.
@@ -36,26 +48,24 @@ use std::io::{self, Read, Write};
 /// use bytes::buf::BufMut;
 /// use std::io::Write;
 ///
+/// let element = "my string".to_string();
 /// let coder = StrUtf8Coder::default();
 ///
 /// let mut w1 = vec![].writer();
 /// coder
-///     .encode("my string".to_string(), &mut w1, &Context::WholeStream)
+///     .encode(&element, &mut w1, &Context::WholeStream)
 ///     .unwrap();
 /// w1.flush().unwrap();
 /// println!("{:?}", w1.into_inner()); // <= Prints the pure byte-encoding of the string
 ///
 /// let mut w2 = vec![].writer();
 /// coder
-///     .encode("my string".to_string(), &mut w2, &Context::NeedsDelimiters)
+///     .encode(&element, &mut w2, &Context::NeedsDelimiters)
 ///     .unwrap();
 /// w2.flush().unwrap();
 /// println!("{:?}", w2.into_inner()); // <= Prints a length-prefix string of bytes
 /// ```
 pub trait Coder: fmt::Debug + Default {
-    /// The type of the elements to be encoded/decoded.
-    type E;
-
     const URN: &'static str;
 
     /// Encode an element into a stream of bytes
@@ -67,7 +77,7 @@ pub trait Coder: fmt::Debug + Default {
     /// - `context` - the context within which the element should be encoded
     fn encode(
         &self,
-        element: Self::E,
+        element: &dyn ElemType,
         writer: &mut dyn Write,
         context: &Context,
     ) -> Result<usize, io::Error>;
@@ -78,7 +88,11 @@ pub trait Coder: fmt::Debug + Default {
     ///
     /// - `reader` - a reader that interfaces the coder with the input byte stream
     /// - `context` - the context within which the element should be encoded
-    fn decode(&self, reader: &mut dyn Read, context: &Context) -> Result<Self::E, io::Error>;
+    fn decode(
+        &self,
+        reader: &mut dyn Read,
+        context: &Context,
+    ) -> Result<Box<dyn ElemType>, io::Error>;
 
     /// Convert this coder into its protocol buffer representation for the Runner API.
     /// A coder in protobuf format can be shared with other components such as Beam runners,

@@ -184,23 +184,23 @@ mod tests {
         }
     }
 
-    fn _run_unnested<'a, C>(coder: &C, _nested: bool, spec: &Value)
+    fn _run_unnested<'a, C, E>(coder: &C, _nested: bool, spec: &Value)
     where
-        C: Coder + CoderTestUtils + CoderTestUtils<InternalCoderType = C::E> + 'a,
-        C::E: Clone + std::fmt::Debug + PartialEq,
+        C: Coder + CoderTestUtils + CoderTestUtils<InternalCoderType = E> + 'a,
+        E: Clone + std::fmt::Debug + PartialEq + ElemType,
     {
         let examples = spec.get("examples").unwrap().as_mapping().unwrap();
 
         for (expected, original) in examples.iter() {
             // TODO: test coders for both Context types
-            run_case::<C>(coder, expected, original);
+            run_case::<C, E>(coder, expected, original);
         }
     }
 
-    fn run_case<'a, C>(coder: &C, expected_encoded: &Value, original: &Value)
+    fn run_case<'a, C, E>(coder: &C, expected_encoded: &Value, original: &Value)
     where
-        C: Coder + CoderTestUtils + CoderTestUtils<InternalCoderType = C::E> + 'a,
-        C::E: Clone + std::fmt::Debug + PartialEq,
+        C: Coder + CoderTestUtils + CoderTestUtils<InternalCoderType = E> + 'a,
+        E: Clone + std::fmt::Debug + PartialEq + ElemType,
     {
         // The expected encodings in standard_coders.yaml need to be read as UTF-16
         let expected_enc_utf16: Vec<u16> =
@@ -218,12 +218,11 @@ mod tests {
 
         let expected_dec = coder.parse_yaml_value(original);
 
-        coder
-            .encode(expected_dec.clone(), &mut writer, &context)
-            .unwrap();
+        coder.encode(&expected_dec, &mut writer, &context).unwrap();
         let encoded = writer.into_inner();
 
         let decoded = coder.decode(&mut reader, &context).unwrap();
+        let decoded = decoded.as_any().downcast_ref::<E>().unwrap();
 
         println!("\n---------\nCoder type: {:?}", coder);
         println!(
@@ -232,7 +231,7 @@ mod tests {
         );
 
         assert_eq!(encoded.as_slice(), expected_enc.as_slice());
-        assert_eq!(decoded, expected_dec);
+        assert_eq!(decoded, &expected_dec);
     }
 
     #[test]
@@ -243,7 +242,7 @@ mod tests {
 
             let mut writer = vec![].writer();
             coder
-                .encode(input.clone(), &mut writer, &Context::NeedsDelimiters)
+                .encode(&input, &mut writer, &Context::NeedsDelimiters)
                 .unwrap();
             let buf = writer.into_inner();
 
@@ -251,8 +250,9 @@ mod tests {
             let decoded = coder
                 .decode(&mut reader, &Context::NeedsDelimiters)
                 .unwrap();
+            let decoded = decoded.as_any().downcast_ref::<String>().unwrap();
 
-            assert_eq!(input, decoded);
+            assert_eq!(&input, decoded);
         }
 
         string_test();

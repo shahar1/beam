@@ -45,8 +45,6 @@ use crate::elem_types::ElemType;
 pub struct BytesCoder {}
 
 impl Coder for BytesCoder {
-    type E = Vec<u8>;
-
     const URN: &'static str = BYTES_CODER_URN;
 
     /// Encode the input element (a byte-string) into the output byte stream from `writer`.
@@ -56,12 +54,14 @@ impl Coder for BytesCoder {
     /// If the context is `WholeStream`, the byte string is encoded as-is.
     fn encode(
         &self,
-        element: Vec<u8>,
+        element: &dyn ElemType,
         mut writer: &mut dyn Write,
         context: &Context,
     ) -> Result<usize, io::Error> {
+        let element = element.as_any().downcast_ref::<Vec<u8>>().unwrap();
+
         match context {
-            Context::WholeStream => writer.write(&element),
+            Context::WholeStream => writer.write(element),
             Context::NeedsDelimiters => {
                 // TODO: confirm that usize gets decoded correctly by production runners
                 let delimiter: usize = element.len();
@@ -69,7 +69,7 @@ impl Coder for BytesCoder {
                     .write_varint(delimiter)
                     .expect("Unable to write delimiter to buffer");
 
-                writer.write(&element)
+                writer.write(element)
             }
         }
     }
@@ -79,12 +79,16 @@ impl Coder for BytesCoder {
     /// the length of the data.
     ///
     /// If the context is `WholeStream`, the whole input stream is decoded as-is.
-    fn decode(&self, mut reader: &mut dyn Read, context: &Context) -> Result<Vec<u8>, io::Error> {
+    fn decode(
+        &self,
+        mut reader: &mut dyn Read,
+        context: &Context,
+    ) -> Result<Box<dyn ElemType>, io::Error> {
         match context {
             Context::WholeStream => {
                 let mut buf: Vec<u8> = Vec::new();
                 reader.read_to_end(&mut buf)?;
-                Ok(buf)
+                Ok(Box::new(buf))
             }
 
             Context::NeedsDelimiters => {
@@ -112,7 +116,7 @@ impl Coder for BytesCoder {
                     return Err(io::Error::from(std::io::ErrorKind::UnexpectedEof));
                 }
 
-                Ok(buf)
+                Ok(Box::new(buf))
             }
         }
     }
@@ -137,8 +141,6 @@ where
     K: fmt::Debug + Send + 'static,
     V: fmt::Debug + Send + 'static,
 {
-    type E = KV<K, V>;
-
     const URN: &'static str = KV_CODER_URN;
 
     /// Encode the input element (a key-value pair) into a byte output stream. They key and value are encoded one after the
@@ -146,7 +148,7 @@ where
     /// the input context of the `KVCoder`.
     fn encode(
         &self,
-        _element: KV<K, V>,
+        _element: &dyn ElemType,
         _writer: &mut dyn Write,
         _context: &Context,
     ) -> Result<usize, io::Error> {
@@ -154,7 +156,11 @@ where
     }
 
     /// Decode the input byte stream into a `KV` element
-    fn decode(&self, _reader: &mut dyn Read, _context: &Context) -> Result<KV<K, V>, io::Error> {
+    fn decode(
+        &self,
+        _reader: &mut dyn Read,
+        _context: &Context,
+    ) -> Result<Box<dyn ElemType>, io::Error> {
         todo!()
     }
 }
@@ -192,8 +198,6 @@ impl<ItE> Coder for IterableCoder<ItE>
 where
     ItE: ElemType + fmt::Debug,
 {
-    type E = ItE;
-
     const URN: &'static str = ITERABLE_CODER_URN;
 
     /// Encode the input iterable into a byte output stream. Elements can be encoded in two different ways:
@@ -206,7 +210,7 @@ where
     /// Then, each element is encoded individually in `Context::NeedsDelimiters`.
     fn encode(
         &self,
-        _element: ItE,
+        _element: &dyn ElemType,
         _writer: &mut dyn Write,
         _context: &Context,
     ) -> Result<usize, io::Error> {
@@ -214,7 +218,11 @@ where
     }
 
     /// Decode the input byte stream into a `Iterable` element
-    fn decode(&self, _reader: &mut dyn Read, _context: &Context) -> Result<ItE, io::Error> {
+    fn decode(
+        &self,
+        _reader: &mut dyn Read,
+        _context: &Context,
+    ) -> Result<Box<dyn ElemType>, io::Error> {
         todo!()
     }
 }

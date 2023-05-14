@@ -22,6 +22,7 @@ use std::marker::PhantomData;
 use crate::coders::standard_coders::*;
 use crate::coders::urns::*;
 use crate::coders::Coder;
+use crate::elem_types::ElemType;
 
 #[derive(Eq, PartialEq)]
 pub struct GeneralObjectCoder<T> {
@@ -29,13 +30,11 @@ pub struct GeneralObjectCoder<T> {
 }
 
 impl Coder for GeneralObjectCoder<String> {
-    type E = String;
-
     const URN: &'static str = GENERAL_OBJECT_CODER_URN;
 
     fn encode(
         &self,
-        element: String,
+        element: &dyn ElemType,
         writer: &mut dyn std::io::Write,
         context: &crate::coders::Context,
     ) -> Result<usize, std::io::Error> {
@@ -49,7 +48,7 @@ impl Coder for GeneralObjectCoder<String> {
         &self,
         reader: &mut dyn std::io::Read,
         context: &crate::coders::Context,
-    ) -> Result<String, std::io::Error> {
+    ) -> Result<Box<dyn ElemType>, std::io::Error> {
         let marker: &mut [u8; 1] = &mut [0; 1];
         reader.read_exact(marker)?;
 

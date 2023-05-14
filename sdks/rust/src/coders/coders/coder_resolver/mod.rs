@@ -16,7 +16,7 @@ use crate::{
 /// You may use original coders by implementing the `CoderResolver` trait.
 pub trait CoderResolver {
     type E: ElemType;
-    type C: Coder<E = Self::E>;
+    type C: Coder;
 
     /// Resolve a coder from a coder URN.
     ///
