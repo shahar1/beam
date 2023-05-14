@@ -28,10 +28,8 @@ pub struct Create<Out> {
 }
 
 impl<Out: ElemType> Create<Out> {
-    pub fn new(elements: &[Out]) -> Self {
-        Self {
-            elements: elements.to_vec(),
-        }
+    pub fn new(elements: Vec<Out>) -> Self {
+        Self { elements }
     }
 }
 

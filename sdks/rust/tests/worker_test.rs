@@ -20,8 +20,6 @@
 mod tests {
     use std::{collections::HashMap, sync::Arc};
 
-    use serde_json;
-
     use apache_beam::internals::urns;
     use apache_beam::proto::beam_api::{
         fn_execution::ProcessBundleDescriptor,

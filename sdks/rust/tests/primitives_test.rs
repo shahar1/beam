@@ -42,7 +42,7 @@ mod tests {
     async fn ensure_assert_fails() {
         DirectRunner::new()
             .run(|root| {
-                root.apply(Create::new(&[1, 2, 3]))
+                root.apply(Create::new(vec![1, 2, 3]))
                     .apply(AssertEqualUnordered::new(&[1, 2, 4]))
             })
             .await;
@@ -53,7 +53,7 @@ mod tests {
     async fn ensure_assert_fails_on_empty() {
         DirectRunner::new()
             .run(|root| {
-                root.apply(Create::new(&[]))
+                root.apply(Create::new(vec![]))
                     .apply(AssertEqualUnordered::new(&[1]))
             })
             .await;
@@ -63,7 +63,7 @@ mod tests {
     async fn run_map() {
         DirectRunner::new()
             .run(|root| {
-                root.apply(Create::new(&[1, 2, 3]))
+                root.apply(Create::new(vec![1, 2, 3]))
                     .apply(ParDo::from_map(|x: &i32| -> i32 { x * x }))
                     .apply(AssertEqualUnordered::new(&[1, 4, 9]))
             })
@@ -74,7 +74,7 @@ mod tests {
     async fn run_gbk() {
         DirectRunner::new()
             .run(|root| {
-                root.apply(Create::new(&[
+                root.apply(Create::new(vec![
                     KV::new("a".to_string(), 1),
                     KV::new("a".to_string(), 2),
                     KV::new("b".to_string(), 3),
@@ -92,8 +92,8 @@ mod tests {
     async fn run_flatten() {
         DirectRunner::new()
             .run(|root| {
-                let first = root.clone().apply(Create::new(&[1, 2, 3]));
-                let second = root.apply(Create::new(&[100, 200]));
+                let first = root.clone().apply(Create::new(vec![1, 2, 3]));
+                let second = root.apply(Create::new(vec![100, 200]));
                 PValue::new_array(&[first, second])
                     .apply(Flatten::new())
                     .apply(AssertEqualUnordered::new(&[1, 2, 3, 100, 200]))
