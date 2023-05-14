@@ -116,7 +116,7 @@ pub enum Context {
 }
 
 /// Must be called in outside of the main() function.
-/// 
+///
 /// TODO example
 #[macro_export]
 macro_rules! register_coders {
@@ -165,7 +165,9 @@ pub struct CodersFromUrn {
 
 impl CodersFromUrn {
     pub fn global() -> &'static CodersFromUrn {
-        crate::coders::CODERS_FROM_URN.get().unwrap()
+        crate::coders::CODERS_FROM_URN
+            .get()
+            .expect("you might forget calling `register_coders!(CustomCoder1, CustomCoder2)`")
     }
 
     pub fn encode_from_urn(
