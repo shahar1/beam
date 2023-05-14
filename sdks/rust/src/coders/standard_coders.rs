@@ -71,10 +71,6 @@ impl Coder for StrUtf8Coder {
             )),
         }
     }
-
-    fn to_proto(&self) -> crate::proto::beam_api::pipeline::Coder {
-        todo!()
-    }
 }
 
 impl fmt::Debug for StrUtf8Coder {
@@ -112,10 +108,6 @@ where
 
     fn decode(&self, mut reader: &mut dyn Read, _context: &Context) -> Result<N, io::Error> {
         reader.read_varint()
-    }
-
-    fn to_proto(&self) -> crate::proto::beam_api::pipeline::Coder {
-        todo!()
     }
 }
 

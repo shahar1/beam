@@ -83,7 +83,17 @@ pub trait Coder: fmt::Debug + Default {
     /// Convert this coder into its protocol buffer representation for the Runner API.
     /// A coder in protobuf format can be shared with other components such as Beam runners,
     /// SDK workers; and reconstructed into its runtime representation if necessary.
-    fn to_proto(&self) -> proto_pipeline::Coder;
+    #[doc(hidden)]
+    fn to_proto(&self, component_coder_ids: Vec<String>) -> proto_pipeline::Coder {
+        let spec = proto_pipeline::FunctionSpec {
+            urn: Self::URN.to_string(),
+            payload: vec![], // unused in Rust SDK
+        };
+        proto_pipeline::Coder {
+            spec: Some(spec),
+            component_coder_ids,
+        }
+    }
 }
 
 /// The context for encoding a PCollection element.
