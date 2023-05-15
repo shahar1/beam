@@ -1,3 +1,5 @@
+/// Macro to register custom coders in order for SDK harnesses to use them via their URNs.
+///
 /// Must be called in outside of the main() function.
 ///
 /// # Example
@@ -14,6 +16,10 @@
 ///    // ...
 /// }
 /// ```
+/// 
+/// # Related doc
+/// 
+/// [Design doc: Custom Coders for the Beam Rust SDK](https://docs.google.com/document/d/1tUb8EoajRkxLW3mrJZzx6xxGhoiUSRKwVuT2uxjAeIU/edit#heading=h.mgr8mrx81tnc)
 #[macro_export]
 macro_rules! register_coders {
     ($($coder:ident),*) => {
