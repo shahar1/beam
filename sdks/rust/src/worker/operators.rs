@@ -472,7 +472,7 @@ pub struct DynamicGroupedValues(Box<dyn Any + Send + Sync>);
 
 impl DynamicGroupedValues {
     pub fn new<V: ElemType>() -> Self {
-        DynamicGroupedValues(Box::new(HashMap::<String, Vec<V>>::new()))
+        DynamicGroupedValues(Box::<HashMap<String, Vec<V>>>::default())
     }
 
     pub fn downcast_mut<V: ElemType>(&mut self) -> &mut HashMap<String, Vec<V>> {

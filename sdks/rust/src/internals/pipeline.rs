@@ -278,8 +278,8 @@ impl Pipeline {
     // TODO: deal with bounds and windows
     pub fn post_apply_transform<In, Out, F>(
         &self,
-        transform: F,
-        transform_proto: pipeline_v1::PTransform,
+        _transform: F,
+        _transform_proto: pipeline_v1::PTransform,
         result: PValue<Out>,
     ) -> PValue<Out>
     where

@@ -21,7 +21,6 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use crate::elem_types::ElemType;
-use crate::coders::required_coders::BytesCoder;
 use crate::proto::pipeline_v1;
 
 use crate::internals::pipeline::Pipeline;
@@ -153,8 +152,8 @@ where
     fn expand_internal(
         &self,
         input: &PValue<In>,
-        pipeline: Arc<Pipeline>,
-        transform_proto: &mut pipeline_v1::PTransform,
+        _pipeline: Arc<Pipeline>,
+        _transform_proto: &mut pipeline_v1::PTransform,
     ) -> PValue<Out>
     where
         Self: Sized,

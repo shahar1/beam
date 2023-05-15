@@ -73,11 +73,11 @@ pub struct Worker {
     // Cheap and safe to clone
     process_bundle_descriptors:
         moka::future::Cache<BundleDescriptorId, Arc<fn_execution_v1::ProcessBundleDescriptor>>,
-    bundle_processors: HashMap<String, BundleProcessor>,
-    active_bundle_processors: HashMap<String, BundleProcessor>,
-    id: String,
-    endpoints: WorkerEndpoints,
-    options: HashMap<String, String>,
+    _bundle_processors: HashMap<String, BundleProcessor>,
+    _active_bundle_processors: HashMap<String, BundleProcessor>,
+    _id: String,
+    _endpoints: WorkerEndpoints,
+    _options: HashMap<String, String>,
 }
 
 impl Worker {
@@ -100,11 +100,11 @@ impl Worker {
             control_rx: Arc::new(TokioMutex::new(rx)),
             // TODO(sjvanrossum): Maybe define the eviction policy
             process_bundle_descriptors: moka::future::Cache::builder().build(),
-            bundle_processors: HashMap::new(),
-            active_bundle_processors: HashMap::new(),
-            id,
-            endpoints,
-            options: HashMap::new(),
+            _bundle_processors: HashMap::new(),
+            _active_bundle_processors: HashMap::new(),
+            _id: id,
+            _endpoints: endpoints,
+            _options: HashMap::new(),
         }
     }
 
@@ -161,9 +161,9 @@ impl Worker {
 
     fn process_bundle(
         &self,
-        instruction_id: InstructionId,
+        _instruction_id: InstructionId,
         request: fn_execution_v1::ProcessBundleRequest,
-    ) -> () {
+    ) {
         let mut client = self.control_client.clone();
         let descriptor_cache = self.process_bundle_descriptors.clone();
         tokio::spawn(async move {
@@ -188,49 +188,45 @@ impl Worker {
 
     fn process_bundle_progress(
         &self,
-        instruction_id: InstructionId,
-        request: fn_execution_v1::ProcessBundleProgressRequest,
-    ) -> () {
+        _instruction_id: InstructionId,
+        _request: fn_execution_v1::ProcessBundleProgressRequest,
+    ) {
         // TODO(sjvanrossum): Flesh out after process_bundle is sufficiently implemented
     }
 
     fn process_bundle_split(
         &self,
-        instruction_id: InstructionId,
-        request: fn_execution_v1::ProcessBundleSplitRequest,
-    ) -> () {
+        _instruction_id: InstructionId,
+        _request: fn_execution_v1::ProcessBundleSplitRequest,
+    ) {
         // TODO(sjvanrossum): Flesh out after process_bundle is sufficiently implemented
     }
 
     fn finalize_bundle(
         &self,
-        instruction_id: InstructionId,
-        request: fn_execution_v1::FinalizeBundleRequest,
-    ) -> () {
+        _instruction_id: InstructionId,
+        _request: fn_execution_v1::FinalizeBundleRequest,
+    ) {
         // TODO(sjvanrossum): Flesh out after process_bundle is sufficiently implemented.
     }
 
     fn monitoring_infos(
         &self,
-        instruction_id: InstructionId,
-        request: fn_execution_v1::MonitoringInfosMetadataRequest,
-    ) -> () {
+        _instruction_id: InstructionId,
+        _request: fn_execution_v1::MonitoringInfosMetadataRequest,
+    ) {
         // TODO: Implement
     }
 
     fn harness_monitoring_infos(
         &self,
-        instruction_id: InstructionId,
-        request: fn_execution_v1::HarnessMonitoringInfosRequest,
-    ) -> () {
+        _instruction_id: InstructionId,
+        _request: fn_execution_v1::HarnessMonitoringInfosRequest,
+    ) {
         // TODO: Implement
     }
 
-    fn register(
-        &self,
-        instruction_id: InstructionId,
-        request: fn_execution_v1::RegisterRequest,
-    ) -> () {
+    fn register(&self, instruction_id: InstructionId, request: fn_execution_v1::RegisterRequest) {
         let descriptor_cache = self.process_bundle_descriptors.clone();
         let tx = self.control_tx.clone();
         tokio::spawn(async move {
@@ -259,8 +255,8 @@ impl Worker {
         tx: mpsc::Sender<fn_execution_v1::InstructionResponse>,
     ) -> Result<(), mpsc::error::SendError<fn_execution_v1::InstructionResponse>> {
         tx.send(fn_execution_v1::InstructionResponse {
-            instruction_id: instruction_id,
-            error: error,
+            instruction_id,
+            error,
             response: None,
         })
         .await
