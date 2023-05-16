@@ -60,7 +60,7 @@ pub struct Worker {
 
 impl Worker {
     // concurrent data structures and/or finer grained locks.
-    pub async fn try_new(
+    pub fn try_new(
         id: String,
         control_endpoint: String,
         _logging_endpoint: String,
@@ -68,9 +68,8 @@ impl Worker {
         _options: serde_json::Value,
         _runner_capabilities: HashSet<String>,
     ) -> Result<Self, Box<dyn Error>> {
-        let channel = Channel::from_shared(control_endpoint)?.connect().await?;
         let client = beam_fn_control_client_v1::BeamFnControlClient::with_interceptor(
-            channel,
+            Channel::from_shared(control_endpoint)?.connect_lazy(),
             WorkerIdInterceptor::new(id.clone()),
         );
         let (tx, rx) = mpsc::channel(100);

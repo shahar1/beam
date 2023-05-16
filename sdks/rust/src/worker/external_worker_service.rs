@@ -64,7 +64,6 @@ impl beam_fn_external_worker_pool_server_v1::BeamFnExternalWorkerPool
                     serde_json::Value::default(),
                     HashSet::default(),
                 )
-                .await
                 .unwrap(),
             ));
             let inserted_worker = entry.insert(worker).clone();

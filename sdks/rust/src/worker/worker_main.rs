@@ -52,8 +52,7 @@ async fn worker_main(args: WorkerArgs) -> Result<(), Box<dyn Error>> {
         args.status_endpoint,
         serde_json::Value::from(args.options),
         HashSet::<String>::from_iter(args.runner_capabilities),
-    )
-    .await?
+    )?
     .start()
     .await
 }
