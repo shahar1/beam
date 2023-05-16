@@ -45,7 +45,7 @@ pub fn init() {
 // TODO(sjvanrossum): Maybe make this an associated function, e.g. Worker::main?
 #[tokio::main]
 async fn worker_main(args: WorkerArgs) -> Result<(), Box<dyn Error>> {
-    Worker::new(
+    Worker::try_new(
         args.id,
         args.control_endpoint,
         args.logging_endpoint,
@@ -53,7 +53,7 @@ async fn worker_main(args: WorkerArgs) -> Result<(), Box<dyn Error>> {
         serde_json::Value::from(args.options),
         HashSet::<String>::from_iter(args.runner_capabilities),
     )
-    .await
+    .await?
     .start()
     .await
 }

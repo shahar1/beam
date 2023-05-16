@@ -60,27 +60,22 @@ pub struct Worker {
 
 impl Worker {
     // concurrent data structures and/or finer grained locks.
-    pub async fn new(
+    pub async fn try_new(
         id: String,
         control_endpoint: String,
         _logging_endpoint: String,
         _status_endpoint: Option<String>,
         _options: serde_json::Value,
         _runner_capabilities: HashSet<String>,
-    ) -> Self {
-        // TODO: parse URIs in the endpoint struct
-        let channel = Channel::from_shared(control_endpoint)
-            .unwrap()
-            .connect()
-            .await
-            .expect("Failed to connect to control service");
+    ) -> Result<Self, Box<dyn Error>> {
+        let channel = Channel::from_shared(control_endpoint)?.connect().await?;
         let client = beam_fn_control_client_v1::BeamFnControlClient::with_interceptor(
             channel,
             WorkerIdInterceptor::new(id.clone()),
         );
         let (tx, rx) = mpsc::channel(100);
 
-        Self {
+        Ok(Self {
             control_client: client,
             control_tx: tx,
             control_rx: Arc::new(TokioMutex::new(rx)),
@@ -90,7 +85,7 @@ impl Worker {
             _active_bundle_processors: HashMap::new(),
             _id: id,
             _options: HashMap::new(),
-        }
+        })
     }
 
     pub async fn start(&mut self) -> Result<(), Box<dyn Error>> {

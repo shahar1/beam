@@ -52,7 +52,7 @@ impl beam_fn_external_worker_pool_server_v1::BeamFnExternalWorkerPool
         // Avoid creating duplicate workers
         if let Entry::Vacant(entry) = self.workers.write().await.entry(req.worker_id.clone()) {
             let worker = Arc::new(Mutex::new(
-                Worker::new(
+                Worker::try_new(
                     entry.key().clone(),
                     req.control_endpoint
                         .map(|descriptor| descriptor.url)
@@ -64,7 +64,8 @@ impl beam_fn_external_worker_pool_server_v1::BeamFnExternalWorkerPool
                     serde_json::Value::default(),
                     HashSet::default(),
                 )
-                .await,
+                .await
+                .unwrap(),
             ));
             let inserted_worker = entry.insert(worker).clone();
 
