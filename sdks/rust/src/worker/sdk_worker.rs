@@ -23,8 +23,6 @@ use std::sync::{Arc, Mutex, RwLock};
 use tokio::sync::mpsc;
 use tokio::sync::Mutex as TokioMutex;
 use tonic::codegen::InterceptedService;
-use tonic::metadata::{Ascii, MetadataValue};
-use tonic::service::Interceptor;
 use tonic::transport::{Channel, Uri};
 use tonic::Status;
 
@@ -34,27 +32,8 @@ use crate::proto::{
     fn_execution_v1::instruction_response as instruction_response_v1, pipeline_v1,
 };
 
+use crate::worker::interceptors::WorkerIdInterceptor;
 use crate::worker::operators::{create_operator, Operator, OperatorContext, OperatorI, Receiver};
-
-#[derive(Clone)]
-struct WorkerIdInterceptor {
-    id: MetadataValue<Ascii>,
-}
-
-impl WorkerIdInterceptor {
-    fn new(id: String) -> Self {
-        Self {
-            id: id.parse().unwrap(),
-        }
-    }
-}
-
-impl Interceptor for WorkerIdInterceptor {
-    fn call(&mut self, mut request: tonic::Request<()>) -> Result<tonic::Request<()>, Status> {
-        request.metadata_mut().insert("worker_id", self.id.clone());
-        Ok(request)
-    }
-}
 
 type BundleDescriptorId = String;
 type InstructionId = String;
