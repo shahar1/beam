@@ -68,17 +68,17 @@ impl Worker {
         _options: serde_json::Value,
         _runner_capabilities: HashSet<String>,
     ) -> Result<Self, Box<dyn Error>> {
-        let client = beam_fn_control_client_v1::BeamFnControlClient::with_interceptor(
+        let control_client = beam_fn_control_client_v1::BeamFnControlClient::with_interceptor(
             Channel::from_shared(control_endpoint)?.connect_lazy(),
             WorkerIdInterceptor::new(id.clone()),
         );
-        let (tx, rx) = mpsc::channel(100);
+        let (control_tx, control_rx) = mpsc::channel(100);
 
         Ok(Self {
             _id: id,
-            control_client: client,
-            control_tx: tx,
-            control_rx: Arc::new(TokioMutex::new(rx)),
+            control_client,
+            control_tx,
+            control_rx: Arc::new(TokioMutex::new(control_rx)),
             // TODO(sjvanrossum): Maybe define the eviction policy
             process_bundle_descriptors: moka::future::Cache::builder().build(),
             _bundle_processors: HashMap::new(),
