@@ -298,7 +298,6 @@ impl Pipeline {
     where
         Out: ElemType,
     {
-        // TODO: remove pcoll_proto arg
         PValue::new(
             crate::internals::pvalue::PType::PCollection,
             pipeline,
