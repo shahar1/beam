@@ -58,6 +58,7 @@ impl AsRef<str> for PresetCoderUrn {
 pub const BYTES_CODER_URN: &str = "beam:coder:bytes:v1";
 pub const KV_CODER_URN: &str = "beam:coder:kvcoder:v1";
 pub const ITERABLE_CODER_URN: &str = "beam:coder:iterable:v1";
+pub const NULLABLE_CODER_URN: &str = "beam:coder:nullable:v1";
 
 // ******* Required coders *******
 pub const STR_UTF8_CODER_URN: &str = "beam:coder:string_utf8:v1";

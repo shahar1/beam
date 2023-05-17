@@ -8,7 +8,8 @@ use crate::{
     coders::{
         required_coders::Iterable,
         urns::{
-            ITERABLE_CODER_URN, KV_CODER_URN, STR_UTF8_CODER_URN, UNIT_CODER_URN, VARINT_CODER_URN,
+            ITERABLE_CODER_URN, KV_CODER_URN, NULLABLE_CODER_URN, STR_UTF8_CODER_URN,
+            UNIT_CODER_URN, VARINT_CODER_URN,
         },
     },
     elem_types::kv::KV,
@@ -146,6 +147,6 @@ impl<E1: ElemType, E2: ElemType, E3: ElemType, E4: ElemType, E5: ElemType> ElemT
 
 impl<E: ElemType> ElemType for Option<E> {
     fn default_coder_urn() -> &'static str {
-        todo!()
+        NULLABLE_CODER_URN
     }
 }
