@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+mod unit_coder;
+pub use unit_coder::UnitCoder;
+
 use std::fmt;
 use std::marker::PhantomData;
 
