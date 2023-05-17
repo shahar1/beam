@@ -194,9 +194,42 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::transforms::impulse::Impulse;
+    use crate::{coders::CoderUrn, register_coders, transforms::impulse::Impulse};
 
     use super::*;
+
+    #[test]
+    fn test_with_coder() {
+        #[derive(Default, Debug)]
+        struct MyCoder {}
+
+        impl Coder for MyCoder {
+            fn encode(
+                &self,
+                _element: &dyn ElemType,
+                _writer: &mut dyn std::io::Write,
+                _context: &crate::coders::Context,
+            ) -> Result<usize, std::io::Error> {
+                unimplemented!()
+            }
+
+            fn decode(
+                &self,
+                _reader: &mut dyn std::io::Read,
+                _context: &crate::coders::Context,
+            ) -> Result<Box<dyn ElemType>, std::io::Error> {
+                unimplemented!()
+            }
+        }
+
+        register_coders!(MyCoder);
+
+        let root = PValue::<()>::root();
+        assert_eq!(root.coder_urn, UNIT_CODER_URN);
+
+        let pcoll = root.with_coder::<MyCoder>();
+        assert_eq!(pcoll.coder_urn, MyCoder::URN);
+    }
 
     #[tokio::test]
     async fn run_impulse_expansion() {
