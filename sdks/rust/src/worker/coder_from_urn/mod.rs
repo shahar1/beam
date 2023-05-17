@@ -4,10 +4,10 @@ use once_cell::sync::OnceCell;
 
 use crate::coders::{DecodeFromUrnFn, EncodeFromUrnFn};
 
-/// Called internally from `register_coders!` macro.
+/// The visibility is `pub` because this is used internally from `register_coders!` macro.
 pub static CODER_FROM_URN: OnceCell<CoderFromUrn> = OnceCell::new();
 
-/// Called internally from `register_coders!` macro.
+/// The visibility is `pub` because this is instantiated internally from `register_coders!` macro.
 pub struct CoderFromUrn {
     pub enc: EncodeFromUrnFn,
     pub dec: DecodeFromUrnFn,
