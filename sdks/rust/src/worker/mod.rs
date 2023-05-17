@@ -144,6 +144,83 @@ mod tests {
 }
 
 #[cfg(test)]
+mod serde_preset_coder_test {
+    mod sdk_launcher {
+        use crate::{
+            coders::{standard_coders::VarIntCoder, Coder},
+            proto::pipeline::v1 as pipeline_v1,
+        };
+
+        pub fn launcher_register_coder_proto() -> pipeline_v1::Coder {
+            // in the proto registration (in the pipeline construction)
+            let coder = VarIntCoder::<i32>::default();
+            coder.to_proto(vec![])
+        }
+    }
+
+    mod sdk_harness {
+        use bytes::Buf;
+        use std::io;
+
+        use crate::{
+            coders::Context, elem_types::ElemType, proto::pipeline::v1 as pipeline_v1,
+            worker::CoderFromUrn,
+        };
+
+        fn receive_coder() -> pipeline_v1::Coder {
+            // serialized coder is sent from the launcher
+            super::sdk_launcher::launcher_register_coder_proto()
+        }
+
+        fn create_element() -> i32 {
+            // A PTransform (UDF) create an instance of i32
+            42
+        }
+
+        fn encode_element(element: &dyn ElemType, coder: &pipeline_v1::Coder) -> Vec<u8> {
+            let urn = &coder.spec.as_ref().unwrap().urn;
+
+            let mut encoded_element = vec![];
+            CoderFromUrn::global()
+                .encode_from_urn(urn, element, &mut encoded_element, &Context::WholeStream)
+                .unwrap();
+
+            encoded_element
+        }
+
+        fn decode_element(
+            elem_reader: &mut dyn io::Read,
+            coder: &pipeline_v1::Coder,
+        ) -> Box<dyn ElemType> {
+            let urn = &coder.spec.as_ref().unwrap().urn;
+
+            let decoded_element_dyn = CoderFromUrn::global()
+                .decode_from_urn(urn, elem_reader, &Context::WholeStream)
+                .unwrap();
+
+            decoded_element_dyn
+        }
+
+        pub fn test() {
+            let coder = receive_coder();
+            let element = create_element();
+
+            let encoded_element = encode_element(&element, &coder);
+            let decoded_element_dyn = decode_element(&mut encoded_element.reader(), &coder);
+
+            let decoded_element = decoded_element_dyn.as_any().downcast_ref::<i32>().unwrap();
+
+            assert_eq!(decoded_element, &element);
+        }
+    }
+
+    #[test]
+    fn serde_custom_coder() {
+        sdk_harness::test();
+    }
+}
+
+#[cfg(test)]
 mod serde_costom_coder_test {
     mod sdk_launcher {
         use crate::{
