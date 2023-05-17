@@ -5,7 +5,6 @@ mod sdk_launcher {
         proto::pipeline::v1 as pipeline_v1,
         register_coders,
     };
-    use serde::{Deserialize, Serialize};
 
     #[derive(Clone, PartialEq, Eq, Debug)]
     pub struct MyElement {
@@ -14,7 +13,7 @@ mod sdk_launcher {
 
     impl ElemType for MyElement {}
 
-    #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+    #[derive(Debug, Default)]
     struct MyCoder;
 
     impl Coder for MyCoder {
