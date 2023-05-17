@@ -38,11 +38,10 @@ pub trait RunnerI {
     /// Runs the transform.
     /// Resolves to an instance of PipelineResult when the pipeline completes.
     /// Use run_async() to execute the pipeline in the background.
-    async fn run<In, Out, F>(&self, pipeline: F)
+    async fn run<Out, F>(&self, pipeline: F)
     where
-        In: ElemType,
         Out: ElemType,
-        F: FnOnce(PValue<In>) -> PValue<Out> + Send,
+        F: FnOnce(PValue<()>) -> PValue<Out> + Send, // TODO: Don't require a return value.
     {
         self.run_async(pipeline).await;
     }
@@ -50,13 +49,12 @@ pub trait RunnerI {
     /// run_async() is the asynchronous version of run(), does not wait until
     /// pipeline finishes. Use the returned PipelineResult to query job
     /// status.
-    async fn run_async<In, Out, F>(&self, pipeline: F)
+    async fn run_async<Out, F>(&self, pipeline: F)
     where
-        In: ElemType,
         Out: ElemType,
-        F: FnOnce(PValue<In>) -> PValue<Out> + Send,
+        F: FnOnce(PValue<()>) -> PValue<Out> + Send,
     {
-        let root = PValue::root();
+        let root = PValue::<()>::root();
         let inner_pipeline = root.get_pipeline_arc();
 
         (pipeline)(root); // pipeline construction, affecting root's inner pipeline object

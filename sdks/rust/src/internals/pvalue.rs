@@ -25,8 +25,10 @@ use crate::proto::pipeline_v1;
 
 use crate::internals::pipeline::Pipeline;
 
-// T should be never(!) for Root
-// https://github.com/rust-lang/rust/issues/35121
+/// The base object on which one can start building a Beam DAG.
+/// Generally followed by a source-like transform such as a read or impulse.
+pub(crate) type Root = PValue<()>;
+
 pub struct PValue<E>
 where
     E: ElemType,
@@ -52,7 +54,7 @@ where
         }
     }
 
-    pub fn root() -> Self {
+    pub(crate) fn root() -> Root {
         let pipeline = Arc::new(Pipeline::default());
         PValue::new(PType::Root, pipeline, crate::internals::utils::get_bad_id())
     }
@@ -159,5 +161,28 @@ where
         Self: Sized,
     {
         self.expand(input)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::transforms::impulse::Impulse;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn run_impulse_expansion() {
+        let root = PValue::<()>::root();
+
+        let pcoll = root.apply(Impulse::new());
+
+        // TODO: test proto coders
+        // let pipeline_proto = runner.pipeline.proto.lock().unwrap();
+        // let proto_coders = pipeline_proto.components.unwrap().coders;
+        // let coder = *proto_coders
+        //     .get(&root_clone.pcoll_proto.coder_id)
+        //     .unwrap();
+
+        assert_eq!(*pcoll.get_type(), PType::PCollection);
     }
 }

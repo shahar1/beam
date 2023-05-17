@@ -35,14 +35,10 @@ impl Impulse {
     }
 }
 
-// Input type should be never(!)
-// https://github.com/rust-lang/rust/issues/35121
-pub type Never = ();
-
-impl PTransform<Never, Vec<u8>> for Impulse {
+impl PTransform<(), Vec<u8>> for Impulse {
     fn expand_internal(
         &self,
-        _input: &PValue<Never>,
+        _input: &PValue<()>,
         pipeline: Arc<Pipeline>,
         transform_proto: &mut pipeline_v1::PTransform,
     ) -> PValue<Vec<u8>> {

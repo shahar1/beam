@@ -19,7 +19,7 @@
 #[cfg(test)]
 mod tests {
     use apache_beam::elem_types::kv::KV;
-    use apache_beam::internals::pvalue::{PType, PValue};
+    use apache_beam::internals::pvalue::PValue;
     use apache_beam::runners::direct_runner::DirectRunner;
     use apache_beam::runners::runner::RunnerI;
     use apache_beam::transforms::create::Create;
@@ -99,21 +99,5 @@ mod tests {
                     .apply(AssertEqualUnordered::new(&[1, 2, 3, 100, 200]))
             })
             .await;
-    }
-
-    #[tokio::test]
-    async fn run_impulse_expansion() {
-        let root = PValue::root();
-
-        let pcoll = root.apply(Impulse::new());
-
-        // TODO: test proto coders
-        // let pipeline_proto = runner.pipeline.proto.lock().unwrap();
-        // let proto_coders = pipeline_proto.components.unwrap().coders;
-        // let coder = *proto_coders
-        //     .get(&root_clone.pcoll_proto.coder_id)
-        //     .unwrap();
-
-        assert_eq!(*pcoll.get_type(), PType::PCollection);
     }
 }

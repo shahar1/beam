@@ -33,12 +33,8 @@ impl<Out: ElemType> Create<Out> {
     }
 }
 
-// Input type should be never(!)
-// https://github.com/rust-lang/rust/issues/35121
-pub type Never = ();
-
-impl<Out: ElemType + Clone> PTransform<Never, Out> for Create<Out> {
-    fn expand(&self, input: &PValue<Never>) -> PValue<Out> {
+impl<Out: ElemType + Clone> PTransform<(), Out> for Create<Out> {
+    fn expand(&self, input: &PValue<()>) -> PValue<Out> {
         let elements = self.elements.to_vec();
         // TODO: Consider reshuffling.
         input
