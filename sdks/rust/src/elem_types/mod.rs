@@ -37,8 +37,8 @@ pub trait ElemType: AsAny + Send + Sync + 'static {
 
 impl<E: ElemType> ElemType for Vec<E> {
     fn default_coder_urn() -> &'static str {
-        ITERABLE_CODER_URN
-    } // TODO how to use ByteCoder for Vec<u8>?
+        ITERABLE_CODER_URN // TODO: BYTES_CODER_URN for Vec<u8>
+    }
 }
 
 impl ElemType for Bytes {}
