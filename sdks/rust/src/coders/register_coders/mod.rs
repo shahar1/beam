@@ -25,7 +25,7 @@ macro_rules! register_coders {
     ($($coder:ident),*) => {
         $(
             impl $crate::coders::CoderUrn for $coder {
-                const URN: &'static str = concat!(stringify!($crate::coders::urns::RUST_CODER_PREFIX), stringify!($coder));
+                const URN: &'static str = concat!("beam:coder:rustsdk:1.0:", stringify!($coder));
             }
         )*
 
