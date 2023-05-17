@@ -21,6 +21,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use crate::coders::urns::{ITERABLE_CODER_URN, UNIT_CODER_URN};
+use crate::coders::Coder;
 use crate::elem_types::ElemType;
 use crate::proto::pipeline_v1;
 
@@ -38,8 +39,9 @@ where
     ptype: PType,
     pipeline: Arc<Pipeline>,
 
-    /// Default coder's URN that encode/decode `E` in this `PValue` by default.
-    default_coder_urn: &'static str,
+    /// Coder's URN that encode/decode `E` in this `PValue`.
+    /// `E::get_coder_urn()` is used by default and can be overridden by `with_coder()`.
+    coder_urn: &'static str,
 
     phantom: PhantomData<E>,
 }
@@ -52,13 +54,13 @@ where
         ptype: PType,
         pipeline: Arc<Pipeline>,
         id: String,
-        default_coder_urn: &'static str,
+        coder_urn: &'static str,
     ) -> Self {
         Self {
             id,
             ptype,
             pipeline,
-            default_coder_urn,
+            coder_urn,
 
             phantom: PhantomData::default(),
         }
@@ -72,6 +74,16 @@ where
             crate::internals::utils::get_bad_id(),
             UNIT_CODER_URN,
         )
+    }
+
+    pub fn with_coder<C: Coder>(self) -> Self {
+        Self {
+            id: self.id,
+            ptype: self.ptype,
+            pipeline: self.pipeline,
+            coder_urn: C::URN,
+            phantom: PhantomData::default(),
+        }
     }
 
     pub fn new_array(pcolls: &[PValue<E>]) -> Self {
