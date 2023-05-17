@@ -26,4 +26,6 @@ pub const STR_UTF8_CODER_URN: &str = "beam:coder:string_utf8:v1";
 pub const VARINT_CODER_URN: &str = "beam:coder:varint:v1";
 
 // ******* Rust coders *******
-pub const GENERAL_OBJECT_CODER_URN: &str = "beam:coder:genericobjectjs:v1";
+pub const RUST_CODER_PREFIX: &str = "beam:coder:rustsdk:1.0:";
+pub const GENERAL_OBJECT_CODER_URN: &str =
+    concat!(stringify!(RUST_CODER_PREFIX), "genericobject:v1");

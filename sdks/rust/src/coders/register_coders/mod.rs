@@ -16,16 +16,16 @@
 ///    // ...
 /// }
 /// ```
-/// 
+///
 /// # Related doc
-/// 
+///
 /// [Design doc: Custom Coders for the Beam Rust SDK](https://docs.google.com/document/d/1tUb8EoajRkxLW3mrJZzx6xxGhoiUSRKwVuT2uxjAeIU/edit#heading=h.mgr8mrx81tnc)
 #[macro_export]
 macro_rules! register_coders {
     ($($coder:ident),*) => {
         $(
             impl $crate::coders::CoderUrn for $coder {
-                const URN: &'static str = concat!("beam:coder:rustsdk:1.0:", stringify!($coder));
+                const URN: &'static str = concat!(stringify!($crate::coders::urns::RUST_CODER_PREFIX), stringify!($coder));
             }
         )*
 
