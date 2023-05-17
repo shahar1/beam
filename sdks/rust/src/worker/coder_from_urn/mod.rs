@@ -14,13 +14,13 @@ pub struct CoderFromUrn {
 }
 
 impl CoderFromUrn {
-    pub fn global() -> &'static CoderFromUrn {
+    pub(in crate::worker) fn global() -> &'static CoderFromUrn {
         CODER_FROM_URN
             .get()
             .expect("you might forget calling `register_coders!(CustomCoder1, CustomCoder2)`")
     }
 
-    pub fn encode_from_urn(
+    pub(in crate::worker) fn encode_from_urn(
         &self,
         urn: &str,
         elem: &dyn crate::elem_types::ElemType,
@@ -30,7 +30,7 @@ impl CoderFromUrn {
         (self.enc)(urn, elem, writer, context)
     }
 
-    pub fn decode_from_urn(
+    pub(in crate::worker) fn decode_from_urn(
         &self,
         urn: &str,
         reader: &mut dyn std::io::Read,
