@@ -213,7 +213,10 @@ mod serde_preset_coder_test {
             let encoded_element = encode_element(&element, &coder);
             let decoded_element_dyn = decode_element(&mut encoded_element.reader(), &coder);
 
-            let decoded_element = decoded_element_dyn.as_any().downcast_ref::<String>().unwrap();
+            let decoded_element = decoded_element_dyn
+                .as_any()
+                .downcast_ref::<String>()
+                .unwrap();
 
             assert_eq!(decoded_element, &element);
         }
@@ -240,7 +243,14 @@ mod serde_costom_coder_test {
             pub some_field: String,
         }
 
-        impl ElemType for MyElement {}
+        impl ElemType for MyElement {
+            fn default_coder_urn() -> &'static str
+            where
+                Self: Sized,
+            {
+                MyCoder::URN
+            }
+        }
 
         #[derive(Debug, Default)]
         struct MyCoder;

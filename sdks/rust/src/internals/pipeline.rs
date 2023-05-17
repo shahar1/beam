@@ -302,6 +302,7 @@ impl Pipeline {
             crate::internals::pvalue::PType::PCollection,
             pipeline,
             self.create_pcollection_id_internal(coder_id),
+            Out::default_coder_urn(),
         )
     }
 

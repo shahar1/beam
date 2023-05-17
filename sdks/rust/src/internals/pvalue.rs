@@ -20,6 +20,7 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
+use crate::coders::urns::{ITERABLE_CODER_URN, UNIT_CODER_URN};
 use crate::elem_types::ElemType;
 use crate::proto::pipeline_v1;
 
@@ -37,6 +38,9 @@ where
     ptype: PType,
     pipeline: Arc<Pipeline>,
 
+    /// Default coder's URN that encode/decode `E` in this `PValue` by default.
+    default_coder_urn: &'static str,
+
     phantom: PhantomData<E>,
 }
 
@@ -44,11 +48,17 @@ impl<E> PValue<E>
 where
     E: ElemType,
 {
-    pub(crate) fn new(ptype: PType, pipeline: Arc<Pipeline>, id: String) -> Self {
+    pub(crate) fn new(
+        ptype: PType,
+        pipeline: Arc<Pipeline>,
+        id: String,
+        default_coder_urn: &'static str,
+    ) -> Self {
         Self {
             id,
             ptype,
             pipeline,
+            default_coder_urn,
 
             phantom: PhantomData::default(),
         }
@@ -56,7 +66,12 @@ where
 
     pub(crate) fn root() -> Root {
         let pipeline = Arc::new(Pipeline::default());
-        PValue::new(PType::Root, pipeline, crate::internals::utils::get_bad_id())
+        PValue::new(
+            PType::Root,
+            pipeline,
+            crate::internals::utils::get_bad_id(),
+            UNIT_CODER_URN,
+        )
     }
 
     pub fn new_array(pcolls: &[PValue<E>]) -> Self {
@@ -68,6 +83,7 @@ where
                 .map(|pcoll| -> String { pcoll.id.clone() })
                 .collect::<Vec<String>>()
                 .join(","),
+            ITERABLE_CODER_URN,
         )
     }
 

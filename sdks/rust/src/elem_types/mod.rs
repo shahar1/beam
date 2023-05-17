@@ -4,7 +4,15 @@ use std::{any::Any, fmt};
 
 use bytes::Bytes;
 
-use crate::{coders::required_coders::Iterable, elem_types::kv::KV};
+use crate::{
+    coders::{
+        required_coders::Iterable,
+        urns::{
+            ITERABLE_CODER_URN, KV_CODER_URN, STR_UTF8_CODER_URN, UNIT_CODER_URN, VARINT_CODER_URN,
+        },
+    },
+    elem_types::kv::KV,
+};
 
 /// `&dyn ElemType` is often downcasted.
 ///
@@ -20,9 +28,17 @@ impl<E: ElemType> AsAny for E {
 }
 
 /// Element types used in Beam pipelines (including PTransforms, PCollections, Coders, etc.)
-pub trait ElemType: AsAny + Send + Sync + 'static {}
+pub trait ElemType: AsAny + Send + Sync + 'static {
+    fn default_coder_urn() -> &'static str
+    where
+        Self: Sized;
+}
 
-impl<E: ElemType> ElemType for Vec<E> {}
+impl<E: ElemType> ElemType for Vec<E> {
+    fn default_coder_urn() -> &'static str {
+        ITERABLE_CODER_URN
+    } // TODO how to use ByteCoder for Vec<u8>?
+}
 
 impl ElemType for Bytes {}
 
@@ -31,31 +47,105 @@ where
     K: Clone + Send + Sync + 'static,
     V: Clone + Send + Sync + 'static,
 {
+    fn default_coder_urn() -> &'static str {
+        KV_CODER_URN
+    }
 }
 
-impl<E: ElemType + fmt::Debug> ElemType for Iterable<E> {}
+impl<E: ElemType + fmt::Debug> ElemType for Iterable<E> {
+    fn default_coder_urn() -> &'static str {
+        ITERABLE_CODER_URN
+    }
+}
 
-impl ElemType for String {}
+impl ElemType for String {
+    fn default_coder_urn() -> &'static str {
+        STR_UTF8_CODER_URN
+    }
+}
 
-impl ElemType for i8 {}
-impl ElemType for i16 {}
-impl ElemType for i32 {}
-impl ElemType for i64 {}
-impl ElemType for isize {}
-impl ElemType for u8 {}
-impl ElemType for u16 {}
-impl ElemType for u32 {}
-impl ElemType for u64 {}
-impl ElemType for usize {}
+impl ElemType for i8 {
+    fn default_coder_urn() -> &'static str {
+        VARINT_CODER_URN
+    }
+}
+impl ElemType for i16 {
+    fn default_coder_urn() -> &'static str {
+        VARINT_CODER_URN
+    }
+}
+impl ElemType for i32 {
+    fn default_coder_urn() -> &'static str {
+        VARINT_CODER_URN
+    }
+}
+impl ElemType for i64 {
+    fn default_coder_urn() -> &'static str {
+        VARINT_CODER_URN
+    }
+}
+impl ElemType for isize {
+    fn default_coder_urn() -> &'static str {
+        VARINT_CODER_URN
+    }
+}
+impl ElemType for u8 {
+    fn default_coder_urn() -> &'static str {
+        VARINT_CODER_URN
+    }
+}
+impl ElemType for u16 {
+    fn default_coder_urn() -> &'static str {
+        VARINT_CODER_URN
+    }
+}
+impl ElemType for u32 {
+    fn default_coder_urn() -> &'static str {
+        VARINT_CODER_URN
+    }
+}
+impl ElemType for u64 {
+    fn default_coder_urn() -> &'static str {
+        VARINT_CODER_URN
+    }
+}
+impl ElemType for usize {
+    fn default_coder_urn() -> &'static str {
+        VARINT_CODER_URN
+    }
+}
 
-impl ElemType for () {}
+impl ElemType for () {
+    fn default_coder_urn() -> &'static str {
+        UNIT_CODER_URN
+    }
+}
 
-impl<E1: ElemType, E2: ElemType> ElemType for (E1, E2) {}
-impl<E1: ElemType, E2: ElemType, E3: ElemType> ElemType for (E1, E2, E3) {}
-impl<E1: ElemType, E2: ElemType, E3: ElemType, E4: ElemType> ElemType for (E1, E2, E3, E4) {}
+impl<E1: ElemType, E2: ElemType> ElemType for (E1, E2) {
+    fn default_coder_urn() -> &'static str {
+        ITERABLE_CODER_URN
+    }
+}
+impl<E1: ElemType, E2: ElemType, E3: ElemType> ElemType for (E1, E2, E3) {
+    fn default_coder_urn() -> &'static str {
+        ITERABLE_CODER_URN
+    }
+}
+impl<E1: ElemType, E2: ElemType, E3: ElemType, E4: ElemType> ElemType for (E1, E2, E3, E4) {
+    fn default_coder_urn() -> &'static str {
+        ITERABLE_CODER_URN
+    }
+}
 impl<E1: ElemType, E2: ElemType, E3: ElemType, E4: ElemType, E5: ElemType> ElemType
     for (E1, E2, E3, E4, E5)
 {
+    fn default_coder_urn() -> &'static str {
+        ITERABLE_CODER_URN
+    }
 }
 
-impl<E: ElemType> ElemType for Option<E> {}
+impl<E: ElemType> ElemType for Option<E> {
+    fn default_coder_urn() -> &'static str {
+        todo!()
+    }
+}
