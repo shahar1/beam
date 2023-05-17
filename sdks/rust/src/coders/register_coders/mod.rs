@@ -48,8 +48,8 @@ macro_rules! register_coders {
         }
 
         #[ctor::ctor]
-        fn init_coder_from_urn() {
-            $crate::worker::CODER_FROM_URN.set($crate::worker::CoderFromUrn {
+        fn init_custom_coder_from_urn() {
+            $crate::worker::CUSTOM_CODER_FROM_URN.set($crate::worker::CustomCoderFromUrn {
                 enc: encode_from_urn,
                 dec: decode_from_urn,
             }).unwrap();

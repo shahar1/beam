@@ -20,7 +20,9 @@ mod external_worker_service;
 pub mod operators;
 
 mod coder_from_urn;
-pub use coder_from_urn::{CoderFromUrn, CODER_FROM_URN};
+pub(in crate::worker) use coder_from_urn::CoderFromUrn;
+pub use coder_from_urn::{CustomCoderFromUrn, CUSTOM_CODER_FROM_URN};
+
 mod interceptors;
 
 pub use external_worker_service::ExternalWorkerPool;
@@ -181,9 +183,13 @@ mod serde_preset_coder_test {
             let urn = &coder.spec.as_ref().unwrap().urn;
 
             let mut encoded_element = vec![];
-            CoderFromUrn::global()
-                .encode_from_urn(urn, element, &mut encoded_element, &Context::WholeStream)
-                .unwrap();
+            CoderFromUrn::encode_from_urn(
+                urn,
+                element,
+                &mut encoded_element,
+                &Context::WholeStream,
+            )
+            .unwrap();
 
             encoded_element
         }
@@ -194,9 +200,8 @@ mod serde_preset_coder_test {
         ) -> Box<dyn ElemType> {
             let urn = &coder.spec.as_ref().unwrap().urn;
 
-            let decoded_element_dyn = CoderFromUrn::global()
-                .decode_from_urn(urn, elem_reader, &Context::WholeStream)
-                .unwrap();
+            let decoded_element_dyn =
+                CoderFromUrn::decode_from_urn(urn, elem_reader, &Context::WholeStream).unwrap();
 
             decoded_element_dyn
         }
@@ -304,9 +309,13 @@ mod serde_costom_coder_test {
             let urn = &coder.spec.as_ref().unwrap().urn;
 
             let mut encoded_element = vec![];
-            CoderFromUrn::global()
-                .encode_from_urn(urn, element, &mut encoded_element, &Context::WholeStream)
-                .unwrap();
+            CoderFromUrn::encode_from_urn(
+                urn,
+                element,
+                &mut encoded_element,
+                &Context::WholeStream,
+            )
+            .unwrap();
 
             encoded_element
         }
@@ -317,9 +326,8 @@ mod serde_costom_coder_test {
         ) -> Box<dyn ElemType> {
             let urn = &coder.spec.as_ref().unwrap().urn;
 
-            let decoded_element_dyn = CoderFromUrn::global()
-                .decode_from_urn(urn, elem_reader, &Context::WholeStream)
-                .unwrap();
+            let decoded_element_dyn =
+                CoderFromUrn::decode_from_urn(urn, elem_reader, &Context::WholeStream).unwrap();
 
             decoded_element_dyn
         }
