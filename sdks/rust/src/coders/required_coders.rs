@@ -133,23 +133,22 @@ impl fmt::Debug for BytesCoder {
 }
 
 /// A coder for a key-value pair
-#[derive(Clone, Debug)]
 pub struct KVCoder<KV> {
     phantom: PhantomData<KV>,
 }
 
 impl<K, V> CoderUrn for KVCoder<KV<K, V>>
 where
-    K: ElemType + Clone + fmt::Debug,
-    V: ElemType + Clone + fmt::Debug,
+    K: ElemType,
+    V: ElemType,
 {
     const URN: &'static str = KV_CODER_URN;
 }
 
 impl<K, V> Coder for KVCoder<KV<K, V>>
 where
-    K: ElemType + Clone + fmt::Debug,
-    V: ElemType + Clone + fmt::Debug,
+    K: ElemType,
+    V: ElemType,
 {
     /// Encode the input element (a key-value pair) into a byte output stream. They key and value are encoded one after the
     /// other (first key, then value). The key is encoded with `Context::NeedsDelimiters`, while the value is encoded with
@@ -173,10 +172,20 @@ where
     }
 }
 
+impl<K, V> fmt::Debug for KVCoder<KV<K, V>>
+where
+    K: ElemType,
+    V: ElemType,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("KVCoder").finish()
+    }
+}
+
 impl<K, V> Default for KVCoder<KV<K, V>>
 where
-    K: Send,
-    V: Send,
+    K: ElemType,
+    V: ElemType,
 {
     fn default() -> Self {
         Self {
