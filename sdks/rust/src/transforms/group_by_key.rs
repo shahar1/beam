@@ -54,6 +54,7 @@ impl<K: ElemType + Clone, V: ElemType + Clone> PTransform<KV<K, V>, KV<K, Vec<V>
         &self,
         _input: &PValue<KV<K, V>>, // really a PCollection
         pipeline: Arc<Pipeline>,
+        coder_urn: &str,
         transform_proto: &mut pipeline_v1::PTransform,
     ) -> PValue<KV<K, Vec<V>>> // really a PCollection
     {
@@ -61,6 +62,6 @@ impl<K: ElemType + Clone, V: ElemType + Clone> PTransform<KV<K, V>, KV<K, Vec<V>
             urn: urns::GROUP_BY_KEY_URN.to_string(),
             payload: self.payload.clone().into(),
         });
-        pipeline.create_pcollection_internal("".to_string(), pipeline.clone())
+        pipeline.create_pcollection_internal(coder_urn, pipeline.clone())
     }
 }

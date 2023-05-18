@@ -41,6 +41,7 @@ impl PTransform<(), Vec<u8>> for Impulse {
         &self,
         _input: &PValue<()>,
         pipeline: Arc<Pipeline>,
+        coder_urn: &str,
         transform_proto: &mut pipeline_v1::PTransform,
     ) -> PValue<Vec<u8>> {
         let spec = pipeline_v1::FunctionSpec {
@@ -49,11 +50,8 @@ impl PTransform<(), Vec<u8>> for Impulse {
         };
         transform_proto.spec = Some(spec);
 
-        pipeline.register_coder::<BytesCoder, Vec<u8>>(Box::new(BytesCoder::new()));
-        pipeline.create_pcollection_internal(
-            pipeline.register_coder_proto(BytesCoder::default().to_proto(vec![])),
-            pipeline.clone(),
-        )
+        // TODO want to use BytesCoder by default
+        pipeline.create_pcollection_internal(coder_urn, pipeline.clone())
     }
 }
 

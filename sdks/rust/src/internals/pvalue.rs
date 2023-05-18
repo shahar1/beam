@@ -20,7 +20,6 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use crate::coders::urns::{ITERABLE_CODER_URN, UNIT_CODER_URN};
 use crate::coders::Coder;
 use crate::elem_types::ElemType;
 use crate::proto::pipeline_v1;
@@ -39,10 +38,6 @@ where
     ptype: PType,
     pipeline: Arc<Pipeline>,
 
-    /// Coder's URN that encode/decode `E` in this `PValue`.
-    /// `E::get_coder_urn()` is used by default and can be overridden by `with_coder()`.
-    coder_urn: &'static str,
-
     phantom: PhantomData<E>,
 }
 
@@ -50,17 +45,11 @@ impl<E> PValue<E>
 where
     E: ElemType,
 {
-    pub(crate) fn new(
-        ptype: PType,
-        pipeline: Arc<Pipeline>,
-        id: String,
-        coder_urn: &'static str,
-    ) -> Self {
+    pub(crate) fn new(ptype: PType, pipeline: Arc<Pipeline>, id: String) -> Self {
         Self {
             id,
             ptype,
             pipeline,
-            coder_urn,
 
             phantom: PhantomData::default(),
         }
@@ -68,22 +57,7 @@ where
 
     pub(crate) fn root() -> Root {
         let pipeline = Arc::new(Pipeline::default());
-        PValue::new(
-            PType::Root,
-            pipeline,
-            crate::internals::utils::get_bad_id(),
-            UNIT_CODER_URN,
-        )
-    }
-
-    pub fn with_coder<C: Coder>(self) -> Self {
-        Self {
-            id: self.id,
-            ptype: self.ptype,
-            pipeline: self.pipeline,
-            coder_urn: C::URN,
-            phantom: PhantomData::default(),
-        }
+        PValue::new(PType::Root, pipeline, crate::internals::utils::get_bad_id())
     }
 
     pub fn new_array(pcolls: &[PValue<E>]) -> Self {
@@ -95,7 +69,6 @@ where
                 .map(|pcoll| -> String { pcoll.id.clone() })
                 .collect::<Vec<String>>()
                 .join(","),
-            ITERABLE_CODER_URN,
         )
     }
 
@@ -115,8 +88,22 @@ where
         Out: ElemType + Clone,
         F: PTransform<E, Out> + Send,
     {
+        self.pipeline.apply_transform(
+            transform,
+            self,
+            self.pipeline.clone(),
+            Out::default_coder_urn(),
+        )
+    }
+
+    pub fn apply_with_coder<OverrideCoder, F, Out>(&self, transform: F) -> PValue<Out>
+    where
+        OverrideCoder: Coder,
+        Out: ElemType + Clone,
+        F: PTransform<E, Out> + Send,
+    {
         self.pipeline
-            .apply_transform(transform, self, self.pipeline.clone())
+            .apply_transform(transform, self, self.pipeline.clone(), OverrideCoder::URN)
     }
 
     // pub fn map(&self, callable: impl Fn() -> PValue) -> PValue {
@@ -179,10 +166,12 @@ where
         unimplemented!()
     }
 
+    // TODO make this -> expand
     fn expand_internal(
         &self,
         input: &PValue<In>,
         _pipeline: Arc<Pipeline>,
+        _out_coder_urn: &str,
         _transform_proto: &mut pipeline_v1::PTransform,
     ) -> PValue<Out>
     where
@@ -194,42 +183,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{coders::CoderUrn, register_coders, transforms::impulse::Impulse};
-
-    use super::*;
-
-    #[test]
-    fn test_with_coder() {
-        #[derive(Default, Debug)]
-        struct MyCoder {}
-
-        impl Coder for MyCoder {
-            fn encode(
-                &self,
-                _element: &dyn ElemType,
-                _writer: &mut dyn std::io::Write,
-                _context: &crate::coders::Context,
-            ) -> Result<usize, std::io::Error> {
-                unimplemented!()
-            }
-
-            fn decode(
-                &self,
-                _reader: &mut dyn std::io::Read,
-                _context: &crate::coders::Context,
-            ) -> Result<Box<dyn ElemType>, std::io::Error> {
-                unimplemented!()
-            }
-        }
-
-        register_coders!(MyCoder);
-
-        let root = PValue::<()>::root();
-        assert_eq!(root.coder_urn, UNIT_CODER_URN);
-
-        let pcoll = root.with_coder::<MyCoder>();
-        assert_eq!(pcoll.coder_urn, MyCoder::URN);
-    }
+    use crate::{
+        internals::pvalue::{PType, PValue},
+        transforms::impulse::Impulse,
+    };
 
     #[tokio::test]
     async fn run_impulse_expansion() {

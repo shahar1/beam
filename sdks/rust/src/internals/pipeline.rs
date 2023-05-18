@@ -23,6 +23,7 @@ use crate::elem_types::ElemType;
 use crate::proto::pipeline_v1;
 
 use crate::internals::pvalue::{flatten_pvalue, PTransform, PValue};
+use crate::worker::CoderFromUrn;
 
 const _CODER_ID_PREFIX: &str = "coder_";
 
@@ -102,8 +103,9 @@ impl Pipeline {
         self.proto.clone()
     }
 
-    // TODO: review need for separate function vs register_coder
-    pub fn register_coder_proto(&self, coder_proto: pipeline_v1::Coder) -> String {
+    /// If the `coder_proto` is already registered, return its ID.
+    /// Else, the `coder_proto` is registered and its newly-created ID is returned.
+    fn register_coder_proto(&self, coder_proto: pipeline_v1::Coder) -> String {
         let mut pipeline_proto = self.proto.lock().unwrap();
 
         let proto_coders = &mut pipeline_proto.components.as_mut().unwrap().coders;
@@ -214,11 +216,14 @@ impl Pipeline {
         (transform_id, transform_proto)
     }
 
-    pub fn apply_transform<In, Out, F>(
+    pub(crate) fn apply_transform<In, Out, F>(
         &self,
         transform: F,
         input: &PValue<In>,
         pipeline: Arc<Pipeline>,
+
+        // Coder's URN that encode/decode `Out`.
+        out_coder_urn: &str,
     ) -> PValue<Out>
     where
         In: ElemType,
@@ -236,7 +241,8 @@ impl Pipeline {
             drop(transform_stack);
         }
 
-        let result = transform.expand_internal(input, pipeline, &mut transform_proto);
+        let result =
+            transform.expand_internal(input, pipeline, out_coder_urn, &mut transform_proto);
 
         for (name, id) in flatten_pvalue(&result, None) {
             // Causes test to hang...
@@ -290,23 +296,27 @@ impl Pipeline {
         result
     }
 
-    pub fn create_pcollection_internal<Out>(
+    pub(crate) fn create_pcollection_internal<Out>(
         &self,
-        coder_id: String,
+        coder_urn: &str,
         pipeline: Arc<Pipeline>,
     ) -> PValue<Out>
     where
         Out: ElemType,
     {
+        let coder_id = {
+            let coder_proto = CoderFromUrn::to_proto_from_urn(coder_urn);
+            self.register_coder_proto(coder_proto)
+        };
+
         PValue::new(
             crate::internals::pvalue::PType::PCollection,
             pipeline,
             self.create_pcollection_id_internal(coder_id),
-            Out::default_coder_urn(),
         )
     }
 
-    pub fn create_pcollection_id_internal(&self, coder_id: String) -> String {
+    fn create_pcollection_id_internal(&self, coder_id: String) -> String {
         let pcoll_id = self.context.create_unique_name("pc".to_string());
         let pcoll_proto: pipeline_v1::PCollection = pipeline_v1::PCollection {
             unique_name: pcoll_id.clone(),

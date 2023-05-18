@@ -22,7 +22,7 @@ pub mod standard_coders;
 pub mod urns;
 
 mod register_coders;
-pub(crate) use register_coders::{DecodeFromUrnFn, EncodeFromUrnFn};
+pub(crate) use register_coders::{DecodeFromUrnFn, EncodeFromUrnFn, ToProtoFromUrnFn};
 
 use crate::elem_types::ElemType;
 use crate::proto::pipeline::v1 as pipeline_v1;

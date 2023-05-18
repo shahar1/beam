@@ -5,7 +5,7 @@ use crate::worker::coder_from_urn::preset_coder_from_urn::PresetCoderFromUrn;
 
 mod preset_coder_from_urn;
 
-pub(in crate::worker) struct CoderFromUrn;
+pub(crate) struct CoderFromUrn;
 
 impl CoderFromUrn {
     pub(in crate::worker) fn encode_from_urn(
@@ -28,6 +28,13 @@ impl CoderFromUrn {
         PresetCoderFromUrn::decode_from_urn(urn, reader, context).unwrap_or_else(|| {
             let custom = CustomCoderFromUrn::global();
             (custom.dec)(urn, reader, context)
+        })
+    }
+
+    pub(crate) fn to_proto_from_urn(urn: &str) -> crate::proto::pipeline_v1::Coder {
+        PresetCoderFromUrn::to_proto(urn).unwrap_or_else(|| {
+            let custom = CustomCoderFromUrn::global();
+            (custom.to_proto)(urn)
         })
     }
 }

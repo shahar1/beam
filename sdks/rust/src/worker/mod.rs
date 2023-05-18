@@ -20,7 +20,7 @@ mod external_worker_service;
 pub mod operators;
 
 mod coder_from_urn;
-pub(in crate::worker) use coder_from_urn::CoderFromUrn;
+pub(crate) use coder_from_urn::CoderFromUrn;
 pub use coder_from_urn::{CustomCoderFromUrn, CUSTOM_CODER_FROM_URN};
 
 mod interceptors;
@@ -232,7 +232,7 @@ mod serde_preset_coder_test {
 mod serde_costom_coder_test {
     mod sdk_launcher {
         use crate::{
-            coders::{Coder, Context},
+            coders::{Coder, CoderUrn, Context},
             elem_types::ElemType,
             proto::pipeline::v1 as pipeline_v1,
             register_coders,

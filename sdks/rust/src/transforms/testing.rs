@@ -22,7 +22,6 @@ use super::group_by_key::GroupByKey;
 use super::impulse::Impulse;
 use super::pardo::ParDo;
 use crate::{
-    coders::urns::UNIT_CODER_URN,
     elem_types::{kv::KV, ElemType},
     internals::pvalue::{PTransform, PType, PValue},
 };
@@ -78,10 +77,5 @@ impl<E: ElemType + Clone + PartialEq + Ord + fmt::Debug> PTransform<E, ()>
 
 fn dummy_root<T: ElemType + PartialEq + Ord + fmt::Debug>(input: &PValue<T>) -> PValue<()> {
     let pipeline = input.get_pipeline_arc();
-    PValue::new(
-        PType::Root,
-        pipeline,
-        crate::internals::utils::get_bad_id(),
-        UNIT_CODER_URN,
-    )
+    PValue::new(PType::Root, pipeline, crate::internals::utils::get_bad_id())
 }

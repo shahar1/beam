@@ -48,4 +48,19 @@ impl PresetCoderFromUrn {
             PresetCoderUrn::GeneralObject => GeneralObjectCoder::default().decode(reader, context),
         })
     }
+
+    /// Returns `None` if the urn is not a preset coder urn.
+    pub(crate) fn to_proto(urn: &str) -> Option<crate::proto::pipeline_v1::Coder> {
+        let opt_variant = PresetCoderUrn::iter().find(|variant| variant.as_str() == urn);
+
+        opt_variant.map(|variant| match variant {
+            PresetCoderUrn::Bytes => BytesCoder::default().to_proto(vec![]),
+            PresetCoderUrn::Kv => todo!("create full type including components (not only urn but also full proto maybe required"),
+            PresetCoderUrn::Iterable => todo!("create full type including components (not only urn but also full proto maybe required"),
+            PresetCoderUrn::StrUtf8 => StrUtf8Coder::default().to_proto(vec![]),
+            PresetCoderUrn::VarInt => todo!("create full type including components (not only urn but also full proto maybe required"),
+            PresetCoderUrn::Unit => todo!("make UnitCoder"),
+            PresetCoderUrn::GeneralObject => GeneralObjectCoder::default().to_proto(vec![]),
+        })
+    }
 }
