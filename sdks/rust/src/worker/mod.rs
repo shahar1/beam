@@ -149,13 +149,13 @@ mod tests {
 mod serde_preset_coder_test {
     mod sdk_launcher {
         use crate::{
-            coders::{standard_coders::VarIntCoder, Coder},
+            coders::{standard_coders::StrUtf8Coder, Coder},
             proto::pipeline::v1 as pipeline_v1,
         };
 
         pub fn launcher_register_coder_proto() -> pipeline_v1::Coder {
             // in the proto registration (in the pipeline construction)
-            let coder = VarIntCoder::<i32>::default();
+            let coder = StrUtf8Coder::default();
             coder.to_proto(vec![])
         }
     }
@@ -174,9 +174,9 @@ mod serde_preset_coder_test {
             super::sdk_launcher::launcher_register_coder_proto()
         }
 
-        fn create_element() -> i32 {
+        fn create_element() -> String {
             // A PTransform (UDF) create an instance of i32
-            42
+            "hello".to_string()
         }
 
         fn encode_element(element: &dyn ElemType, coder: &pipeline_v1::Coder) -> Vec<u8> {
@@ -213,7 +213,7 @@ mod serde_preset_coder_test {
             let encoded_element = encode_element(&element, &coder);
             let decoded_element_dyn = decode_element(&mut encoded_element.reader(), &coder);
 
-            let decoded_element = decoded_element_dyn.as_any().downcast_ref::<i32>().unwrap();
+            let decoded_element = decoded_element_dyn.as_any().downcast_ref::<String>().unwrap();
 
             assert_eq!(decoded_element, &element);
         }

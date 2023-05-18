@@ -16,6 +16,44 @@
  * limitations under the License.
  */
 
+use strum::{EnumDiscriminants, EnumIter};
+
+#[derive(Debug, EnumDiscriminants, EnumIter)]
+pub(crate) enum PresetCoderUrn {
+    Bytes,
+    Kv,
+    Iterable,
+    StrUtf8,
+    VarInt,
+    Unit,
+    GeneralObject,
+}
+
+impl PresetCoderUrn {
+    pub(crate) fn as_str(&self) -> &str {
+        match self {
+            // ******* Standard coders *******
+            Self::Bytes => BYTES_CODER_URN,
+            Self::Kv => KV_CODER_URN,
+            Self::Iterable => ITERABLE_CODER_URN,
+
+            // ******* Required coders *******
+            Self::StrUtf8 => STR_UTF8_CODER_URN,
+            Self::VarInt => VARINT_CODER_URN,
+
+            // ******* Rust coders *******
+            Self::Unit => UNIT_CODER_URN,
+            Self::GeneralObject => GENERAL_OBJECT_CODER_URN,
+        }
+    }
+}
+
+impl AsRef<str> for PresetCoderUrn {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
 // ******* Standard coders *******
 pub const BYTES_CODER_URN: &str = "beam:coder:bytes:v1";
 pub const KV_CODER_URN: &str = "beam:coder:kvcoder:v1";

@@ -25,6 +25,3 @@ pub mod proto;
 pub mod runners;
 pub mod transforms;
 pub mod worker;
-
-#[macro_use]
-extern crate strum_macros;

@@ -27,6 +27,7 @@ use std::sync::{Arc, Mutex};
 
 use once_cell::sync::Lazy;
 use serde_json;
+use strum::EnumDiscriminants;
 
 use crate::elem_types::ElemType;
 use crate::internals::serialize;
