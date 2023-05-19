@@ -36,21 +36,20 @@ impl Impulse {
     }
 }
 
-impl PTransform<(), Vec<u8>> for Impulse {
+impl PTransform<(), Bytes> for Impulse {
     fn expand_internal(
         &self,
         _input: &PValue<()>,
         pipeline: Arc<Pipeline>,
         coder_urn: &str,
         transform_proto: &mut pipeline_v1::PTransform,
-    ) -> PValue<Vec<u8>> {
+    ) -> PValue<Bytes> {
         let spec = pipeline_v1::FunctionSpec {
             urn: self.urn.to_string(),
             payload: crate::internals::urns::IMPULSE_BUFFER.to_vec(), // Should be able to omit.
         };
         transform_proto.spec = Some(spec);
 
-        // TODO want to use BytesCoder by default
         pipeline.create_pcollection_internal(coder_urn, pipeline.clone())
     }
 }

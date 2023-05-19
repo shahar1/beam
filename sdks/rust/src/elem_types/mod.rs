@@ -8,8 +8,8 @@ use crate::{
     coders::{
         required_coders::Iterable,
         urns::{
-            ITERABLE_CODER_URN, KV_CODER_URN, NULLABLE_CODER_URN, STR_UTF8_CODER_URN,
-            UNIT_CODER_URN, VARINT_CODER_URN,
+            BYTES_CODER_URN, ITERABLE_CODER_URN, KV_CODER_URN, NULLABLE_CODER_URN,
+            STR_UTF8_CODER_URN, UNIT_CODER_URN, VARINT_CODER_URN,
         },
     },
     elem_types::kv::KV,
@@ -29,6 +29,9 @@ impl<E: ElemType> AsAny for E {
 }
 
 /// Element types used in Beam pipelines (including PTransforms, PCollections, Coders, etc.)
+///
+/// Note that if you would like to use byte arrays as elements, you should use `bytes::Bytes` instead of `Vec<u8>`.
+/// `Vec<u8>` is encoded/decoded by `IterableCoder`, which is slower than `BytesCoder`.
 pub trait ElemType: AsAny + Send + Sync + 'static {
     fn default_coder_urn() -> &'static str
     where
@@ -37,7 +40,13 @@ pub trait ElemType: AsAny + Send + Sync + 'static {
 
 impl<E: ElemType> ElemType for Vec<E> {
     fn default_coder_urn() -> &'static str {
-        ITERABLE_CODER_URN // TODO: BYTES_CODER_URN for Vec<u8>
+        ITERABLE_CODER_URN
+    }
+}
+
+impl ElemType for Bytes {
+    fn default_coder_urn() -> &'static str {
+        BYTES_CODER_URN
     }
 }
 
