@@ -19,7 +19,7 @@
 use super::impulse::Impulse;
 use super::pardo::ParDo;
 use crate::{
-    elem_types::ElemType,
+    elem_types::{DefaultCoder, ElemType},
     internals::pvalue::{PTransform, PValue},
 };
 
@@ -33,7 +33,7 @@ impl<Out: ElemType> Create<Out> {
     }
 }
 
-impl<Out: ElemType + Clone> PTransform<(), Out> for Create<Out> {
+impl<Out: ElemType + DefaultCoder + Clone> PTransform<(), Out> for Create<Out> {
     fn expand(&self, input: &PValue<()>) -> PValue<Out> {
         let elements = self.elements.to_vec();
         // TODO: Consider reshuffling.

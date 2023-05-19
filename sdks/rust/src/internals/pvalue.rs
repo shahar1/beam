@@ -21,7 +21,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use crate::coders::{Coder, CoderUrnTree};
-use crate::elem_types::ElemType;
+use crate::elem_types::{ElemType, DefaultCoder};
 use crate::proto::pipeline_v1;
 
 use crate::internals::pipeline::Pipeline;
@@ -85,7 +85,7 @@ where
 
     pub fn apply<F, Out>(&self, transform: F) -> PValue<Out>
     where
-        Out: ElemType + Clone,
+        Out: ElemType + DefaultCoder + Clone,
         F: PTransform<E, Out> + Send,
     {
         self.pipeline.apply_transform(

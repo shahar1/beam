@@ -245,14 +245,7 @@ mod serde_costom_coder_test {
             pub some_field: String,
         }
 
-        impl ElemType for MyElement {
-            fn default_coder_urn() -> CoderUrnTree
-            where
-                Self: Sized,
-            {
-                MyCoder::coder_urn_tree()
-            }
-        }
+        impl ElemType for MyElement {}
 
         #[derive(Debug, Default)]
         struct MyCoder;

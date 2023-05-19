@@ -39,7 +39,7 @@ use integer_encoding::{VarIntReader, VarIntWriter};
 use crate::coders::{urns::*, CoderUrn, CoderUrnTree};
 use crate::coders::{Coder, Context};
 use crate::elem_types::kv::KV;
-use crate::elem_types::ElemType;
+use crate::elem_types::{DefaultCoder, ElemType};
 
 /// Coder for byte-array data types
 #[derive(Clone, Default)]
@@ -159,8 +159,8 @@ where
 
 impl<K, V> Coder for KVCoder<KV<K, V>>
 where
-    K: ElemType,
-    V: ElemType,
+    K: ElemType + DefaultCoder,
+    V: ElemType + DefaultCoder,
 {
     /// Encode the input element (a key-value pair) into a byte output stream. They key and value are encoded one after the
     /// other (first key, then value). The key is encoded with `Context::NeedsDelimiters`, while the value is encoded with
@@ -236,7 +236,7 @@ where
 
 impl<ItE> Coder for IterableCoder<ItE>
 where
-    ItE: ElemType + fmt::Debug,
+    ItE: ElemType + DefaultCoder + fmt::Debug,
 {
     /// Encode the input iterable into a byte output stream. Elements can be encoded in two different ways:
     ///
