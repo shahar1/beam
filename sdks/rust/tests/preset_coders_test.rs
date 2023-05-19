@@ -31,7 +31,7 @@ mod tests {
 
     use std::fmt;
 
-    use bytes::{Buf, BufMut};
+    use bytes::{Buf, BufMut, Bytes};
     use serde::Deserialize;
     use serde_yaml::{Deserializer, Value};
 
@@ -68,13 +68,13 @@ mod tests {
     }
 
     impl CoderTestUtils for BytesCoder {
-        type InternalCoderType = Vec<u8>;
+        type InternalCoderType = Bytes;
 
         fn parse_yaml_value(
             &self,
             value: &serde_yaml::Value,
         ) -> <BytesCoder as CoderTestUtils>::InternalCoderType {
-            value.as_str().unwrap().as_bytes().to_vec()
+            Bytes::from(value.as_str().unwrap().as_bytes().to_vec())
         }
     }
 

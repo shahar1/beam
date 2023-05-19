@@ -30,6 +30,7 @@
 use std::fmt;
 use std::io::{self, ErrorKind, Read, Write};
 
+use bytes::Bytes;
 use integer_encoding::{VarInt, VarIntReader, VarIntWriter};
 
 use crate::coders::required_coders::BytesCoder;
@@ -54,7 +55,7 @@ impl Coder for StrUtf8Coder {
     ) -> Result<usize, io::Error> {
         let element = element.as_any().downcast_ref::<String>().unwrap();
 
-        let bytes = element.as_bytes().to_vec();
+        let bytes = Bytes::from(element.as_bytes().to_vec());
         let coder = BytesCoder::default();
         coder.encode(&bytes, writer, context)
     }
@@ -66,9 +67,9 @@ impl Coder for StrUtf8Coder {
     ) -> Result<Box<dyn ElemType>, io::Error> {
         let coder = BytesCoder::default();
         let bytes = coder.decode(reader, context)?;
-        let bytes = bytes.as_any().downcast_ref::<Vec<u8>>().unwrap();
+        let bytes = bytes.as_any().downcast_ref::<Bytes>().unwrap();
 
-        let res = String::from_utf8(bytes.clone());
+        let res = String::from_utf8(bytes.as_ref().to_vec());
 
         //TODO: improve error handling
         match res {

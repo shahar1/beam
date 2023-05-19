@@ -267,7 +267,7 @@ pub struct GlobalWindow;
 
 impl Window for GlobalWindow {}
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct DynamicWindowedValue<'a>(&'a dyn Any);
 
 impl<'a> DynamicWindowedValue<'a> {

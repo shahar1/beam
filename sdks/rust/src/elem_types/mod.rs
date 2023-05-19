@@ -2,6 +2,8 @@ pub mod kv;
 
 use std::{any::Any, fmt};
 
+use bytes::Bytes;
+
 use crate::{coders::required_coders::Iterable, elem_types::kv::KV};
 
 /// `&dyn ElemType` is often downcasted.
@@ -21,6 +23,8 @@ impl<E: ElemType> AsAny for E {
 pub trait ElemType: AsAny + Send + Sync + 'static {}
 
 impl<E: ElemType> ElemType for Vec<E> {}
+
+impl ElemType for Bytes {}
 
 impl<K, V> ElemType for KV<K, V>
 where

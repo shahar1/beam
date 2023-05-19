@@ -33,6 +33,7 @@ use std::fmt;
 use std::io::{self, Read, Write};
 use std::marker::PhantomData;
 
+use bytes::Bytes;
 use integer_encoding::{VarIntReader, VarIntWriter};
 
 use crate::coders::{urns::*, CoderUrn};
@@ -60,7 +61,7 @@ impl Coder for BytesCoder {
         mut writer: &mut dyn Write,
         context: &Context,
     ) -> Result<usize, io::Error> {
-        let element = element.as_any().downcast_ref::<Vec<u8>>().unwrap();
+        let element = element.as_any().downcast_ref::<Bytes>().unwrap();
 
         match context {
             Context::WholeStream => writer.write(element),
@@ -88,9 +89,9 @@ impl Coder for BytesCoder {
     ) -> Result<Box<dyn ElemType>, io::Error> {
         match context {
             Context::WholeStream => {
-                let mut buf: Vec<u8> = Vec::new();
+                let mut buf = Vec::new();
                 reader.read_to_end(&mut buf)?;
-                Ok(Box::new(buf))
+                Ok(Box::new(Bytes::from(buf)))
             }
 
             Context::NeedsDelimiters => {
@@ -118,7 +119,7 @@ impl Coder for BytesCoder {
                     return Err(io::Error::from(std::io::ErrorKind::UnexpectedEof));
                 }
 
-                Ok(Box::new(buf))
+                Ok(Box::new(Bytes::from(buf)))
             }
         }
     }
