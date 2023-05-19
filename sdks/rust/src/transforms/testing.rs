@@ -42,7 +42,16 @@ impl<E: ElemType + Clone + Ord> AssertEqualUnordered<E> {
 impl<E: ElemType + Clone + PartialEq + Ord + fmt::Debug> PTransform<E, ()>
     for AssertEqualUnordered<E>
 {
-    fn expand(&self, input: &PValue<E>) -> PValue<()> {
+    fn expand(
+        &self,
+        input: &PValue<E>,
+        _pipeline: std::sync::Arc<crate::internals::pipeline::Pipeline>,
+        _out_coder_urn: &crate::coders::CoderUrnTree,
+        _transform_proto: &mut crate::proto::pipeline_v1::PTransform,
+    ) -> PValue<()>
+    where
+        Self: Sized,
+    {
         // If input is empty, we still need an element to ensure the assertion happens.
         let dummy = dummy_root(input)
             .apply(Impulse::new())

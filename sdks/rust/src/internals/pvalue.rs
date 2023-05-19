@@ -21,7 +21,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use crate::coders::{Coder, CoderUrnTree};
-use crate::elem_types::{ElemType, DefaultCoder};
+use crate::elem_types::{DefaultCoder, ElemType};
 use crate::proto::pipeline_v1;
 
 use crate::internals::pipeline::Pipeline;
@@ -163,15 +163,7 @@ where
     In: ElemType,
     Out: ElemType + Clone,
 {
-    fn expand(&self, _input: &PValue<In>) -> PValue<Out>
-    where
-        Self: Sized,
-    {
-        unimplemented!()
-    }
-
-    // TODO make this -> expand
-    fn expand_internal(
+    fn expand(
         &self,
         input: &PValue<In>,
         _pipeline: Arc<Pipeline>,
@@ -179,10 +171,7 @@ where
         _transform_proto: &mut pipeline_v1::PTransform,
     ) -> PValue<Out>
     where
-        Self: Sized,
-    {
-        self.expand(input)
-    }
+        Self: Sized;
 }
 
 #[cfg(test)]
