@@ -105,7 +105,7 @@ impl Pipeline {
 
     /// If the `coder_proto` is already registered, return its ID.
     /// Else, the `coder_proto` is registered and its newly-created ID is returned.
-    fn register_coder_proto(&self, coder_proto: pipeline_v1::Coder) -> String {
+    fn get_coder_id(&self, coder_proto: pipeline_v1::Coder) -> String {
         let mut pipeline_proto = self.proto.lock().unwrap();
 
         let proto_coders = &mut pipeline_proto.components.as_mut().unwrap().coders;
@@ -306,7 +306,7 @@ impl Pipeline {
     {
         let coder_id = {
             let coder_proto = CoderFromUrn::to_proto_from_urn(coder_urn);
-            self.register_coder_proto(coder_proto)
+            self.get_coder_id(coder_proto)
         };
 
         PValue::new(
