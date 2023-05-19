@@ -21,6 +21,7 @@ use std::sync::Arc;
 use crate::coders::required_coders::BytesCoder;
 use crate::coders::Coder;
 
+use crate::coders::CoderUrnTree;
 use crate::internals::pipeline::Pipeline;
 use crate::internals::pvalue::{PTransform, PValue};
 use crate::internals::urns::IMPULSE_URN;
@@ -41,7 +42,7 @@ impl PTransform<(), Bytes> for Impulse {
         &self,
         _input: &PValue<()>,
         pipeline: Arc<Pipeline>,
-        coder_urn: &str,
+        coder_urn: &CoderUrnTree,
         transform_proto: &mut pipeline_v1::PTransform,
     ) -> PValue<Bytes> {
         let spec = pipeline_v1::FunctionSpec {

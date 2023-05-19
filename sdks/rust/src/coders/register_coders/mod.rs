@@ -47,21 +47,11 @@ macro_rules! register_coders {
             }
         }
 
-        fn to_proto_from_urn(urn: &str) -> $crate::proto::pipeline::v1::Coder {
-            use $crate::coders::CoderUrn;
-
-            match urn {
-                $($coder::URN => $coder::default().to_proto(vec![]),)* // TODO: rethink component_coder_ids parameter
-                _ => panic!("unknown urn: {}", urn),
-            }
-        }
-
         #[ctor::ctor]
         fn init_custom_coder_from_urn() {
             $crate::worker::CUSTOM_CODER_FROM_URN.set($crate::worker::CustomCoderFromUrn {
                 enc: encode_from_urn,
                 dec: decode_from_urn,
-                to_proto: to_proto_from_urn,
             }).unwrap();
         }
     }
@@ -80,5 +70,3 @@ pub(crate) type DecodeFromUrnFn =
         &mut dyn std::io::Read,
         &crate::coders::Context,
     ) -> Result<Box<dyn crate::elem_types::ElemType>, std::io::Error>;
-
-pub(crate) type ToProtoFromUrnFn = fn(&str) -> crate::proto::pipeline_v1::Coder;

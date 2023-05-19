@@ -64,6 +64,10 @@ impl Coder for GeneralObjectCoder<String> {
 
         StrUtf8Coder::default().decode(reader, context)
     }
+
+    fn component_coder_urns() -> Vec<super::CoderUrnTree> {
+        vec![]
+    }
 }
 
 impl<T> Default for GeneralObjectCoder<T> {

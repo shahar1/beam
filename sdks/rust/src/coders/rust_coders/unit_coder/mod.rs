@@ -30,4 +30,8 @@ impl Coder for UnitCoder {
     ) -> Result<Box<dyn ElemType>, io::Error> {
         Ok(Box::new(()))
     }
+
+    fn component_coder_urns() -> Vec<crate::coders::CoderUrnTree> {
+        vec![]
+    }
 }

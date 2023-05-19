@@ -1,4 +1,5 @@
 mod custom_coder_from_urn;
+
 pub use custom_coder_from_urn::{CustomCoderFromUrn, CUSTOM_CODER_FROM_URN};
 
 use crate::worker::coder_from_urn::preset_coder_from_urn::PresetCoderFromUrn;
@@ -28,13 +29,6 @@ impl CoderFromUrn {
         PresetCoderFromUrn::decode_from_urn(urn, reader, context).unwrap_or_else(|| {
             let custom = CustomCoderFromUrn::global();
             (custom.dec)(urn, reader, context)
-        })
-    }
-
-    pub(crate) fn to_proto_from_urn(urn: &str) -> crate::proto::pipeline_v1::Coder {
-        PresetCoderFromUrn::to_proto(urn).unwrap_or_else(|| {
-            let custom = CustomCoderFromUrn::global();
-            (custom.to_proto)(urn)
         })
     }
 }

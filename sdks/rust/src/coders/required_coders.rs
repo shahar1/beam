@@ -36,7 +36,7 @@ use std::marker::PhantomData;
 use bytes::Bytes;
 use integer_encoding::{VarIntReader, VarIntWriter};
 
-use crate::coders::{urns::*, CoderUrn};
+use crate::coders::{urns::*, CoderUrn, CoderUrnTree};
 use crate::coders::{Coder, Context};
 use crate::elem_types::kv::KV;
 use crate::elem_types::ElemType;
@@ -123,6 +123,17 @@ impl Coder for BytesCoder {
             }
         }
     }
+
+    fn coder_urn_tree() -> CoderUrnTree {
+        CoderUrnTree {
+            coder_urn: Self::URN,
+            component_coder_urns: vec![],
+        }
+    }
+
+    fn component_coder_urns() -> Vec<CoderUrnTree> {
+        vec![]
+    }
 }
 
 impl fmt::Debug for BytesCoder {
@@ -170,6 +181,10 @@ where
         _context: &Context,
     ) -> Result<Box<dyn ElemType>, io::Error> {
         todo!()
+    }
+
+    fn component_coder_urns() -> Vec<CoderUrnTree> {
+        vec![K::default_coder_urn(), V::default_coder_urn()]
     }
 }
 
@@ -247,6 +262,10 @@ where
         _context: &Context,
     ) -> Result<Box<dyn ElemType>, io::Error> {
         todo!()
+    }
+
+    fn component_coder_urns() -> Vec<CoderUrnTree> {
+        vec![ItE::default_coder_urn()]
     }
 }
 

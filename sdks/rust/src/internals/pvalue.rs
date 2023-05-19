@@ -20,7 +20,7 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use crate::coders::Coder;
+use crate::coders::{Coder, CoderUrnTree};
 use crate::elem_types::ElemType;
 use crate::proto::pipeline_v1;
 
@@ -92,7 +92,7 @@ where
             transform,
             self,
             self.pipeline.clone(),
-            Out::default_coder_urn(),
+            &Out::default_coder_urn(),
         )
     }
 
@@ -102,8 +102,12 @@ where
         Out: ElemType + Clone,
         F: PTransform<E, Out> + Send,
     {
-        self.pipeline
-            .apply_transform(transform, self, self.pipeline.clone(), OverrideCoder::URN)
+        self.pipeline.apply_transform(
+            transform,
+            self,
+            self.pipeline.clone(),
+            &OverrideCoder::coder_urn_tree(),
+        )
     }
 
     // pub fn map(&self, callable: impl Fn() -> PValue) -> PValue {
@@ -171,7 +175,7 @@ where
         &self,
         input: &PValue<In>,
         _pipeline: Arc<Pipeline>,
-        _out_coder_urn: &str,
+        _out_coder_urn: &CoderUrnTree,
         _transform_proto: &mut pipeline_v1::PTransform,
     ) -> PValue<Out>
     where

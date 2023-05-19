@@ -19,11 +19,11 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
+use crate::coders::CoderUrnTree;
 use crate::elem_types::ElemType;
 use crate::proto::pipeline_v1;
 
 use crate::internals::pvalue::{flatten_pvalue, PTransform, PValue};
-use crate::worker::CoderFromUrn;
 
 const _CODER_ID_PREFIX: &str = "coder_";
 
@@ -101,6 +101,33 @@ impl Pipeline {
 
     pub fn get_proto(&self) -> Arc<std::sync::Mutex<pipeline_v1::Pipeline>> {
         self.proto.clone()
+    }
+
+    /// Recursively construct a coder (and its component coders) in protocol buffer representation for the Runner API.
+    /// A coder in protobuf format can be shared with other components such as Beam runners,
+    /// SDK workers; and reconstructed into its runtime representation if necessary.
+    fn coder_to_proto(&self, coder_urn_tree: &CoderUrnTree) -> pipeline_v1::Coder {
+        fn helper(coder_urn: &str, component_coder_ids: Vec<String>) -> pipeline_v1::Coder {
+            let spec = pipeline_v1::FunctionSpec {
+                urn: coder_urn.to_string(),
+                payload: vec![], // unused in Rust SDK
+            };
+            pipeline_v1::Coder {
+                spec: Some(spec),
+                component_coder_ids,
+            }
+        }
+
+        let component_coder_ids = coder_urn_tree
+            .component_coder_urns
+            .iter()
+            .map(|component_coder_urn| {
+                let coder_proto = self.coder_to_proto(component_coder_urn);
+                self.get_coder_id(coder_proto)
+            })
+            .collect();
+
+        helper(coder_urn_tree.coder_urn, component_coder_ids)
     }
 
     /// If the `coder_proto` is already registered, return its ID.
@@ -223,7 +250,7 @@ impl Pipeline {
         pipeline: Arc<Pipeline>,
 
         // Coder's URN that encode/decode `Out`.
-        out_coder_urn: &str,
+        out_coder_urn: &CoderUrnTree,
     ) -> PValue<Out>
     where
         In: ElemType,
@@ -298,14 +325,14 @@ impl Pipeline {
 
     pub(crate) fn create_pcollection_internal<Out>(
         &self,
-        coder_urn: &str,
+        coder_urn_tree: &CoderUrnTree,
         pipeline: Arc<Pipeline>,
     ) -> PValue<Out>
     where
         Out: ElemType,
     {
         let coder_id = {
-            let coder_proto = CoderFromUrn::to_proto_from_urn(coder_urn);
+            let coder_proto = self.coder_to_proto(coder_urn_tree);
             self.get_coder_id(coder_proto)
         };
 
@@ -339,5 +366,15 @@ impl Pipeline {
 impl Default for Pipeline {
     fn default() -> Self {
         Self::new("".to_string())
+    }
+}
+
+impl Pipeline {
+    #[cfg(test)]
+    pub(crate) fn coder_to_proto_test_wrapper(
+        &self,
+        coder_urn_tree: &CoderUrnTree,
+    ) -> pipeline_v1::Coder {
+        self.coder_to_proto(coder_urn_tree)
     }
 }

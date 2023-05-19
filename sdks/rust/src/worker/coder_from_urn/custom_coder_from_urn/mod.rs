@@ -2,7 +2,7 @@ use std::fmt;
 
 use once_cell::sync::OnceCell;
 
-use crate::coders::{DecodeFromUrnFn, EncodeFromUrnFn, ToProtoFromUrnFn};
+use crate::coders::{DecodeFromUrnFn, EncodeFromUrnFn};
 
 /// The visibility is `pub` because this is used internally from `register_coders!` macro.
 pub static CUSTOM_CODER_FROM_URN: OnceCell<CustomCoderFromUrn> = OnceCell::new();
@@ -11,7 +11,6 @@ pub static CUSTOM_CODER_FROM_URN: OnceCell<CustomCoderFromUrn> = OnceCell::new()
 pub struct CustomCoderFromUrn {
     pub enc: EncodeFromUrnFn,
     pub dec: DecodeFromUrnFn,
-    pub to_proto: ToProtoFromUrnFn,
 }
 
 impl CustomCoderFromUrn {
@@ -38,13 +37,6 @@ impl CustomCoderFromUrn {
         context: &crate::coders::Context,
     ) -> Result<Box<dyn crate::elem_types::ElemType>, std::io::Error> {
         (self.dec)(urn, reader, context)
-    }
-
-    pub(in crate::worker::coder_from_urn) fn to_proto_from_urn(
-        &self,
-        urn: &str,
-    ) -> crate::proto::pipeline_v1::Coder {
-        (self.to_proto)(urn)
     }
 }
 

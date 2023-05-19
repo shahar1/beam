@@ -150,13 +150,14 @@ mod serde_preset_coder_test {
     mod sdk_launcher {
         use crate::{
             coders::{standard_coders::StrUtf8Coder, Coder},
+            internals::pipeline::Pipeline,
             proto::pipeline::v1 as pipeline_v1,
         };
 
         pub fn launcher_register_coder_proto() -> pipeline_v1::Coder {
             // in the proto registration (in the pipeline construction)
-            let coder = StrUtf8Coder::default();
-            coder.to_proto(vec![])
+            let p = Pipeline::new("".to_string());
+            p.coder_to_proto_test_wrapper(&StrUtf8Coder::coder_urn_tree())
         }
     }
 
@@ -232,8 +233,9 @@ mod serde_preset_coder_test {
 mod serde_costom_coder_test {
     mod sdk_launcher {
         use crate::{
-            coders::{Coder, CoderUrn, Context},
+            coders::{Coder, CoderUrnTree, Context},
             elem_types::ElemType,
+            internals::pipeline::Pipeline,
             proto::pipeline::v1 as pipeline_v1,
             register_coders,
         };
@@ -244,11 +246,11 @@ mod serde_costom_coder_test {
         }
 
         impl ElemType for MyElement {
-            fn default_coder_urn() -> &'static str
+            fn default_coder_urn() -> CoderUrnTree
             where
                 Self: Sized,
             {
-                MyCoder::URN
+                MyCoder::coder_urn_tree()
             }
         }
 
@@ -283,14 +285,18 @@ mod serde_costom_coder_test {
                     some_field: element.to_string(),
                 }))
             }
+
+            fn component_coder_urns() -> Vec<CoderUrnTree> {
+                vec![]
+            }
         }
 
         register_coders!(MyCoder);
 
         pub fn launcher_register_coder_proto() -> pipeline_v1::Coder {
             // in the proto registration (in the pipeline construction)
-            let my_coder = MyCoder::default();
-            my_coder.to_proto(vec![])
+            let p = Pipeline::new("".to_string());
+            p.coder_to_proto_test_wrapper(&MyCoder::coder_urn_tree())
         }
     }
 

@@ -22,10 +22,12 @@ pub mod standard_coders;
 pub mod urns;
 
 mod register_coders;
-pub(crate) use register_coders::{DecodeFromUrnFn, EncodeFromUrnFn, ToProtoFromUrnFn};
+pub(crate) use register_coders::{DecodeFromUrnFn, EncodeFromUrnFn};
+
+mod coder_urn_tree;
+pub(crate) use coder_urn_tree::CoderUrnTree;
 
 use crate::elem_types::ElemType;
-use crate::proto::pipeline::v1 as pipeline_v1;
 use std::fmt;
 use std::io::{self, Read, Write};
 
@@ -123,20 +125,24 @@ pub trait Coder: CoderUrn + fmt::Debug + Default {
         context: &Context,
     ) -> Result<Box<dyn ElemType>, io::Error>;
 
-    /// Convert this coder into its protocol buffer representation for the Runner API.
-    /// A coder in protobuf format can be shared with other components such as Beam runners,
-    /// SDK workers; and reconstructed into its runtime representation if necessary.
-    #[doc(hidden)]
-    fn to_proto(&self, component_coder_ids: Vec<String>) -> pipeline_v1::Coder {
-        let spec = pipeline_v1::FunctionSpec {
-            urn: Self::URN.to_string(),
-            payload: vec![], // unused in Rust SDK
-        };
-        pipeline_v1::Coder {
-            spec: Some(spec),
-            component_coder_ids,
+    /// Coder URN of `Self` and its component coders.
+    fn coder_urn_tree() -> CoderUrnTree {
+        CoderUrnTree {
+            coder_urn: Self::URN,
+            component_coder_urns: Self::component_coder_urns(),
         }
     }
+
+    /// URNs of Component coders (internal coders like `T` in `ListCoder<T>`).
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// fn component_coder_urns() -> Vec<CoderUrnTree> {
+    ///   vec![ComponentCoder1::coder_urn_tree(), ComponentCoder2::coder_urn_tree()]
+    /// }
+    /// ```
+    fn component_coder_urns() -> Vec<CoderUrnTree>;
 }
 
 /// The context for encoding a PCollection element.

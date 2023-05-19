@@ -20,6 +20,7 @@ use std::iter;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
+use crate::coders::CoderUrnTree;
 use crate::elem_types::ElemType;
 use crate::internals::pipeline::Pipeline;
 use crate::internals::pvalue::{PTransform, PValue};
@@ -94,7 +95,7 @@ where
         &self,
         _input: &PValue<In>, // really a PCollection<T>
         pipeline: Arc<Pipeline>,
-        out_coder_urn: &str,
+        out_coder_urn: &CoderUrnTree,
         transform_proto: &mut pipeline_v1::PTransform,
     ) -> PValue<Out> // really a PCollection<O>
     {

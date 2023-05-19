@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use std::boxed::Box;
+use std::fmt;
 use std::sync::{Arc, Mutex};
 
 use once_cell::sync::Lazy;
@@ -74,7 +75,10 @@ pub trait DynamicKeyExtractor: Sync + Send {
     fn recombine(&self, grouped_values: &DynamicGroupedValues, receivers: &[Arc<Receiver>]);
 }
 
-impl<V: ElemType + Clone> DynamicKeyExtractor for KeyExtractor<V> {
+impl<V> DynamicKeyExtractor for KeyExtractor<V>
+where
+    V: ElemType + Clone + fmt::Debug,
+{
     fn new_grouped_values(&self) -> DynamicGroupedValues {
         DynamicGroupedValues::new::<V>()
     }
