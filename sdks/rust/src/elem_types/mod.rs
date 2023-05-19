@@ -53,8 +53,6 @@ impl ElemType for Bytes {
     }
 }
 
-impl ElemType for Bytes {}
-
 impl<K, V> ElemType for KV<K, V>
 where
     K: ElemType,

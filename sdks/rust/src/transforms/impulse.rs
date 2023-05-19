@@ -18,9 +18,6 @@
 
 use std::sync::Arc;
 
-use crate::coders::required_coders::BytesCoder;
-use crate::coders::Coder;
-
 use crate::coders::CoderUrnTree;
 use crate::internals::pipeline::Pipeline;
 use crate::internals::pvalue::{PTransform, PValue};
@@ -37,14 +34,14 @@ impl Impulse {
     }
 }
 
-impl PTransform<(), Bytes> for Impulse {
+impl PTransform<(), Vec<u8>> for Impulse {
     fn expand_internal(
         &self,
         _input: &PValue<()>,
         pipeline: Arc<Pipeline>,
         coder_urn: &CoderUrnTree,
         transform_proto: &mut pipeline_v1::PTransform,
-    ) -> PValue<Bytes> {
+    ) -> PValue<Vec<u8>> {
         let spec = pipeline_v1::FunctionSpec {
             urn: self.urn.to_string(),
             payload: crate::internals::urns::IMPULSE_BUFFER.to_vec(), // Should be able to omit.
