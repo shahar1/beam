@@ -8,7 +8,7 @@ use crate::{
     coders::{
         required_coders::{BytesCoder, Iterable, IterableCoder, KVCoder},
         rust_coders::UnitCoder,
-        standard_coders::{StrUtf8Coder, VarIntCoder},
+        standard_coders::{NullableCoder, StrUtf8Coder, VarIntCoder},
         Coder, CoderUrnTree,
     },
     elem_types::kv::KV,
@@ -172,6 +172,6 @@ impl<
 
 impl<E: ElemType> ElemType for Option<E> {
     fn default_coder_urn() -> CoderUrnTree {
-        todo!("NullableCoder?")
+        NullableCoder::<E>::coder_urn_tree()
     }
 }
