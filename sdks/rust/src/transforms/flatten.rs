@@ -39,7 +39,7 @@ where
     In: ElemType,
     Out: ElemType + Clone,
 {
-    fn expand(
+    fn expand_internal(
         &self,
         _input: &PValue<In>,
         pipeline: Arc<Pipeline>,

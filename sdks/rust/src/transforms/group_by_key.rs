@@ -54,7 +54,7 @@ where
     K: ElemType + Clone + fmt::Debug,
     V: ElemType + Clone + fmt::Debug,
 {
-    fn expand(
+    fn expand_internal(
         &self,
         _input: &PValue<KV<K, V>>, // really a PCollection
         pipeline: Arc<Pipeline>,

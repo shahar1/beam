@@ -34,7 +34,7 @@ impl<Out: ElemType> Create<Out> {
 }
 
 impl<Out: ElemType + DefaultCoder + Clone> PTransform<(), Out> for Create<Out> {
-    fn expand(
+    fn expand_internal(
         &self,
         input: &PValue<()>,
         _pipeline: std::sync::Arc<crate::internals::pipeline::Pipeline>,

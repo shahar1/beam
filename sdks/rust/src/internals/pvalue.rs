@@ -20,6 +20,7 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
+use crate::coders::urns::{ITERABLE_CODER_URN, UNIT_CODER_URN};
 use crate::coders::{Coder, CoderUrnTree};
 use crate::elem_types::{DefaultCoder, ElemType};
 use crate::proto::pipeline_v1;
@@ -37,6 +38,7 @@ where
     id: String,
     ptype: PType,
     pipeline: Arc<Pipeline>,
+    coder_urn: String,
 
     phantom: PhantomData<E>,
 }
@@ -45,11 +47,17 @@ impl<E> PValue<E>
 where
     E: ElemType,
 {
-    pub(crate) fn new(ptype: PType, pipeline: Arc<Pipeline>, id: String) -> Self {
+    pub(crate) fn new(
+        ptype: PType,
+        pipeline: Arc<Pipeline>,
+        id: String,
+        coder_urn: String,
+    ) -> Self {
         Self {
             id,
             ptype,
             pipeline,
+            coder_urn,
 
             phantom: PhantomData::default(),
         }
@@ -57,7 +65,12 @@ where
 
     pub(crate) fn root() -> Root {
         let pipeline = Arc::new(Pipeline::default());
-        PValue::new(PType::Root, pipeline, crate::internals::utils::get_bad_id())
+        PValue::new(
+            PType::Root,
+            pipeline,
+            crate::internals::utils::get_bad_id(),
+            UNIT_CODER_URN.to_string(),
+        )
     }
 
     pub fn new_array(pcolls: &[PValue<E>]) -> Self {
@@ -69,11 +82,17 @@ where
                 .map(|pcoll| -> String { pcoll.id.clone() })
                 .collect::<Vec<String>>()
                 .join(","),
+            ITERABLE_CODER_URN.to_string(),
         )
     }
 
     pub(crate) fn get_pipeline_arc(&self) -> Arc<Pipeline> {
         self.pipeline.clone()
+    }
+
+    /// Returns the coder URN for this `PValue`.
+    pub fn coder_urn(&self) -> &str {
+        &self.coder_urn
     }
 
     pub fn get_type(&self) -> &PType {
@@ -163,7 +182,7 @@ where
     In: ElemType,
     Out: ElemType + Clone,
 {
-    fn expand(
+    fn expand_internal(
         &self,
         input: &PValue<In>,
         _pipeline: Arc<Pipeline>,
@@ -172,6 +191,21 @@ where
     ) -> PValue<Out>
     where
         Self: Sized;
+
+    fn expand(
+        &self,
+        input: &PValue<In>,
+        pipeline: Arc<Pipeline>,
+        out_coder_urn: &CoderUrnTree,
+        transform_proto: &mut pipeline_v1::PTransform,
+    ) -> PValue<Out>
+    where
+        Self: Sized,
+    {
+        let mut pvalue = self.expand_internal(input, pipeline, out_coder_urn, transform_proto);
+        pvalue.coder_urn = out_coder_urn.coder_urn.to_owned();
+        pvalue
+    }
 }
 
 #[cfg(test)]

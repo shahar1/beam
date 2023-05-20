@@ -35,7 +35,7 @@ impl Impulse {
 }
 
 impl PTransform<(), Vec<u8>> for Impulse {
-    fn expand(
+    fn expand_internal(
         &self,
         _input: &PValue<()>,
         pipeline: Arc<Pipeline>,

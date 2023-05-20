@@ -268,7 +268,8 @@ impl Pipeline {
             drop(transform_stack);
         }
 
-        let result = transform.expand(input, pipeline, out_coder_urn, &mut transform_proto);
+        let result =
+            transform.expand(input, pipeline, out_coder_urn, &mut transform_proto);
 
         for (name, id) in flatten_pvalue(&result, None) {
             // Causes test to hang...
@@ -339,6 +340,7 @@ impl Pipeline {
             crate::internals::pvalue::PType::PCollection,
             pipeline,
             self.create_pcollection_id_internal(coder_id),
+            coder_urn_tree.coder_urn.to_string(),
         )
     }
 

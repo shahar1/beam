@@ -91,7 +91,7 @@ where
     In: ElemType,
     Out: ElemType + Clone,
 {
-    fn expand(
+    fn expand_internal(
         &self,
         _input: &PValue<In>, // really a PCollection<T>
         pipeline: Arc<Pipeline>,
