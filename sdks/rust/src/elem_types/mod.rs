@@ -164,6 +164,9 @@ impl<
 }
 
 impl<E: ElemType> ElemType for Option<E> {}
-impl<E: ElemType> DefaultCoder for Option<E> {
+impl<E> DefaultCoder for Option<E>
+where
+    E: ElemType + DefaultCoder,
+{
     type C = NullableCoder<E>;
 }

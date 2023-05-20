@@ -23,7 +23,7 @@ use super::impulse::Impulse;
 use super::pardo::ParDo;
 use crate::{
     coders::urns::UNIT_CODER_URN,
-    elem_types::{kv::KV, ElemType},
+    elem_types::{kv::KV, DefaultCoder, ElemType},
     internals::pvalue::{PTransform, PType, PValue},
 };
 
@@ -40,7 +40,7 @@ impl<E: ElemType + Clone + Ord> AssertEqualUnordered<E> {
     }
 }
 
-impl<E: ElemType + Clone + PartialEq + Ord + fmt::Debug> PTransform<E, ()>
+impl<E: ElemType + DefaultCoder + Clone + PartialEq + Ord + fmt::Debug> PTransform<E, ()>
     for AssertEqualUnordered<E>
 {
     fn expand_internal(
