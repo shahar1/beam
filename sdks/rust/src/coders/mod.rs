@@ -99,7 +99,7 @@ pub trait CoderUrn {
 ///
 /// 1. The SDK harness receives the serialized coder's URN and its ID from Fn API.
 /// 2. The SDK harness deserializes the coder's URN and creates an instance of the coder specified by the URN.
-pub trait Coder: fmt::Debug + Default {
+pub trait Coder: fmt::Debug {
     /// Encode an element into a stream of bytes
     ///
     /// # Arguments
@@ -149,6 +149,6 @@ mod tests {
 
     #[test]
     fn test_coder_trait_object() {
-        let _coder: Box<dyn Coder> = Box::new(StrUtf8Coder::default());
+        let _coder: Box<dyn Coder> = Box::<StrUtf8Coder>::default();
     }
 }
