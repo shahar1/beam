@@ -266,8 +266,7 @@ impl Pipeline {
             drop(transform_stack);
         }
 
-        let result =
-            transform.expand(input, pipeline, out_coder_urn, &mut transform_proto);
+        let result = transform.expand(input, pipeline, out_coder_urn, &mut transform_proto);
 
         for (name, id) in flatten_pvalue(&result, None) {
             // Causes test to hang...
@@ -375,5 +374,49 @@ impl Pipeline {
         coder_urn_tree: &CoderUrnTree,
     ) -> pipeline_v1::Coder {
         self.coder_to_proto(coder_urn_tree)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        coders::{
+            required_coders::BytesCoder,
+            urns::{BYTES_CODER_URN, ITERABLE_CODER_URN},
+        },
+        transforms::impulse::Impulse,
+    };
+
+    use super::*;
+
+    fn coder_urn_from_pvalue<E: ElemType>(pvalue: &PValue<E>) -> String {
+        let pcoll_id = pvalue.get_id();
+
+        let pipeline_proto = pvalue.get_pipeline_arc().get_proto();
+        let pipeline_proto = pipeline_proto.lock().unwrap();
+
+        let components = pipeline_proto.components.as_ref().unwrap();
+        let pcoll = components.pcollections.get(&pcoll_id).unwrap();
+        let coder_id = &pcoll.coder_id;
+        let coder = components.coders.get(coder_id).unwrap();
+        coder.spec.as_ref().unwrap().urn.to_string()
+    }
+
+    #[test]
+    fn test_default_coder_in_proto() {
+        let root = PValue::<()>::root();
+        let pvalue = root.apply(Impulse::new());
+
+        let coder_urn = coder_urn_from_pvalue(&pvalue);
+        assert_eq!(coder_urn, ITERABLE_CODER_URN);
+    }
+
+    #[test]
+    fn test_override_coder_in_proto() {
+        let root = PValue::<()>::root();
+        let pvalue = root.apply_with_coder::<BytesCoder, _, _>(Impulse::new());
+
+        let coder_urn = coder_urn_from_pvalue(&pvalue);
+        assert_eq!(coder_urn, BYTES_CODER_URN);
     }
 }
