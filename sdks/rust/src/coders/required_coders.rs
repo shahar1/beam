@@ -124,13 +124,6 @@ impl Coder for BytesCoder {
         }
     }
 
-    fn coder_urn_tree() -> CoderUrnTree {
-        CoderUrnTree {
-            coder_urn: Self::URN,
-            component_coder_urns: vec![],
-        }
-    }
-
     fn component_coder_urns() -> Vec<CoderUrnTree> {
         vec![]
     }
