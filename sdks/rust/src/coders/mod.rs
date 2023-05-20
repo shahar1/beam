@@ -21,12 +21,14 @@ pub mod rust_coders;
 pub mod standard_coders;
 pub mod urns;
 
+mod coder_urn_tree;
+pub(crate) use coder_urn_tree::CoderUrnTree;
+
 mod pipeline_construction;
 pub use pipeline_construction::CoderForPipeline;
-pub(crate) use pipeline_construction::CoderUrnTree;
 
 mod register_coders;
-pub(crate) use register_coders::{DecodeFromUrnFn, EncodeFromUrnFn};
+pub(crate) use register_coders::CoderFromUrnFn;
 
 use crate::elem_types::ElemType;
 use std::fmt;

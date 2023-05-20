@@ -1,7 +1,4 @@
-mod coder_urn_tree;
-pub(crate) use coder_urn_tree::CoderUrnTree;
-
-use crate::coders::CoderUrn;
+use crate::coders::{CoderUrn, CoderUrnTree};
 
 /// Coder's methods used in pipeline construction.
 pub trait CoderForPipeline: CoderUrn {
@@ -9,7 +6,7 @@ pub trait CoderForPipeline: CoderUrn {
     #[doc(hidden)]
     fn coder_urn_tree() -> CoderUrnTree {
         CoderUrnTree {
-            coder_urn: Self::URN,
+            coder_urn: Self::URN.to_string(),
             component_coder_urns: Self::component_coder_urns(),
         }
     }

@@ -20,8 +20,7 @@ mod external_worker_service;
 pub mod operators;
 
 mod coder_from_urn;
-pub(crate) use coder_from_urn::CoderFromUrn;
-pub use coder_from_urn::{CustomCoderFromUrn, CUSTOM_CODER_FROM_URN};
+pub use coder_from_urn::{CoderFromUrn, CODER_FROM_URN};
 
 mod interceptors;
 
@@ -148,16 +147,13 @@ mod tests {
 #[cfg(test)]
 mod serde_preset_coder_test {
     mod sdk_launcher {
-        use crate::{
-            coders::{standard_coders::StrUtf8Coder, CoderForPipeline},
-            internals::pipeline::Pipeline,
-            proto::pipeline::v1 as pipeline_v1,
-        };
+        use crate::{coders::CoderUrnTree, internals::pvalue::PValue, transforms::create::Create};
 
-        pub fn launcher_register_coder_proto() -> pipeline_v1::Coder {
+        pub fn launcher_register_coder_proto() -> CoderUrnTree {
             // in the proto registration (in the pipeline construction)
-            let p = Pipeline::new("".to_string());
-            p.coder_to_proto_test_wrapper(&StrUtf8Coder::coder_urn_tree())
+            let root = PValue::<()>::root();
+            let pvalue = root.apply(Create::new(vec!["a".to_string(), "b".to_string()]));
+            (&pvalue).into()
         }
     }
 
@@ -166,11 +162,12 @@ mod serde_preset_coder_test {
         use std::io;
 
         use crate::{
-            coders::Context, elem_types::ElemType, proto::pipeline::v1 as pipeline_v1,
+            coders::{CoderUrnTree, Context},
+            elem_types::ElemType,
             worker::CoderFromUrn,
         };
 
-        fn receive_coder() -> pipeline_v1::Coder {
+        fn receive_coder() -> CoderUrnTree {
             // serialized coder is sent from the launcher
             super::sdk_launcher::launcher_register_coder_proto()
         }
@@ -180,31 +177,23 @@ mod serde_preset_coder_test {
             "hello".to_string()
         }
 
-        fn encode_element(element: &dyn ElemType, coder: &pipeline_v1::Coder) -> Vec<u8> {
-            let urn = &coder.spec.as_ref().unwrap().urn;
-
+        fn encode_element(element: &dyn ElemType, coder_urn_tree: &CoderUrnTree) -> Vec<u8> {
             let mut encoded_element = vec![];
-            CoderFromUrn::encode_from_urn(
-                urn,
-                element,
-                &mut encoded_element,
-                &Context::WholeStream,
-            )
-            .unwrap();
+
+            let coder = CoderFromUrn::global().coder_from_urn(coder_urn_tree);
+            coder
+                .encode(element, &mut encoded_element, &Context::WholeStream)
+                .unwrap();
 
             encoded_element
         }
 
         fn decode_element(
             elem_reader: &mut dyn io::Read,
-            coder: &pipeline_v1::Coder,
+            coder_urn_tree: &CoderUrnTree,
         ) -> Box<dyn ElemType> {
-            let urn = &coder.spec.as_ref().unwrap().urn;
-
-            let decoded_element_dyn =
-                CoderFromUrn::decode_from_urn(urn, elem_reader, &Context::WholeStream).unwrap();
-
-            decoded_element_dyn
+            let coder = CoderFromUrn::global().coder_from_urn(coder_urn_tree);
+            coder.decode(elem_reader, &Context::WholeStream).unwrap()
         }
 
         pub fn test() {
@@ -234,10 +223,10 @@ mod serde_costom_coder_test {
     mod sdk_launcher {
         use crate::{
             coders::{Coder, CoderForPipeline, CoderUrnTree, Context},
-            elem_types::ElemType,
-            internals::pipeline::Pipeline,
-            proto::pipeline::v1 as pipeline_v1,
+            elem_types::{DefaultCoder, ElemType},
+            internals::pvalue::PValue,
             register_coders,
+            transforms::create::Create,
         };
 
         #[derive(Clone, PartialEq, Eq, Debug)]
@@ -247,8 +236,12 @@ mod serde_costom_coder_test {
 
         impl ElemType for MyElement {}
 
+        impl DefaultCoder for MyElement {
+            type C = MyCoder;
+        }
+
         #[derive(Debug, Default)]
-        struct MyCoder;
+        pub struct MyCoder;
 
         impl Coder for MyCoder {
             fn encode(
@@ -288,10 +281,18 @@ mod serde_costom_coder_test {
 
         register_coders!(MyCoder);
 
-        pub fn launcher_register_coder_proto() -> pipeline_v1::Coder {
+        pub fn launcher_register_coder_proto() -> CoderUrnTree {
             // in the proto registration (in the pipeline construction)
-            let p = Pipeline::new("".to_string());
-            p.coder_to_proto_test_wrapper(&MyCoder::coder_urn_tree())
+            let root = PValue::<()>::root();
+            let pvalue = root.apply(Create::new(vec![
+                MyElement {
+                    some_field: "a".to_string(),
+                },
+                MyElement {
+                    some_field: "b".to_string(),
+                },
+            ]));
+            (&pvalue).into()
         }
     }
 
@@ -300,11 +301,12 @@ mod serde_costom_coder_test {
         use std::io;
 
         use crate::{
-            coders::Context, elem_types::ElemType, proto::pipeline::v1 as pipeline_v1,
+            coders::{CoderUrnTree, Context},
+            elem_types::ElemType,
             worker::CoderFromUrn,
         };
 
-        fn receive_coder() -> pipeline_v1::Coder {
+        fn receive_coder() -> CoderUrnTree {
             // serialized coder is sent from the launcher
             super::sdk_launcher::launcher_register_coder_proto()
         }
@@ -316,31 +318,23 @@ mod serde_costom_coder_test {
             }
         }
 
-        fn encode_element(element: &dyn ElemType, coder: &pipeline_v1::Coder) -> Vec<u8> {
-            let urn = &coder.spec.as_ref().unwrap().urn;
-
+        fn encode_element(element: &dyn ElemType, coder_urn_tree: &CoderUrnTree) -> Vec<u8> {
             let mut encoded_element = vec![];
-            CoderFromUrn::encode_from_urn(
-                urn,
-                element,
-                &mut encoded_element,
-                &Context::WholeStream,
-            )
-            .unwrap();
+
+            let coder = CoderFromUrn::global().coder_from_urn(coder_urn_tree);
+            coder
+                .encode(element, &mut encoded_element, &Context::WholeStream)
+                .unwrap();
 
             encoded_element
         }
 
         fn decode_element(
             elem_reader: &mut dyn io::Read,
-            coder: &pipeline_v1::Coder,
+            coder_urn_tree: &CoderUrnTree,
         ) -> Box<dyn ElemType> {
-            let urn = &coder.spec.as_ref().unwrap().urn;
-
-            let decoded_element_dyn =
-                CoderFromUrn::decode_from_urn(urn, elem_reader, &Context::WholeStream).unwrap();
-
-            decoded_element_dyn
+            let coder = CoderFromUrn::global().coder_from_urn(coder_urn_tree);
+            coder.decode(elem_reader, &Context::WholeStream).unwrap()
         }
 
         pub fn test() {

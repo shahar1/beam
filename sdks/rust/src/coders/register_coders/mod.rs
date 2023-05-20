@@ -29,7 +29,7 @@ macro_rules! register_coders {
             }
         )*
 
-        fn coder_from_urn(urn: &str) -> Box<dyn $crate::coders::Coder> {
+        fn coder_from_urn(urn_tree: &$crate::coders::CoderUrnTree) -> Box<dyn $crate::coders::Coder> {
             use $crate::coders::{
                 CoderUrn, urns::PresetCoderUrn,
                 required_coders::BytesCoder,
@@ -38,19 +38,21 @@ macro_rules! register_coders {
             };
             use strum::IntoEnumIterator;
 
+            let urn = urn_tree.coder_urn.as_ref();
+
             let opt_preset_coder: Option<Box<dyn Coder>> = {
                 let opt_variant = PresetCoderUrn::iter().find(|variant| variant.as_str() == urn);
 
                 opt_variant.map(|variant| {
                     let coder: Box<dyn Coder> = match variant {
-                        PresetCoderUrn::Bytes => Box::new(BytesCoder::default()),
+                        PresetCoderUrn::Bytes => Box::<BytesCoder>::default(),
                         PresetCoderUrn::Kv => todo!("create full type including components (not only urn but also full proto maybe required"),
                         PresetCoderUrn::Iterable => todo!("create full type including components (not only urn but also full proto maybe required"),
                         PresetCoderUrn::Nullable => todo!("create full type including components (not only urn but also full proto maybe required"),
-                        PresetCoderUrn::StrUtf8 => Box::new(StrUtf8Coder::default()),
+                        PresetCoderUrn::StrUtf8 => Box::<StrUtf8Coder>::default(),
                         PresetCoderUrn::VarInt => todo!("create full type including components (not only urn but also full proto maybe required"),
                         PresetCoderUrn::Unit => todo!("make UnitCoder"),
-                        PresetCoderUrn::GeneralObject => Box::new(GeneralObjectCoder::default()),
+                        PresetCoderUrn::GeneralObject => Box::<GeneralObjectCoder<String>>::default(),
                     };
                     coder
                 })
@@ -58,50 +60,19 @@ macro_rules! register_coders {
 
             opt_preset_coder.unwrap_or_else(|| {
                 match urn {
-                    $($coder::URN => Box::new($coder::default()),)*
+                    $($coder::URN => Box::<$coder>::default(),)*
                     _ => panic!("unknown urn: {}", urn),
                 }
             })
         }
 
-        fn encode_from_urn(urn: &str, elem: &dyn $crate::elem_types::ElemType, writer: &mut dyn std::io::Write, context: &$crate::coders::Context) -> Result<usize, std::io::Error> {
-            use $crate::coders::CoderUrn;
-
-            match urn {
-                $($coder::URN => $coder::default().encode(elem, writer, context),)*
-                _ => panic!("unknown urn: {}", urn),
-            }
-        }
-
-        fn decode_from_urn(urn: &str, reader: &mut dyn std::io::Read, context: &$crate::coders::Context) -> Result<Box<dyn $crate::elem_types::ElemType>, std::io::Error> {
-            use $crate::coders::CoderUrn;
-
-            match urn {
-                $($coder::URN => $coder::default().decode(reader, context),)*
-                _ => panic!("unknown urn: {}", urn),
-            }
-        }
-
         #[ctor::ctor]
         fn init_custom_coder_from_urn() {
-            $crate::worker::CUSTOM_CODER_FROM_URN.set($crate::worker::CustomCoderFromUrn {
-                enc: encode_from_urn,
-                dec: decode_from_urn,
+            $crate::worker::CODER_FROM_URN.set($crate::worker::CoderFromUrn {
+                func: coder_from_urn,
             }).unwrap();
         }
     }
 }
 
-pub(crate) type EncodeFromUrnFn = fn(
-    &str,
-    &dyn crate::elem_types::ElemType,
-    &mut dyn std::io::Write,
-    &crate::coders::Context,
-) -> Result<usize, std::io::Error>;
-
-pub(crate) type DecodeFromUrnFn =
-    fn(
-        &str,
-        &mut dyn std::io::Read,
-        &crate::coders::Context,
-    ) -> Result<Box<dyn crate::elem_types::ElemType>, std::io::Error>;
+pub(crate) type CoderFromUrnFn = fn(&crate::coders::CoderUrnTree) -> Box<dyn crate::coders::Coder>;

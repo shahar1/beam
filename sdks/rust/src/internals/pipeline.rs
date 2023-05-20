@@ -125,7 +125,7 @@ impl Pipeline {
             })
             .collect();
 
-        helper(coder_urn_tree.coder_urn, component_coder_ids)
+        helper(&coder_urn_tree.coder_urn, component_coder_ids)
     }
 
     /// If the `coder_proto` is already registered, return its ID.
@@ -367,16 +367,6 @@ impl Default for Pipeline {
     }
 }
 
-impl Pipeline {
-    #[cfg(test)]
-    pub(crate) fn coder_to_proto_test_wrapper(
-        &self,
-        coder_urn_tree: &CoderUrnTree,
-    ) -> pipeline_v1::Coder {
-        self.coder_to_proto(coder_urn_tree)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::{
@@ -390,6 +380,8 @@ mod tests {
     use super::*;
 
     fn coder_urn_from_pvalue<E: ElemType>(pvalue: &PValue<E>) -> String {
+        // TODO rewrite using CoderUrnTree::from(&pvalue)
+
         let pcoll_id = pvalue.get_id();
 
         let pipeline_proto = pvalue.get_pipeline_arc().get_proto();
