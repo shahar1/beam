@@ -61,8 +61,6 @@ impl PipelineContext {
 /// Corresponds to the `Pipeline` in Runner API's proto.
 ///
 /// The pipeline is instantiated on `Runner::run()`, and used by a (remote or direct) runner.
-///
-// TODO: move coders to PipelineContext
 pub struct Pipeline {
     context: PipelineContext,
     default_environment: String,
