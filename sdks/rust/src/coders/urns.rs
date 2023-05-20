@@ -23,6 +23,7 @@ pub(crate) enum PresetCoderUrn {
     Bytes,
     Kv,
     Iterable,
+    Nullable,
     StrUtf8,
     VarInt,
     Unit,
@@ -36,6 +37,7 @@ impl PresetCoderUrn {
             Self::Bytes => BYTES_CODER_URN,
             Self::Kv => KV_CODER_URN,
             Self::Iterable => ITERABLE_CODER_URN,
+            Self::Nullable => NULLABLE_CODER_URN,
 
             // ******* Required coders *******
             Self::StrUtf8 => STR_UTF8_CODER_URN,
