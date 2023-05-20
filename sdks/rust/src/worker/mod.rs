@@ -149,7 +149,7 @@ mod tests {
 mod serde_preset_coder_test {
     mod sdk_launcher {
         use crate::{
-            coders::{standard_coders::StrUtf8Coder, Coder},
+            coders::{standard_coders::StrUtf8Coder, CoderForPipeline},
             internals::pipeline::Pipeline,
             proto::pipeline::v1 as pipeline_v1,
         };
@@ -233,7 +233,7 @@ mod serde_preset_coder_test {
 mod serde_costom_coder_test {
     mod sdk_launcher {
         use crate::{
-            coders::{Coder, CoderUrnTree, Context},
+            coders::{Coder, CoderForPipeline, CoderUrnTree, Context},
             elem_types::ElemType,
             internals::pipeline::Pipeline,
             proto::pipeline::v1 as pipeline_v1,
@@ -278,7 +278,9 @@ mod serde_costom_coder_test {
                     some_field: element.to_string(),
                 }))
             }
+        }
 
+        impl CoderForPipeline for MyCoder {
             fn component_coder_urns() -> Vec<CoderUrnTree> {
                 vec![]
             }

@@ -37,7 +37,7 @@ use bytes::Bytes;
 use integer_encoding::{VarInt, VarIntReader, VarIntWriter};
 
 use crate::coders::required_coders::BytesCoder;
-use crate::coders::{urns::*, CoderUrn};
+use crate::coders::{urns::*, CoderForPipeline, CoderUrn};
 use crate::coders::{Coder, Context};
 use crate::elem_types::ElemType;
 
@@ -83,7 +83,9 @@ impl Coder for StrUtf8Coder {
             )),
         }
     }
+}
 
+impl CoderForPipeline for StrUtf8Coder {
     fn component_coder_urns() -> Vec<super::CoderUrnTree> {
         vec![]
     }
@@ -135,7 +137,12 @@ where
         let element: N = reader.read_varint()?;
         Ok(Box::new(element))
     }
+}
 
+impl<N> CoderForPipeline for VarIntCoder<N>
+where
+    N: fmt::Debug + VarInt + ElemType,
+{
     fn component_coder_urns() -> Vec<super::CoderUrnTree> {
         vec![]
     }

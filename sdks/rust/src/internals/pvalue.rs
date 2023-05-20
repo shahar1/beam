@@ -21,7 +21,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use crate::coders::urns::{ITERABLE_CODER_URN, UNIT_CODER_URN};
-use crate::coders::{Coder, CoderUrnTree};
+use crate::coders::{CoderForPipeline, CoderUrnTree};
 use crate::elem_types::{DefaultCoder, ElemType};
 use crate::proto::pipeline_v1;
 
@@ -117,7 +117,7 @@ where
 
     pub fn apply_with_coder<OverrideCoder, F, Out>(&self, transform: F) -> PValue<Out>
     where
-        OverrideCoder: Coder,
+        OverrideCoder: CoderForPipeline,
         Out: ElemType + Clone,
         F: PTransform<E, Out> + Send,
     {

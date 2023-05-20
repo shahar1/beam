@@ -25,6 +25,7 @@ use std::marker::PhantomData;
 use crate::coders::standard_coders::*;
 use crate::coders::urns::*;
 use crate::coders::Coder;
+use crate::coders::CoderForPipeline;
 use crate::coders::CoderUrn;
 use crate::elem_types::ElemType;
 
@@ -64,7 +65,9 @@ impl Coder for GeneralObjectCoder<String> {
 
         StrUtf8Coder::default().decode(reader, context)
     }
+}
 
+impl CoderForPipeline for GeneralObjectCoder<String> {
     fn component_coder_urns() -> Vec<super::CoderUrnTree> {
         vec![]
     }

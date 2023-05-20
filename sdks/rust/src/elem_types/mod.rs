@@ -9,7 +9,7 @@ use crate::{
         required_coders::{BytesCoder, Iterable, IterableCoder, KVCoder},
         rust_coders::UnitCoder,
         standard_coders::{NullableCoder, StrUtf8Coder, VarIntCoder},
-        Coder, CoderUrnTree,
+        CoderForPipeline, CoderUrnTree,
     },
     elem_types::kv::KV,
 };
@@ -29,7 +29,7 @@ impl<E: ElemType> AsAny for E {
 
 /// The coder used for an element type.
 pub trait DefaultCoder {
-    type C: Coder;
+    type C: CoderForPipeline;
 
     fn default_coder_urn() -> CoderUrnTree
     where

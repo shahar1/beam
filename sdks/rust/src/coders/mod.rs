@@ -21,11 +21,12 @@ pub mod rust_coders;
 pub mod standard_coders;
 pub mod urns;
 
+mod pipeline_construction;
+pub use pipeline_construction::CoderForPipeline;
+pub(crate) use pipeline_construction::CoderUrnTree;
+
 mod register_coders;
 pub(crate) use register_coders::{DecodeFromUrnFn, EncodeFromUrnFn};
-
-mod coder_urn_tree;
-pub(crate) use coder_urn_tree::CoderUrnTree;
 
 use crate::elem_types::ElemType;
 use std::fmt;
@@ -98,7 +99,7 @@ pub trait CoderUrn {
 ///
 /// 1. The SDK harness receives the serialized coder's URN and its ID from Fn API.
 /// 2. The SDK harness deserializes the coder's URN and creates an instance of the coder specified by the URN.
-pub trait Coder: CoderUrn + fmt::Debug + Default {
+pub trait Coder: fmt::Debug + Default {
     /// Encode an element into a stream of bytes
     ///
     /// # Arguments
@@ -124,25 +125,6 @@ pub trait Coder: CoderUrn + fmt::Debug + Default {
         reader: &mut dyn Read,
         context: &Context,
     ) -> Result<Box<dyn ElemType>, io::Error>;
-
-    /// Coder URN of `Self` and its component coders.
-    fn coder_urn_tree() -> CoderUrnTree {
-        CoderUrnTree {
-            coder_urn: Self::URN,
-            component_coder_urns: Self::component_coder_urns(),
-        }
-    }
-
-    /// URNs of Component coders (internal coders like `T` in `ListCoder<T>`).
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// fn component_coder_urns() -> Vec<CoderUrnTree> {
-    ///   vec![ComponentCoder1::coder_urn_tree(), ComponentCoder2::coder_urn_tree()]
-    /// }
-    /// ```
-    fn component_coder_urns() -> Vec<CoderUrnTree>;
 }
 
 /// The context for encoding a PCollection element.

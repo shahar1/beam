@@ -1,7 +1,7 @@
 use std::fmt;
 use std::io::{self, Read, Write};
 
-use crate::coders::{urns::*, CoderUrn};
+use crate::coders::{urns::*, CoderForPipeline, CoderUrn};
 use crate::coders::{Coder, Context};
 use crate::elem_types::{DefaultCoder, ElemType};
 
@@ -18,7 +18,7 @@ where
 
 impl<E> Coder for NullableCoder<E>
 where
-    E: ElemType + DefaultCoder,
+    E: ElemType,
 {
     fn encode(
         &self,
@@ -36,7 +36,12 @@ where
     ) -> Result<Box<dyn ElemType>, io::Error> {
         todo!()
     }
+}
 
+impl<E> CoderForPipeline for NullableCoder<E>
+where
+    E: ElemType + DefaultCoder,
+{
     fn component_coder_urns() -> Vec<crate::coders::CoderUrnTree> {
         vec![E::default_coder_urn()]
     }

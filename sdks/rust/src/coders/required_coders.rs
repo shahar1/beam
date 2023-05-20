@@ -36,7 +36,7 @@ use std::marker::PhantomData;
 use bytes::Bytes;
 use integer_encoding::{VarIntReader, VarIntWriter};
 
-use crate::coders::{urns::*, CoderUrn, CoderUrnTree};
+use crate::coders::{urns::*, CoderForPipeline, CoderUrn, CoderUrnTree};
 use crate::coders::{Coder, Context};
 use crate::elem_types::kv::KV;
 use crate::elem_types::{DefaultCoder, ElemType};
@@ -123,7 +123,9 @@ impl Coder for BytesCoder {
             }
         }
     }
+}
 
+impl CoderForPipeline for BytesCoder {
     fn component_coder_urns() -> Vec<CoderUrnTree> {
         vec![]
     }
@@ -152,8 +154,8 @@ where
 
 impl<K, V> Coder for KVCoder<KV<K, V>>
 where
-    K: ElemType + DefaultCoder,
-    V: ElemType + DefaultCoder,
+    K: ElemType,
+    V: ElemType,
 {
     /// Encode the input element (a key-value pair) into a byte output stream. They key and value are encoded one after the
     /// other (first key, then value). The key is encoded with `Context::NeedsDelimiters`, while the value is encoded with
@@ -175,7 +177,13 @@ where
     ) -> Result<Box<dyn ElemType>, io::Error> {
         todo!()
     }
+}
 
+impl<K, V> CoderForPipeline for KVCoder<KV<K, V>>
+where
+    K: ElemType + DefaultCoder,
+    V: ElemType + DefaultCoder,
+{
     fn component_coder_urns() -> Vec<CoderUrnTree> {
         vec![K::default_coder_urn(), V::default_coder_urn()]
     }
@@ -229,7 +237,7 @@ where
 
 impl<ItE> Coder for IterableCoder<ItE>
 where
-    ItE: ElemType + DefaultCoder + fmt::Debug,
+    ItE: ElemType + fmt::Debug,
 {
     /// Encode the input iterable into a byte output stream. Elements can be encoded in two different ways:
     ///
@@ -256,7 +264,12 @@ where
     ) -> Result<Box<dyn ElemType>, io::Error> {
         todo!()
     }
+}
 
+impl<ItE> CoderForPipeline for IterableCoder<ItE>
+where
+    ItE: ElemType + DefaultCoder + fmt::Debug,
+{
     fn component_coder_urns() -> Vec<CoderUrnTree> {
         vec![ItE::default_coder_urn()]
     }

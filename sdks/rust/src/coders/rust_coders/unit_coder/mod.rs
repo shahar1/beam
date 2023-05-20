@@ -1,7 +1,7 @@
 use std::io;
 
 use crate::{
-    coders::{urns::UNIT_CODER_URN, Coder, CoderUrn, Context},
+    coders::{urns::UNIT_CODER_URN, Coder, CoderForPipeline, CoderUrn, Context},
     elem_types::ElemType,
 };
 
@@ -30,7 +30,9 @@ impl Coder for UnitCoder {
     ) -> Result<Box<dyn ElemType>, io::Error> {
         Ok(Box::new(()))
     }
+}
 
+impl CoderForPipeline for UnitCoder {
     fn component_coder_urns() -> Vec<crate::coders::CoderUrnTree> {
         vec![]
     }
