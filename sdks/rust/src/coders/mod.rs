@@ -158,3 +158,15 @@ pub enum Context {
     /// the coder is able to stop decoding data at the end of the current element.
     NeedsDelimiters,
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::coders::standard_coders::StrUtf8Coder;
+
+    use super::*;
+
+    #[test]
+    fn test_coder_trait_object() {
+        let _coder: Box<dyn Coder> = Box::new(StrUtf8Coder::default());
+    }
+}
