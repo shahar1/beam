@@ -32,27 +32,13 @@ macro_rules! register_coders {
         fn coder_from_urn(urn: &str, component_coders: Vec<Box<dyn $crate::coders::Coder>>) -> Box<dyn $crate::coders::Coder> {
             use $crate::coders::{
                 CoderUrn, urns::PresetCoderUrn,
-                required_coders::{BytesCoder, KVCoder, IterableCoder},
-                standard_coders::{StrUtf8Coder, NullableCoder},
-                rust_coders::{GeneralObjectCoder, UnitCoder},
+                preset_coder_from_variant,
             };
             use strum::IntoEnumIterator;
 
             let opt_preset = PresetCoderUrn::iter().find(|variant| variant.as_str() == urn);
             match opt_preset {
-                Some(preset) => {
-                    let coder: Box<dyn Coder> = match preset {
-                        PresetCoderUrn::Bytes => Box::new(BytesCoder::new(vec![])),
-                        PresetCoderUrn::Kv => Box::new(KVCoder::new(component_coders)),
-                        PresetCoderUrn::Iterable => Box::new(IterableCoder::new(component_coders)),
-                        PresetCoderUrn::Nullable => Box::new(NullableCoder::new(component_coders)),
-                        PresetCoderUrn::StrUtf8 => Box::new(StrUtf8Coder::new(vec![])),
-                        PresetCoderUrn::VarInt => todo!("each specific N type by Coder.spec.payload?"),
-                        PresetCoderUrn::Unit => Box::new(UnitCoder::new(vec![])),
-                        PresetCoderUrn::GeneralObject => Box::new(GeneralObjectCoder::<String>::new(vec![])),
-                    };
-                    coder    
-                }
+                Some(preset) => preset_coder_from_variant(&preset, component_coders),
                 None => {
                     match urn {
                         $($coder::URN => Box::new(<$coder>::new(component_coders)),)*

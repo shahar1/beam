@@ -39,7 +39,7 @@ impl CoderUrn for GeneralObjectCoder<String> {
 }
 
 impl Coder for GeneralObjectCoder<String> {
-    fn new(component_coders: Vec<Box<dyn Coder>>) -> Self
+    fn new(_component_coders: Vec<Box<dyn Coder>>) -> Self
     where
         Self: Sized,
     {

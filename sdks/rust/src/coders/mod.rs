@@ -21,6 +21,9 @@ pub mod rust_coders;
 pub mod standard_coders;
 pub mod urns;
 
+mod preset_coder_from_variant;
+pub(crate) use preset_coder_from_variant::preset_coder_from_variant;
+
 mod coder_urn_tree;
 pub(crate) use coder_urn_tree::CoderUrnTree;
 
