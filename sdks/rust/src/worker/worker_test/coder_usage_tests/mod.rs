@@ -26,8 +26,7 @@ mod coder_from_urn {
     }
 
     fn t<E: ElemType + PartialEq + fmt::Debug>(coder_urn_tree: CoderUrnTree, element: E) {
-        let opt_coder: Option<Box<dyn Coder>> = (&coder_urn_tree).into();
-        let coder = opt_coder.unwrap();
+        let coder: Box<dyn Coder> = (&coder_urn_tree).into();
         assert_encode_decode(coder, &element)
     }
 
@@ -180,9 +179,7 @@ mod serde_preset_coder_test {
         fn encode_element(element: &dyn ElemType, coder_urn_tree: &CoderUrnTree) -> Vec<u8> {
             let mut encoded_element = vec![];
 
-            let opt_coder: Option<Box<dyn Coder>> = coder_urn_tree.into();
-            let coder = opt_coder.unwrap();
-
+            let coder: Box<dyn Coder> = coder_urn_tree.into();
             coder
                 .encode(element, &mut encoded_element, &Context::WholeStream)
                 .unwrap();
@@ -194,8 +191,7 @@ mod serde_preset_coder_test {
             elem_reader: &mut dyn io::Read,
             coder_urn_tree: &CoderUrnTree,
         ) -> Box<dyn ElemType> {
-            let opt_coder: Option<Box<dyn Coder>> = coder_urn_tree.into();
-            let coder = opt_coder.unwrap();
+            let coder: Box<dyn Coder> = coder_urn_tree.into();
             coder.decode(elem_reader, &Context::WholeStream).unwrap()
         }
 
@@ -329,9 +325,7 @@ mod serde_costom_coder_test {
         fn encode_element(element: &dyn ElemType, coder_urn_tree: &CoderUrnTree) -> Vec<u8> {
             let mut encoded_element = vec![];
 
-            let opt_coder: Option<Box<dyn Coder>> = coder_urn_tree.into();
-            let coder = opt_coder.unwrap();
-
+            let coder: Box<dyn Coder> = coder_urn_tree.into();
             coder
                 .encode(element, &mut encoded_element, &Context::WholeStream)
                 .unwrap();
@@ -343,8 +337,7 @@ mod serde_costom_coder_test {
             elem_reader: &mut dyn io::Read,
             coder_urn_tree: &CoderUrnTree,
         ) -> Box<dyn ElemType> {
-            let opt_coder: Option<Box<dyn Coder>> = coder_urn_tree.into();
-            let coder = opt_coder.unwrap();
+            let coder: Box<dyn Coder> = coder_urn_tree.into();
             coder.decode(elem_reader, &Context::WholeStream).unwrap()
         }
 

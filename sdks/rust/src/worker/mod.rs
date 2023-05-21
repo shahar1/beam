@@ -20,6 +20,7 @@ mod external_worker_service;
 pub mod operators;
 
 mod coder_from_urn;
+pub(crate) use coder_from_urn::coder_from_urn;
 pub use coder_from_urn::{CustomCoderFromUrn, CUSTOM_CODER_FROM_URN};
 
 mod interceptors;

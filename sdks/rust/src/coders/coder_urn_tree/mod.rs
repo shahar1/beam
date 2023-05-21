@@ -1,6 +1,6 @@
 use crate::{
     coders::Coder, elem_types::ElemType, internals::pvalue::PValue, proto::pipeline_v1,
-    worker::CustomCoderFromUrn,
+    worker::coder_from_urn,
 };
 
 /// A coder's URN and URNs of its component coders.
@@ -52,25 +52,25 @@ impl<E: ElemType> From<&PValue<E>> for CoderUrnTree {
     }
 }
 
-impl From<&CoderUrnTree> for Option<Box<dyn Coder>> {
+impl From<&CoderUrnTree> for Box<dyn Coder> {
     fn from(tree: &CoderUrnTree) -> Self {
         if tree.component_coder_urns.is_empty() {
             // leaf
             let urn = &tree.coder_urn;
             let component_coders = vec![];
-            CustomCoderFromUrn::global().custom_coder_from_urn(urn, component_coders)
+            coder_from_urn(urn, component_coders)
         } else {
             let urn = &tree.coder_urn;
             let component_coders = tree
                 .component_coder_urns
                 .iter()
                 .map(|child_tree| {
-                    let component_coder: Option<Box<dyn Coder>> = child_tree.into();
-                    component_coder.unwrap()
+                    let component_coder: Box<dyn Coder> = child_tree.into();
+                    component_coder
                 })
                 .collect::<Vec<_>>();
 
-            CustomCoderFromUrn::global().custom_coder_from_urn(urn, component_coders)
+            coder_from_urn(urn, component_coders)
         }
     }
 }

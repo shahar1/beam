@@ -29,23 +29,12 @@ macro_rules! register_coders {
             }
         )*
 
-        // TODO separate preset coder
-        fn coder_from_urn(urn: &str, component_coders: Vec<Box<dyn $crate::coders::Coder>>) -> Box<dyn $crate::coders::Coder> {
-            use $crate::coders::{
-                CoderUrn, urns::PresetCoderUrn,
-                preset_coder_from_variant,
-            };
-            use strum::IntoEnumIterator;
+        fn custom_coder_from_urn(urn: &str, component_coders: Vec<Box<dyn $crate::coders::Coder>>) -> Option<Box<dyn $crate::coders::Coder>> {
+            use $crate::coders::CoderUrn;
 
-            let opt_preset = PresetCoderUrn::iter().find(|variant| variant.as_str() == urn);
-            match opt_preset {
-                Some(preset) => preset_coder_from_variant(&preset, component_coders),
-                None => {
-                    match urn {
-                        $($coder::URN => Box::new(<$coder>::new(component_coders)),)*
-                        _ => panic!("unknown urn: {}", urn),
-                    }
-                }
+            match urn {
+                $($coder::URN => Some(Box::new(<$coder>::new(component_coders))),)*
+                _ => panic!("unknown urn: {}", urn),
             }
         }
 
@@ -62,7 +51,7 @@ macro_rules! register_coders {
             // always overwrite to the new function pointers, which the currently-executed test case defined via `register_coders!` macro.
             *$crate::worker::CUSTOM_CODER_FROM_URN.write().unwrap() = {
                 let coder_from_urn = $crate::worker::CustomCoderFromUrn {
-                    func: Some(coder_from_urn),
+                    func: Some(custom_coder_from_urn),
                 };
                 let boxed = Box::new(coder_from_urn);
                 let static_ref = Box::leak(boxed); // use only in tests
@@ -73,4 +62,4 @@ macro_rules! register_coders {
 }
 
 pub(crate) type CustomCoderFromUrnFn =
-    fn(&str, Vec<Box<dyn crate::coders::Coder>>) -> Box<dyn crate::coders::Coder>;
+    fn(&str, Vec<Box<dyn crate::coders::Coder>>) -> Option<Box<dyn crate::coders::Coder>>;
