@@ -1,13 +1,8 @@
 mod coder_from_urn {
     use std::fmt;
 
-    use bytes::Bytes;
-
     use crate::{
-        coders::{
-            urns::{BYTES_CODER_URN, ITERABLE_CODER_URN},
-            Coder, CoderUrnTree, Context,
-        },
+        coders::{Coder, CoderUrnTree, Context},
         elem_types::ElemType,
         worker::CoderFromUrn,
     };
@@ -36,41 +31,111 @@ mod coder_from_urn {
         assert_encode_decode(coder, &element)
     }
 
-    #[test]
-    fn preset_coder_without_components_success() {
-        t(
-            CoderUrnTree {
-                coder_urn: BYTES_CODER_URN.to_string(),
-                component_coder_urns: vec![],
-            },
-            Bytes::from("hello"),
-        );
+    mod with_custom_coder {
+        use super::*;
+
+        use crate::{
+            coders::{Coder, CoderForPipeline, CoderUrnTree, Context},
+            elem_types::{DefaultCoder, ElemType},
+            register_coders,
+        };
+
+        #[derive(Clone, PartialEq, Eq, Debug)]
+        pub struct MyElement {
+            pub some_field: String,
+        }
+
+        impl ElemType for MyElement {}
+
+        impl DefaultCoder for MyElement {
+            type C = MyCoder;
+        }
+
+        #[derive(Debug, Default)]
+        pub struct MyCoder;
+
+        impl Coder for MyCoder {
+            fn encode(
+                &self,
+                element: &dyn ElemType,
+                writer: &mut dyn std::io::Write,
+                _context: &Context,
+            ) -> Result<usize, std::io::Error> {
+                let element = element.as_any().downcast_ref::<MyElement>().unwrap();
+
+                writer
+                    .write_all(format!("ENCPREFIX{}", element.some_field).as_bytes())
+                    .map(|_| 0) // TODO make Result<usize, std::io::Error> to Result<(), std::io::Error>
+            }
+
+            fn decode(
+                &self,
+                reader: &mut dyn std::io::Read,
+                _context: &Context,
+            ) -> Result<Box<dyn ElemType>, std::io::Error> {
+                let mut buf = Vec::new();
+                reader.read_to_end(&mut buf)?;
+
+                let encoded_element = String::from_utf8(buf).unwrap();
+                let element = encoded_element.strip_prefix("ENCPREFIX").unwrap();
+                Ok(Box::new(MyElement {
+                    some_field: element.to_string(),
+                }))
+            }
+        }
+
+        impl CoderForPipeline for MyCoder {
+            fn component_coder_urns() -> Vec<CoderUrnTree> {
+                vec![]
+            }
+        }
+
+        register_coders!(MyCoder);
     }
 
-    #[test]
-    fn preset_coder_with_components_success() {
-        t(
-            CoderUrnTree {
-                coder_urn: ITERABLE_CODER_URN.to_string(),
-                component_coder_urns: vec![CoderUrnTree {
+    mod with_preset_coder {
+        use bytes::Bytes;
+
+        use crate::coders::urns::{BYTES_CODER_URN, ITERABLE_CODER_URN};
+
+        use super::*;
+
+        #[test]
+        fn preset_coder_without_components_success() {
+            t(
+                CoderUrnTree {
                     coder_urn: BYTES_CODER_URN.to_string(),
                     component_coder_urns: vec![],
-                }],
-            },
-            vec![Bytes::from("hello"), Bytes::from("world")],
-        );
-    }
+                },
+                Bytes::from("hello"),
+            );
+        }
 
-    #[test]
-    #[should_panic]
-    fn preset_coder_without_components_fail() {
-        t(
-            CoderUrnTree {
-                coder_urn: BYTES_CODER_URN.to_string(),
-                component_coder_urns: vec![],
-            },
-            42,
-        );
+        #[test]
+        fn preset_coder_with_components_success() {
+            t(
+                CoderUrnTree {
+                    coder_urn: ITERABLE_CODER_URN.to_string(),
+                    component_coder_urns: vec![CoderUrnTree {
+                        coder_urn: BYTES_CODER_URN.to_string(),
+                        component_coder_urns: vec![],
+                    }],
+                },
+                vec![Bytes::from("hello"), Bytes::from("world")],
+            );
+        }
+
+        #[test]
+        #[should_panic]
+        fn preset_coder_without_components_fail() {
+            t(
+                CoderUrnTree {
+                    coder_urn: BYTES_CODER_URN.to_string(),
+                    component_coder_urns: vec![],
+                },
+                42,
+            );
+        }
     }
 }
 
