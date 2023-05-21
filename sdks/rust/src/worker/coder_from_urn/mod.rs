@@ -28,11 +28,11 @@ pub struct CustomCoderFromUrn {
 
 impl CustomCoderFromUrn {
     #[cfg(not(test))]
-    pub(in crate::worker) fn global() -> &'static Self {
+    pub(crate) fn global() -> &'static Self {
         CUSTOM_CODER_FROM_URN.get_or_init(|| Self { func: None })
     }
     #[cfg(test)]
-    pub(in crate::worker) fn global() -> &'static Self {
+    pub(crate) fn global() -> &'static Self {
         CUSTOM_CODER_FROM_URN.read().unwrap().unwrap()
     }
 
@@ -42,7 +42,7 @@ impl CustomCoderFromUrn {
     ///
     /// - `register_coders!` is not called.
     /// - Unknown URN is found in `urn_tree`.
-    pub(in crate::worker) fn custom_coder_from_urn(
+    pub(crate) fn custom_coder_from_urn(
         &self,
         urn: &str,
         component_coders: Vec<Box<dyn Coder>>,

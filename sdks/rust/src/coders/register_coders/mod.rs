@@ -29,6 +29,7 @@ macro_rules! register_coders {
             }
         )*
 
+        // TODO separate preset coder
         fn coder_from_urn(urn: &str, component_coders: Vec<Box<dyn $crate::coders::Coder>>) -> Box<dyn $crate::coders::Coder> {
             use $crate::coders::{
                 CoderUrn, urns::PresetCoderUrn,
