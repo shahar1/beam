@@ -1,3 +1,79 @@
+mod coder_from_urn {
+    use std::fmt;
+
+    use bytes::Bytes;
+
+    use crate::{
+        coders::{
+            urns::{BYTES_CODER_URN, ITERABLE_CODER_URN},
+            Coder, CoderUrnTree, Context,
+        },
+        elem_types::ElemType,
+        worker::CoderFromUrn,
+    };
+
+    fn assert_encode_decode<E: ElemType + PartialEq + fmt::Debug>(
+        coder: Box<dyn Coder>,
+        element: &E,
+    ) {
+        let mut encoded_element = vec![];
+        coder
+            .encode(element, &mut encoded_element, &Context::WholeStream)
+            .unwrap();
+
+        let mut encoded_element_reader = encoded_element.as_slice();
+
+        let decoded_element_dyn = coder
+            .decode(&mut encoded_element_reader, &Context::WholeStream)
+            .unwrap();
+        let decoded_element = decoded_element_dyn.as_any().downcast_ref::<E>().unwrap();
+
+        assert_eq!(element, decoded_element);
+    }
+
+    fn t<E: ElemType + PartialEq + fmt::Debug>(coder_urn_tree: CoderUrnTree, element: E) {
+        let coder = CoderFromUrn::global().coder_from_urn(&coder_urn_tree);
+        assert_encode_decode(coder, &element)
+    }
+
+    #[test]
+    fn preset_coder_without_components_success() {
+        t(
+            CoderUrnTree {
+                coder_urn: BYTES_CODER_URN.to_string(),
+                component_coder_urns: vec![],
+            },
+            Bytes::from("hello"),
+        );
+    }
+
+    #[test]
+    fn preset_coder_with_components_success() {
+        t(
+            CoderUrnTree {
+                coder_urn: ITERABLE_CODER_URN.to_string(),
+                component_coder_urns: vec![CoderUrnTree {
+                    coder_urn: BYTES_CODER_URN.to_string(),
+                    component_coder_urns: vec![],
+                }],
+            },
+            vec![Bytes::from("hello"), Bytes::from("world")],
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn preset_coder_without_components_fail() {
+        t(
+            CoderUrnTree {
+                coder_urn: BYTES_CODER_URN.to_string(),
+                component_coder_urns: vec![],
+            },
+            42,
+        );
+    }
+}
+
 mod serde_preset_coder_test {
     mod sdk_launcher {
         use crate::{coders::CoderUrnTree, internals::pvalue::PValue, transforms::create::Create};
