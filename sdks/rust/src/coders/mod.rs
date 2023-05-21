@@ -28,7 +28,7 @@ mod pipeline_construction;
 pub use pipeline_construction::CoderForPipeline;
 
 mod register_coders;
-pub(crate) use register_coders::CoderFromUrnFn;
+pub(crate) use register_coders::CustomCoderFromUrnFn;
 
 use crate::elem_types::ElemType;
 use std::fmt;

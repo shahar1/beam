@@ -4,7 +4,6 @@ mod coder_from_urn {
     use crate::{
         coders::{Coder, CoderUrnTree, Context},
         elem_types::ElemType,
-        worker::CoderFromUrn,
     };
 
     fn assert_encode_decode<E: ElemType + PartialEq + fmt::Debug>(
@@ -27,7 +26,8 @@ mod coder_from_urn {
     }
 
     fn t<E: ElemType + PartialEq + fmt::Debug>(coder_urn_tree: CoderUrnTree, element: E) {
-        let coder = CoderFromUrn::global().coder_from_urn(&coder_urn_tree);
+        let opt_coder: Option<Box<dyn Coder>> = (&coder_urn_tree).into();
+        let coder = opt_coder.unwrap();
         assert_encode_decode(coder, &element)
     }
 
@@ -163,9 +163,8 @@ mod serde_preset_coder_test {
         use std::io;
 
         use crate::{
-            coders::{CoderUrnTree, Context},
+            coders::{Coder, CoderUrnTree, Context},
             elem_types::ElemType,
-            worker::CoderFromUrn,
         };
 
         fn receive_coder() -> CoderUrnTree {
@@ -181,7 +180,9 @@ mod serde_preset_coder_test {
         fn encode_element(element: &dyn ElemType, coder_urn_tree: &CoderUrnTree) -> Vec<u8> {
             let mut encoded_element = vec![];
 
-            let coder = CoderFromUrn::global().coder_from_urn(coder_urn_tree);
+            let opt_coder: Option<Box<dyn Coder>> = coder_urn_tree.into();
+            let coder = opt_coder.unwrap();
+
             coder
                 .encode(element, &mut encoded_element, &Context::WholeStream)
                 .unwrap();
@@ -193,7 +194,8 @@ mod serde_preset_coder_test {
             elem_reader: &mut dyn io::Read,
             coder_urn_tree: &CoderUrnTree,
         ) -> Box<dyn ElemType> {
-            let coder = CoderFromUrn::global().coder_from_urn(coder_urn_tree);
+            let opt_coder: Option<Box<dyn Coder>> = coder_urn_tree.into();
+            let coder = opt_coder.unwrap();
             coder.decode(elem_reader, &Context::WholeStream).unwrap()
         }
 
@@ -308,9 +310,8 @@ mod serde_costom_coder_test {
         use std::io;
 
         use crate::{
-            coders::{CoderUrnTree, Context},
+            coders::{Coder, CoderUrnTree, Context},
             elem_types::ElemType,
-            worker::CoderFromUrn,
         };
 
         fn receive_coder() -> CoderUrnTree {
@@ -328,7 +329,9 @@ mod serde_costom_coder_test {
         fn encode_element(element: &dyn ElemType, coder_urn_tree: &CoderUrnTree) -> Vec<u8> {
             let mut encoded_element = vec![];
 
-            let coder = CoderFromUrn::global().coder_from_urn(coder_urn_tree);
+            let opt_coder: Option<Box<dyn Coder>> = coder_urn_tree.into();
+            let coder = opt_coder.unwrap();
+
             coder
                 .encode(element, &mut encoded_element, &Context::WholeStream)
                 .unwrap();
@@ -340,7 +343,8 @@ mod serde_costom_coder_test {
             elem_reader: &mut dyn io::Read,
             coder_urn_tree: &CoderUrnTree,
         ) -> Box<dyn ElemType> {
-            let coder = CoderFromUrn::global().coder_from_urn(coder_urn_tree);
+            let opt_coder: Option<Box<dyn Coder>> = coder_urn_tree.into();
+            let coder = opt_coder.unwrap();
             coder.decode(elem_reader, &Context::WholeStream).unwrap()
         }
 

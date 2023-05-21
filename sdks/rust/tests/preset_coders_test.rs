@@ -78,7 +78,7 @@ mod tests {
         }
     }
 
-    impl<K, V> CoderTestUtils for KVCoder<KV<K, V>>
+    impl<K, V> CoderTestUtils for KVCoder<K, V>
     where
         K: Clone + fmt::Debug,
         V: Clone + fmt::Debug,
@@ -88,7 +88,7 @@ mod tests {
         fn parse_yaml_value(
             &self,
             _value: &serde_yaml::Value,
-        ) -> <KVCoder<KV<K, V>> as CoderTestUtils>::InternalCoderType {
+        ) -> <KVCoder<K, V> as CoderTestUtils>::InternalCoderType {
             todo!()
         }
     }

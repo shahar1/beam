@@ -69,7 +69,7 @@ where
     K: ElemType + DefaultCoder,
     V: ElemType + DefaultCoder,
 {
-    type C = KVCoder<KV<K, V>>;
+    type C = KVCoder<K, V>;
 }
 
 impl<E: ElemType + fmt::Debug> ElemType for Iterable<E> {}

@@ -1,4 +1,4 @@
-use crate::{elem_types::ElemType, internals::pvalue::PValue, proto::pipeline_v1};
+use crate::{elem_types::ElemType, internals::pvalue::PValue, proto::pipeline_v1, coders::Coder};
 
 /// A coder's URN and URNs of its component coders.
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -46,5 +46,11 @@ impl<E: ElemType> From<&PValue<E>> for CoderUrnTree {
         let coder_id = &pcoll.coder_id;
 
         Self::from_proto(coder_id, &pipeline_proto)
+    }
+}
+
+impl From<&CoderUrnTree> for Option<Box<dyn Coder>> {
+    fn from(tree: &CoderUrnTree) -> Self {
+        todo!()
     }
 }

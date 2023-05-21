@@ -19,10 +19,7 @@ where
     const URN: &'static str = NULLABLE_CODER_URN;
 }
 
-impl<E> Coder for NullableCoder<E>
-where
-    E: ElemType,
-{
+impl Coder for NullableCoder<()> {
     fn new(mut component_coders: Vec<Box<dyn Coder>>) -> Self
     where
         Self: Sized,

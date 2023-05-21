@@ -38,7 +38,6 @@ use integer_encoding::{VarIntReader, VarIntWriter};
 
 use crate::coders::{urns::*, CoderForPipeline, CoderUrn, CoderUrnTree};
 use crate::coders::{Coder, Context};
-use crate::elem_types::kv::KV;
 use crate::elem_types::{DefaultCoder, ElemType};
 
 /// Coder for byte-array data types
@@ -147,14 +146,14 @@ impl fmt::Debug for BytesCoder {
 }
 
 /// A coder for a key-value pair
-pub struct KVCoder<KV> {
+pub struct KVCoder<K, V> {
     _key_coder: Box<dyn Coder>,
     _value_coder: Box<dyn Coder>,
 
-    phantom: PhantomData<KV>,
+    phantom: PhantomData<(K, V)>,
 }
 
-impl<K, V> CoderUrn for KVCoder<KV<K, V>>
+impl<K, V> CoderUrn for KVCoder<K, V>
 where
     K: ElemType,
     V: ElemType,
@@ -162,11 +161,7 @@ where
     const URN: &'static str = KV_CODER_URN;
 }
 
-impl<K, V> Coder for KVCoder<KV<K, V>>
-where
-    K: ElemType,
-    V: ElemType,
-{
+impl Coder for KVCoder<(), ()> {
     fn new(mut component_coders: Vec<Box<dyn Coder>>) -> Self
     where
         Self: Sized,
@@ -207,7 +202,7 @@ where
     }
 }
 
-impl<K, V> CoderForPipeline for KVCoder<KV<K, V>>
+impl<K, V> CoderForPipeline for KVCoder<K, V>
 where
     K: ElemType + DefaultCoder,
     V: ElemType + DefaultCoder,
@@ -217,7 +212,7 @@ where
     }
 }
 
-impl<K, V> fmt::Debug for KVCoder<KV<K, V>>
+impl<K, V> fmt::Debug for KVCoder<K, V>
 where
     K: ElemType,
     V: ElemType,
@@ -253,10 +248,7 @@ where
     const URN: &'static str = ITERABLE_CODER_URN;
 }
 
-impl<ItE> Coder for IterableCoder<ItE>
-where
-    ItE: ElemType + fmt::Debug,
-{
+impl Coder for IterableCoder<()> {
     fn new(mut component_coders: Vec<Box<dyn Coder>>) -> Self
     where
         Self: Sized,

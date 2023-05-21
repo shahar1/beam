@@ -29,57 +29,53 @@ macro_rules! register_coders {
             }
         )*
 
-        fn coder_from_urn(urn_tree: &$crate::coders::CoderUrnTree) -> Box<dyn $crate::coders::Coder> {
+        fn coder_from_urn(urn: &str, component_coders: Vec<Box<dyn $crate::coders::Coder>>) -> Box<dyn $crate::coders::Coder> {
             use $crate::coders::{
                 CoderUrn, urns::PresetCoderUrn,
-                required_coders::BytesCoder,
-                standard_coders::StrUtf8Coder,
-                rust_coders::GeneralObjectCoder,
+                required_coders::{BytesCoder, KVCoder, IterableCoder},
+                standard_coders::{StrUtf8Coder, NullableCoder},
+                rust_coders::{GeneralObjectCoder, UnitCoder},
             };
             use strum::IntoEnumIterator;
 
-            let urn = urn_tree.coder_urn.as_ref();
-
-            let opt_preset_coder: Option<Box<dyn Coder>> = {
-                let opt_variant = PresetCoderUrn::iter().find(|variant| variant.as_str() == urn);
-
-                opt_variant.map(|variant| {
-                    let coder: Box<dyn Coder> = match variant {
+            let opt_preset = PresetCoderUrn::iter().find(|variant| variant.as_str() == urn);
+            match opt_preset {
+                Some(preset) => {
+                    let coder: Box<dyn Coder> = match preset {
                         PresetCoderUrn::Bytes => Box::new(BytesCoder::new(vec![])),
-                        PresetCoderUrn::Kv => todo!("create full type including components (not only urn but also full proto maybe required"),
-                        PresetCoderUrn::Iterable => todo!("create full type including components (not only urn but also full proto maybe required"),
-                        PresetCoderUrn::Nullable => todo!("create full type including components (not only urn but also full proto maybe required"),
+                        PresetCoderUrn::Kv => Box::new(KVCoder::new(component_coders)),
+                        PresetCoderUrn::Iterable => Box::new(IterableCoder::new(component_coders)),
+                        PresetCoderUrn::Nullable => Box::new(NullableCoder::new(component_coders)),
                         PresetCoderUrn::StrUtf8 => Box::new(StrUtf8Coder::new(vec![])),
-                        PresetCoderUrn::VarInt => todo!("create full type including components (not only urn but also full proto maybe required"),
-                        PresetCoderUrn::Unit => todo!("make UnitCoder"),
+                        PresetCoderUrn::VarInt => todo!("each specific N type by Coder.spec.payload?"),
+                        PresetCoderUrn::Unit => Box::new(UnitCoder::new(vec![])),
                         PresetCoderUrn::GeneralObject => Box::new(GeneralObjectCoder::<String>::new(vec![])),
                     };
-                    coder
-                })
-            };
-
-            opt_preset_coder.unwrap_or_else(|| {
-                match urn {
-                    $($coder::URN => Box::<$coder>::default(),)*
-                    _ => panic!("unknown urn: {}", urn),
+                    coder    
                 }
-            })
+                None => {
+                    match urn {
+                        $($coder::URN => Box::new(<$coder>::new(component_coders)),)*
+                        _ => panic!("unknown urn: {}", urn),
+                    }
+                }
+            }
         }
 
         #[cfg(not(test))]
         #[ctor::ctor]
         fn init_custom_coder_from_urn() {
-            $crate::worker::CODER_FROM_URN.set($crate::worker::CoderFromUrn {
-                func: coder_from_urn,
-            }).expect("CODER_FROM_URN singleton is already initialized");
+            $crate::worker::CUSTOM_CODER_FROM_URN.set($crate::worker::CustomCoderFromUrn {
+                func: Some(coder_from_urn),
+            }).expect("CUSTOM_CODER_FROM_URN singleton is already initialized");
         }
         #[cfg(test)]
         #[ctor::ctor]
         fn init_custom_coder_from_urn() {
             // always overwrite to the new function pointers, which the currently-executed test case defined via `register_coders!` macro.
-            *$crate::worker::CODER_FROM_URN.write().unwrap() = {
-                let coder_from_urn = $crate::worker::CoderFromUrn {
-                    func: coder_from_urn,
+            *$crate::worker::CUSTOM_CODER_FROM_URN.write().unwrap() = {
+                let coder_from_urn = $crate::worker::CustomCoderFromUrn {
+                    func: Some(coder_from_urn),
                 };
                 let boxed = Box::new(coder_from_urn);
                 let static_ref = Box::leak(boxed); // use only in tests
@@ -89,4 +85,5 @@ macro_rules! register_coders {
     }
 }
 
-pub(crate) type CoderFromUrnFn = fn(&crate::coders::CoderUrnTree) -> Box<dyn crate::coders::Coder>;
+pub(crate) type CustomCoderFromUrnFn =
+    fn(&str, Vec<Box<dyn crate::coders::Coder>>) -> Box<dyn crate::coders::Coder>;
