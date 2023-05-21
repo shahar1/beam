@@ -30,118 +30,45 @@ mod coder_from_urn {
         assert_encode_decode(coder, &element)
     }
 
-    mod with_custom_coder {
-        use super::*;
+    use bytes::Bytes;
 
-        use crate::{
-            coders::{Coder, CoderForPipeline, CoderUrnTree, Context},
-            elem_types::{DefaultCoder, ElemType},
-            register_coders,
-        };
+    use crate::coders::urns::{BYTES_CODER_URN, ITERABLE_CODER_URN};
 
-        #[derive(Clone, PartialEq, Eq, Debug)]
-        pub struct MyElement {
-            pub some_field: String,
-        }
-
-        impl ElemType for MyElement {}
-
-        impl DefaultCoder for MyElement {
-            type C = MyCoder;
-        }
-
-        #[derive(Debug, Default)]
-        pub struct MyCoder;
-
-        impl Coder for MyCoder {
-            fn new(_component_coders: Vec<Box<dyn Coder>>) -> Self
-            where
-                Self: Sized,
-            {
-                Self::default()
-            }
-
-            fn encode(
-                &self,
-                element: &dyn ElemType,
-                writer: &mut dyn std::io::Write,
-                _context: &Context,
-            ) -> Result<usize, std::io::Error> {
-                let element = element.as_any().downcast_ref::<MyElement>().unwrap();
-
-                writer
-                    .write_all(format!("ENCPREFIX{}", element.some_field).as_bytes())
-                    .map(|_| 0) // TODO make Result<usize, std::io::Error> to Result<(), std::io::Error>
-            }
-
-            fn decode(
-                &self,
-                reader: &mut dyn std::io::Read,
-                _context: &Context,
-            ) -> Result<Box<dyn ElemType>, std::io::Error> {
-                let mut buf = Vec::new();
-                reader.read_to_end(&mut buf)?;
-
-                let encoded_element = String::from_utf8(buf).unwrap();
-                let element = encoded_element.strip_prefix("ENCPREFIX").unwrap();
-                Ok(Box::new(MyElement {
-                    some_field: element.to_string(),
-                }))
-            }
-        }
-
-        impl CoderForPipeline for MyCoder {
-            fn component_coder_urns() -> Vec<CoderUrnTree> {
-                vec![]
-            }
-        }
-
-        register_coders!(MyCoder);
+    #[test]
+    fn preset_coder_without_components_success() {
+        t(
+            CoderUrnTree {
+                coder_urn: BYTES_CODER_URN.to_string(),
+                component_coder_urns: vec![],
+            },
+            Bytes::from("hello"),
+        );
     }
 
-    mod with_preset_coder {
-        use bytes::Bytes;
-
-        use crate::coders::urns::{BYTES_CODER_URN, ITERABLE_CODER_URN};
-
-        use super::*;
-
-        #[test]
-        fn preset_coder_without_components_success() {
-            t(
-                CoderUrnTree {
+    #[test]
+    fn preset_coder_with_components_success() {
+        t(
+            CoderUrnTree {
+                coder_urn: ITERABLE_CODER_URN.to_string(),
+                component_coder_urns: vec![CoderUrnTree {
                     coder_urn: BYTES_CODER_URN.to_string(),
                     component_coder_urns: vec![],
-                },
-                Bytes::from("hello"),
-            );
-        }
+                }],
+            },
+            vec![Bytes::from("hello"), Bytes::from("world")],
+        );
+    }
 
-        #[test]
-        fn preset_coder_with_components_success() {
-            t(
-                CoderUrnTree {
-                    coder_urn: ITERABLE_CODER_URN.to_string(),
-                    component_coder_urns: vec![CoderUrnTree {
-                        coder_urn: BYTES_CODER_URN.to_string(),
-                        component_coder_urns: vec![],
-                    }],
-                },
-                vec![Bytes::from("hello"), Bytes::from("world")],
-            );
-        }
-
-        #[test]
-        #[should_panic]
-        fn preset_coder_without_components_fail() {
-            t(
-                CoderUrnTree {
-                    coder_urn: BYTES_CODER_URN.to_string(),
-                    component_coder_urns: vec![],
-                },
-                42,
-            );
-        }
+    #[test]
+    #[should_panic]
+    fn preset_coder_without_components_fail() {
+        t(
+            CoderUrnTree {
+                coder_urn: BYTES_CODER_URN.to_string(),
+                component_coder_urns: vec![],
+            },
+            42,
+        );
     }
 }
 
@@ -217,74 +144,12 @@ mod serde_preset_coder_test {
     }
 }
 
-mod serde_costom_coder_test {
+mod serde_custom_coder_test {
     mod sdk_launcher {
         use crate::{
-            coders::{Coder, CoderForPipeline, CoderUrnTree, Context},
-            elem_types::{DefaultCoder, ElemType},
-            internals::pvalue::PValue,
-            register_coders,
+            coders::CoderUrnTree, internals::pvalue::PValue, test_custom_coders::MyElement,
             transforms::create::Create,
         };
-
-        #[derive(Clone, PartialEq, Eq, Debug)]
-        pub struct MyElement {
-            pub some_field: String,
-        }
-
-        impl ElemType for MyElement {}
-
-        impl DefaultCoder for MyElement {
-            type C = MyCoder;
-        }
-
-        #[derive(Debug, Default)]
-        pub struct MyCoder;
-
-        impl Coder for MyCoder {
-            fn new(_component_coders: Vec<Box<dyn Coder>>) -> Self
-            where
-                Self: Sized,
-            {
-                Self::default()
-            }
-
-            fn encode(
-                &self,
-                element: &dyn ElemType,
-                writer: &mut dyn std::io::Write,
-                _context: &Context,
-            ) -> Result<usize, std::io::Error> {
-                let element = element.as_any().downcast_ref::<MyElement>().unwrap();
-
-                writer
-                    .write_all(format!("ENCPREFIX{}", element.some_field).as_bytes())
-                    .map(|_| 0) // TODO make Result<usize, std::io::Error> to Result<(), std::io::Error>
-            }
-
-            fn decode(
-                &self,
-                reader: &mut dyn std::io::Read,
-                _context: &Context,
-            ) -> Result<Box<dyn ElemType>, std::io::Error> {
-                let mut buf = Vec::new();
-                reader.read_to_end(&mut buf)?;
-
-                let encoded_element = String::from_utf8(buf).unwrap();
-                let element = encoded_element.strip_prefix("ENCPREFIX").unwrap();
-                Ok(Box::new(MyElement {
-                    some_field: element.to_string(),
-                }))
-            }
-        }
-
-        impl CoderForPipeline for MyCoder {
-            fn component_coder_urns() -> Vec<CoderUrnTree> {
-                vec![]
-            }
-        }
-
-        register_coders!(MyCoder);
 
         pub fn launcher_register_coder_proto() -> CoderUrnTree {
             // in the proto registration (in the pipeline construction)
@@ -308,6 +173,7 @@ mod serde_costom_coder_test {
         use crate::{
             coders::{Coder, CoderUrnTree, Context},
             elem_types::ElemType,
+            test_custom_coders::MyElement,
         };
 
         fn receive_coder() -> CoderUrnTree {
@@ -315,9 +181,9 @@ mod serde_costom_coder_test {
             super::sdk_launcher::launcher_register_coder_proto()
         }
 
-        fn create_my_element() -> super::sdk_launcher::MyElement {
+        fn create_my_element() -> MyElement {
             // A PTransform (UDF) create an instance of MyElement
-            super::sdk_launcher::MyElement {
+            MyElement {
                 some_field: "some_value".to_string(),
             }
         }
@@ -350,7 +216,7 @@ mod serde_costom_coder_test {
 
             let decoded_element = decoded_element_dyn
                 .as_any()
-                .downcast_ref::<super::sdk_launcher::MyElement>()
+                .downcast_ref::<MyElement>()
                 .unwrap();
 
             assert_eq!(decoded_element, &element);

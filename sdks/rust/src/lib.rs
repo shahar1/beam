@@ -28,3 +28,6 @@ pub mod proto;
 pub mod runners;
 pub mod transforms;
 pub mod worker;
+
+#[cfg(test)]
+pub(crate) mod test_custom_coders;

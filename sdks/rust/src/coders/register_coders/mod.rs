@@ -20,6 +20,11 @@
 /// # Related doc
 ///
 /// [Design doc: Custom Coders for the Beam Rust SDK](https://docs.google.com/document/d/1tUb8EoajRkxLW3mrJZzx6xxGhoiUSRKwVuT2uxjAeIU/edit#heading=h.mgr8mrx81tnc)
+/// 
+/// # Note
+/// 
+/// `register_coders!` must not be called twice or more in the whole test cases.
+/// It relies on OnceCell and each call to `register_coders!` will try to overwrite the OnceCell, which leads to panic.
 #[macro_export]
 macro_rules! register_coders {
     ($($coder:ident),*) => {
@@ -38,27 +43,11 @@ macro_rules! register_coders {
             }
         }
 
-        #[cfg(not(test))]
         #[ctor::ctor]
         fn init_custom_coder_from_urn() {
             $crate::worker::CUSTOM_CODER_FROM_URN.set($crate::worker::CustomCoderFromUrn {
-                func: Some(coder_from_urn),
+                func: Some(custom_coder_from_urn),
             }).expect("CUSTOM_CODER_FROM_URN singleton is already initialized");
-        }
-        #[cfg(test)]
-        #[ctor::ctor]
-        fn init_custom_coder_from_urn() {
-            // always overwrite to the new function pointers, which the currently-executed test case defined via `register_coders!` macro.
-            $crate::worker::CUSTOM_CODER_FROM_URN.with(|c| {
-                *c.write().unwrap() = {
-                    let obj = $crate::worker::CustomCoderFromUrn {
-                        func: Some(custom_coder_from_urn),
-                    };
-                    let boxed = Box::new(obj);
-                    let static_ref = Box::leak(boxed); // use only in tests
-                    Some(static_ref)
-                };
-            })
         }
     }
 }
