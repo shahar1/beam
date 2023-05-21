@@ -66,11 +66,25 @@ macro_rules! register_coders {
             })
         }
 
+        #[cfg(not(test))]
         #[ctor::ctor]
         fn init_custom_coder_from_urn() {
             $crate::worker::CODER_FROM_URN.set($crate::worker::CoderFromUrn {
                 func: coder_from_urn,
-            }).unwrap();
+            }).expect("CODER_FROM_URN singleton is already initialized");
+        }
+        #[cfg(test)]
+        #[ctor::ctor]
+        fn init_custom_coder_from_urn() {
+            // always overwrite to the new function pointers, which the currently-executed test case defined via `register_coders!` macro.
+            *$crate::worker::CODER_FROM_URN.write().unwrap() = {
+                let coder_from_urn = $crate::worker::CoderFromUrn {
+                    func: coder_from_urn,
+                };
+                let boxed = Box::new(coder_from_urn);
+                let static_ref = Box::leak(boxed); // use only in tests
+                Some(static_ref)
+            };
         }
     }
 }
