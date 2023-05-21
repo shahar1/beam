@@ -55,6 +55,13 @@ mod coder_from_urn {
         pub struct MyCoder;
 
         impl Coder for MyCoder {
+            fn new(_component_coders: Vec<Box<dyn Coder>>) -> Self
+            where
+                Self: Sized,
+            {
+                Self::default()
+            }
+
             fn encode(
                 &self,
                 element: &dyn ElemType,
@@ -237,6 +244,13 @@ mod serde_costom_coder_test {
         pub struct MyCoder;
 
         impl Coder for MyCoder {
+            fn new(_component_coders: Vec<Box<dyn Coder>>) -> Self
+            where
+                Self: Sized,
+            {
+                Self::default()
+            }
+
             fn encode(
                 &self,
                 element: &dyn ElemType,

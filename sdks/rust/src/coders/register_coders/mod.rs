@@ -45,14 +45,14 @@ macro_rules! register_coders {
 
                 opt_variant.map(|variant| {
                     let coder: Box<dyn Coder> = match variant {
-                        PresetCoderUrn::Bytes => Box::<BytesCoder>::default(),
+                        PresetCoderUrn::Bytes => Box::new(BytesCoder::new(vec![])),
                         PresetCoderUrn::Kv => todo!("create full type including components (not only urn but also full proto maybe required"),
                         PresetCoderUrn::Iterable => todo!("create full type including components (not only urn but also full proto maybe required"),
                         PresetCoderUrn::Nullable => todo!("create full type including components (not only urn but also full proto maybe required"),
-                        PresetCoderUrn::StrUtf8 => Box::<StrUtf8Coder>::default(),
+                        PresetCoderUrn::StrUtf8 => Box::new(StrUtf8Coder::new(vec![])),
                         PresetCoderUrn::VarInt => todo!("create full type including components (not only urn but also full proto maybe required"),
                         PresetCoderUrn::Unit => todo!("make UnitCoder"),
-                        PresetCoderUrn::GeneralObject => Box::<GeneralObjectCoder<String>>::default(),
+                        PresetCoderUrn::GeneralObject => Box::new(GeneralObjectCoder::<String>::new(vec![])),
                     };
                     coder
                 })

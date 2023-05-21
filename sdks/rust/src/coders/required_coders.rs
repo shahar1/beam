@@ -50,6 +50,13 @@ impl CoderUrn for BytesCoder {
 }
 
 impl Coder for BytesCoder {
+    fn new(_component_coders: Vec<Box<dyn Coder>>) -> Self
+    where
+        Self: Sized,
+    {
+        Self::default()
+    }
+
     /// Encode the input element (a byte-string) into the output byte stream from `writer`.
     /// If context is `NeedsDelimiters`, the byte string is encoded prefixed with a
     /// varint representing its length.
@@ -141,6 +148,9 @@ impl fmt::Debug for BytesCoder {
 
 /// A coder for a key-value pair
 pub struct KVCoder<KV> {
+    _key_coder: Box<dyn Coder>,
+    _value_coder: Box<dyn Coder>,
+
     phantom: PhantomData<KV>,
 }
 
@@ -157,6 +167,24 @@ where
     K: ElemType,
     V: ElemType,
 {
+    fn new(mut component_coders: Vec<Box<dyn Coder>>) -> Self
+    where
+        Self: Sized,
+    {
+        let value_coder = component_coders
+            .pop()
+            .expect("2nd component coder should be value coder");
+        let key_coder = component_coders
+            .pop()
+            .expect("1st component coder should be key coder");
+
+        Self {
+            _key_coder: key_coder,
+            _value_coder: value_coder,
+            phantom: PhantomData,
+        }
+    }
+
     /// Encode the input element (a key-value pair) into a byte output stream. They key and value are encoded one after the
     /// other (first key, then value). The key is encoded with `Context::NeedsDelimiters`, while the value is encoded with
     /// the input context of the `KVCoder`.
@@ -199,24 +227,14 @@ where
     }
 }
 
-impl<K, V> Default for KVCoder<KV<K, V>>
-where
-    K: ElemType,
-    V: ElemType,
-{
-    fn default() -> Self {
-        Self {
-            phantom: PhantomData::default(),
-        }
-    }
-}
-
 /// A coder for a 'list' or a series of elements of the same type
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct IterableCoder<E>
 where
     E: ElemType,
 {
+    _elem_coder: Box<dyn Coder>,
+
     phantom: PhantomData<E>,
 }
 
@@ -239,6 +257,19 @@ impl<ItE> Coder for IterableCoder<ItE>
 where
     ItE: ElemType + fmt::Debug,
 {
+    fn new(mut component_coders: Vec<Box<dyn Coder>>) -> Self
+    where
+        Self: Sized,
+    {
+        let elem_coder = component_coders
+            .pop()
+            .expect("1st component coder should be element coder");
+        Self {
+            _elem_coder: elem_coder,
+            phantom: PhantomData,
+        }
+    }
+
     /// Encode the input iterable into a byte output stream. Elements can be encoded in two different ways:
     ///
     /// - If the length of the input iterable is known a-priori, then the length is encoded with a 32-bit
@@ -272,16 +303,5 @@ where
 {
     fn component_coder_urns() -> Vec<CoderUrnTree> {
         vec![ItE::default_coder_urn()]
-    }
-}
-
-impl<E> Default for IterableCoder<E>
-where
-    E: ElemType,
-{
-    fn default() -> Self {
-        Self {
-            phantom: PhantomData::default(),
-        }
     }
 }

@@ -14,6 +14,13 @@ impl CoderUrn for UnitCoder {
 }
 
 impl Coder for UnitCoder {
+    fn new(_component_coders: Vec<Box<dyn Coder>>) -> Self
+    where
+        Self: Sized,
+    {
+        Self::default()
+    }
+
     fn encode(
         &self,
         _element: &dyn ElemType,

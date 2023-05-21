@@ -50,6 +50,13 @@ impl CoderUrn for StrUtf8Coder {
 
 // TODO: accept string references as well?
 impl Coder for StrUtf8Coder {
+    fn new(_component_coders: Vec<Box<dyn Coder>>) -> Self
+    where
+        Self: Sized,
+    {
+        Self::default()
+    }
+
     fn encode(
         &self,
         element: &dyn ElemType,
@@ -117,6 +124,13 @@ impl<N> Coder for VarIntCoder<N>
 where
     N: fmt::Debug + VarInt + ElemType,
 {
+    fn new(_component_coders: Vec<Box<dyn Coder>>) -> Self
+    where
+        Self: Sized,
+    {
+        Self::default()
+    }
+
     // TODO: try to adapt Coder such that the context arg is not mandatory
     fn encode(
         &self,

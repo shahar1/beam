@@ -39,6 +39,13 @@ impl CoderUrn for GeneralObjectCoder<String> {
 }
 
 impl Coder for GeneralObjectCoder<String> {
+    fn new(_component_coders: Vec<Box<dyn Coder>>) -> Self
+    where
+        Self: Sized,
+    {
+        Self::default()
+    }
+
     fn encode(
         &self,
         element: &dyn ElemType,

@@ -1,12 +1,15 @@
 use std::fmt;
 use std::io::{self, Read, Write};
+use std::marker::PhantomData;
 
 use crate::coders::{urns::*, CoderForPipeline, CoderUrn};
 use crate::coders::{Coder, Context};
 use crate::elem_types::{DefaultCoder, ElemType};
 
 pub struct NullableCoder<E: ElemType> {
-    _e: std::marker::PhantomData<E>,
+    _elem_coder: Box<dyn Coder>,
+
+    _e: PhantomData<E>,
 }
 
 impl<E> CoderUrn for NullableCoder<E>
@@ -20,6 +23,19 @@ impl<E> Coder for NullableCoder<E>
 where
     E: ElemType,
 {
+    fn new(mut component_coders: Vec<Box<dyn Coder>>) -> Self
+    where
+        Self: Sized,
+    {
+        let elem_coder = component_coders
+            .pop()
+            .expect("1st component coder should be element coder");
+        Self {
+            _elem_coder: elem_coder,
+            _e: PhantomData,
+        }
+    }
+
     fn encode(
         &self,
         _element: &dyn ElemType,
@@ -55,16 +71,5 @@ where
         o.debug_struct("NullableCoder")
             .field("urn", &Self::URN)
             .finish()
-    }
-}
-
-impl<E> Default for NullableCoder<E>
-where
-    E: ElemType,
-{
-    fn default() -> Self {
-        Self {
-            _e: std::marker::PhantomData,
-        }
     }
 }
