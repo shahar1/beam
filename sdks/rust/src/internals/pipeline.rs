@@ -380,18 +380,8 @@ mod tests {
     use super::*;
 
     fn coder_urn_from_pvalue<E: ElemType>(pvalue: &PValue<E>) -> String {
-        // TODO rewrite using CoderUrnTree::from(&pvalue)
-
-        let pcoll_id = pvalue.get_id();
-
-        let pipeline_proto = pvalue.get_pipeline_arc().get_proto();
-        let pipeline_proto = pipeline_proto.lock().unwrap();
-
-        let components = pipeline_proto.components.as_ref().unwrap();
-        let pcoll = components.pcollections.get(&pcoll_id).unwrap();
-        let coder_id = &pcoll.coder_id;
-        let coder = components.coders.get(coder_id).unwrap();
-        coder.spec.as_ref().unwrap().urn.to_string()
+        let coder_urn_tree = CoderUrnTree::from(pvalue);
+        coder_urn_tree.coder_urn
     }
 
     #[test]
