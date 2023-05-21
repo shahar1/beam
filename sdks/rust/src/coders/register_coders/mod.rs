@@ -49,14 +49,16 @@ macro_rules! register_coders {
         #[ctor::ctor]
         fn init_custom_coder_from_urn() {
             // always overwrite to the new function pointers, which the currently-executed test case defined via `register_coders!` macro.
-            *$crate::worker::CUSTOM_CODER_FROM_URN.write().unwrap() = {
-                let coder_from_urn = $crate::worker::CustomCoderFromUrn {
-                    func: Some(custom_coder_from_urn),
+            $crate::worker::CUSTOM_CODER_FROM_URN.with(|c| {
+                *c.write().unwrap() = {
+                    let obj = $crate::worker::CustomCoderFromUrn {
+                        func: Some(custom_coder_from_urn),
+                    };
+                    let boxed = Box::new(obj);
+                    let static_ref = Box::leak(boxed); // use only in tests
+                    Some(static_ref)
                 };
-                let boxed = Box::new(coder_from_urn);
-                let static_ref = Box::leak(boxed); // use only in tests
-                Some(static_ref)
-            };
+            })
         }
     }
 }
