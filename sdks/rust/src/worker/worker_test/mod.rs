@@ -1,5 +1,3 @@
-mod coder_usage_tests;
-
 mod tests {
     use std::{collections::HashMap, sync::Arc};
 
