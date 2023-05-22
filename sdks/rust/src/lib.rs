@@ -16,8 +16,11 @@
  * limitations under the License.
  */
 
-#[forbid(unsafe_code)]
+#![forbid(unsafe_code)]
+
+#[macro_use]
 pub mod coders;
+
 pub mod elem_types;
 pub mod internals;
 #[allow(unused_imports)]
