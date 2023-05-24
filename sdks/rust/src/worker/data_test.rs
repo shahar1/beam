@@ -19,14 +19,12 @@
 use async_cell::sync::AsyncCell;
 use futures::stream::StreamExt;
 use lazy_static::lazy_static;
-use tokio::sync::mpsc;
+use tokio::{net::TcpListener, sync::mpsc};
+use tokio_stream::wrappers::TcpListenerStream;
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tonic::{
-    transport::{Server},
-    Status,
-};
+use tonic::transport::Server;
 
-use apache_beam::proto::fn_execution::v1::{
+use crate::proto::fn_execution::v1::{
     beam_fn_data_server::BeamFnDataServer,
     elements::{Data, Timers},
     Elements,
@@ -38,13 +36,12 @@ mod mock {
     use std::sync::Arc;
 
     use async_cell::sync::AsyncCell;
-    use futures::{stream, Stream, StreamExt};
-    use tokio::sync::Mutex;
+    use futures::{stream, Stream};
     use tonic::{Request, Response, Status, Streaming};
 
-    use apache_beam::proto::fn_execution::v1::{beam_fn_data_server::BeamFnData, Elements};
+    use crate::proto::fn_execution::v1::{beam_fn_data_server::BeamFnData, Elements};
 
-    use crate::ELEMENTS;
+    use super::ELEMENTS;
 
     pub struct DataProducer {}
 
@@ -55,7 +52,7 @@ mod mock {
 
         async fn data(
             &self,
-            request: Request<Streaming<Elements>>,
+            _request: Request<Streaming<Elements>>,
         ) -> Result<Response<Self::DataStream>, Status> {
             Ok(Response::new(Box::pin(stream::iter(
                 ELEMENTS.clone().into_iter().map(Ok),
@@ -161,18 +158,21 @@ lazy_static! {
 // TODO(sjvanrossum): Perhaps use turmoil for these sorts of tests?
 #[tokio::test]
 async fn multiplex_to_consumers() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+
     // Spawn a producer
-    let jh = tokio::spawn(async move {
+    tokio::spawn(async move {
         Server::builder()
             .add_service(BeamFnDataServer::new(mock::DataProducer {}))
-            .serve("[::1]:50051".parse().unwrap())
+            .serve_with_incoming(TcpListenerStream::new(listener))
             .await
             .unwrap();
     });
 
-    let mut client = apache_beam::worker::data::MultiplexingDataChannel::try_new(
+    let mut client = super::data::MultiplexingDataChannel::try_new(
         "hello_world".to_owned(),
-        "http://[::1]:50051".to_owned(),
+        format!("http://{}", addr),
     )
     .unwrap();
 
@@ -269,28 +269,28 @@ async fn multiplex_to_consumers() {
             .cloned()
             .collect::<Vec<_>>()
     );
-
-    jh.abort();
 }
 
 // Essentially this test is somewhat pointless, since we rely on a mpsc channel.
 #[tokio::test]
 async fn multiplex_from_producers() {
     let received = AsyncCell::shared();
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
 
     // Spawn a consumer
     let stream = received.clone();
-    let jh = tokio::spawn(async move {
+    tokio::spawn(async move {
         Server::builder()
             .add_service(BeamFnDataServer::new(mock::DataConsumer { stream }))
-            .serve("[::1]:50052".parse().unwrap())
+            .serve_with_incoming(TcpListenerStream::new(listener))
             .await
             .unwrap();
     });
 
-    let mut client = apache_beam::worker::data::MultiplexingDataChannel::try_new(
+    let mut client = super::data::MultiplexingDataChannel::try_new(
         "hello_world".to_owned(),
-        "http://[::1]:50052".to_owned(),
+        format!("http://{}", addr),
     )
     .unwrap();
 
@@ -308,6 +308,4 @@ async fn multiplex_from_producers() {
     for es in ELEMENTS.iter() {
         assert_eq!(*es, stream.message().await.unwrap().unwrap());
     }
-
-    jh.abort();
 }

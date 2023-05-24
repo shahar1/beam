@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-pub mod data;
+pub(super) mod data;
 mod external_worker_service;
 pub mod operators;
 
@@ -44,5 +44,7 @@ pub mod test_utils {
     }
 }
 
+#[cfg(test)]
+mod data_test;
 #[cfg(test)]
 mod worker_test;
