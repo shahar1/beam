@@ -608,7 +608,7 @@ class BeamModulePlugin implements Plugin<Project> {
     //
     // There are a few versions are determined by the BOMs by running scripts/tools/bomupgrader.py
     // marked as [bomupgrader]. See the documentation of that script for detail.
-    def activemq_version = "5.19.5"
+    def activemq_version = "6.2.5"
     def autovalue_version = "1.9"
     def autoservice_version = "1.0.1"
     def aws_java_sdk2_version = "2.20.162"
@@ -650,7 +650,7 @@ class BeamModulePlugin implements Plugin<Project> {
     def postgres_version = "42.6.2"
     // [bomupgrader] determined by: com.google.protobuf:protobuf-java, consistent with: google_cloud_platform_libraries_bom
     def protobuf_version = "4.33.6"
-    def qpid_jms_client_version = "0.61.0"
+    def qpid_jms_client_version = "2.10.0"
     def quickcheck_version = "1.0"
     def sbe_tool_version = "1.25.1"
     def singlestore_jdbc_version = "1.1.4"
@@ -768,6 +768,7 @@ class BeamModulePlugin implements Plugin<Project> {
         google_cloud_bigtable_emulator              : "com.google.cloud:google-cloud-bigtable-emulator", // google_cloud_platform_libraries_bom sets version
         google_cloud_core                           : "com.google.cloud:google-cloud-core", // google_cloud_platform_libraries_bom sets version
         google_cloud_core_grpc                      : "com.google.cloud:google-cloud-core-grpc", // google_cloud_platform_libraries_bom sets version
+        google_cloud_core_http                      : "com.google.cloud:google-cloud-core-http", // google_cloud_platform_libraries_bom sets version
         google_cloud_datacatalog_v1beta1            : "com.google.cloud:google-cloud-datacatalog", // google_cloud_platform_libraries_bom sets version
         google_cloud_dataflow_java_proto_library_all: "com.google.cloud.dataflow:google-cloud-dataflow-java-proto-library-all:0.5.160304",
         google_cloud_datastore_v1_proto_client      : "com.google.cloud.datastore:datastore-v1-proto-client:3.4.0",   // [bomupgrader] sets version
@@ -1258,10 +1259,34 @@ class BeamModulePlugin implements Plugin<Project> {
         useJUnit {}
         // default maxHeapSize on gradle 5 is 512m, lets increase to handle more demanding tests
         maxHeapSize = '2g'
+        systemProperty 'beam.test.parallelThreads', project.findProperty('testParallelThreads') ?: '8'
         // Windows OS: Snappy needs an executable temp dir for native lib. Default AppData/Temp
         // failing with Access error without elevated permissions
         if (System.getProperty("os.name").toLowerCase().contains("windows")) {
           systemProperty 'org.xerial.snappy.tempdir', System.getProperty('org.xerial.snappy.tempdir') ?: "${project.rootDir.absolutePath}/build/snappy_bin"
+        }
+        // Log skipped and failed tests, plus a per-task summary.
+        // Pass -PshowTestOutput to also forward test stdout/stderr.
+        // Pass -PshowTestPassed to also log passed tests.
+        testLogging {
+          events 'skipped', 'failed'
+          if (project.hasProperty('showTestPassed')) {
+            events 'passed'
+          }
+          exceptionFormat = 'full'
+          showExceptions = true
+          showCauses = true
+          showStackTraces = true
+          showStandardStreams = project.hasProperty('showTestOutput')
+          displayGranularity = 0
+        }
+        afterSuite { desc, result ->
+          // Only the root suite of each test task, to get one summary per task.
+          if (!desc.parent) {
+            println "RESULT [${path}]: ${result.resultType} - ${result.testCount} tests, " +
+                "${result.successfulTestCount} passed, ${result.failedTestCount} failed, " +
+                "${result.skippedTestCount} skipped"
+          }
         }
       }
 
@@ -1394,9 +1419,10 @@ class BeamModulePlugin implements Plugin<Project> {
         getSourceDirectories().setFrom(
             project.files(project.sourceSets.main.allSource.srcDirs)
             )
-        getExecutionData().setFrom(project.file(
-            project.getLayout().getBuildDirectory().file("jacoco/test.exec")
-            ))
+       getExecutionData().setFrom(project.fileTree(
+          dir: project.getLayout().getBuildDirectory().dir("jacoco"),
+          include: ['*.exec']
+         ))
         reports {
           html.required = true
           xml.required = true
@@ -3144,10 +3170,10 @@ class BeamModulePlugin implements Plugin<Project> {
       // set from commandline with -PpythonVersion, or in build script of certain project.
       // If none of them applied, version set here will be used as default value.
       project.ext.pythonVersion = project.hasProperty('pythonVersion') ?
-          project.pythonVersion : '3.10'
+          project.pythonVersion : '3.11'
 
       // Set min/max python versions used for containers and supported versions.
-      project.ext.minPythonVersion = 10
+      project.ext.minPythonVersion = 11
       project.ext.maxPythonVersion = 14
 
       def setupVirtualenv = project.tasks.register('setupVirtualenv')  {
@@ -3222,7 +3248,7 @@ class BeamModulePlugin implements Plugin<Project> {
           def uvCacheDir = "${project.ext.envdir}/.uv_cache"
           project.exec {
             executable 'sh'
-            // Default uv cache is global; py310/py314 installGcpTest fight over the same lock.
+            // Default uv cache is global; py311/py314 installGcpTest fight over the same lock.
             args '-c', ". \"${project.ext.envdir}/bin/activate\" && pip install uv && uv pip install --cache-dir \"${uvCacheDir}\" --pre \"${installTargets}\""
           }
         }
@@ -3274,7 +3300,7 @@ class BeamModulePlugin implements Plugin<Project> {
           def actualToxEnv = tox_env
           def osName = System.getProperty("os.name").toLowerCase()
           if (osName.contains("mac")) {
-            // Only append -macos for standard python environments (py39, py310, etc.)
+            // Only append -macos for standard python environments (py311, py312, etc.)
             if (tox_env.matches("py\\d+")) {
               actualToxEnv = "${tox_env}-macos"
             }
@@ -3364,7 +3390,6 @@ class BeamModulePlugin implements Plugin<Project> {
           mustRunAfter = [
             ":runners:flink:${project.ext.latestFlinkVersion}:job-server:shadowJar",
             ':runners:spark:3:job-server:shadowJar',
-            ':sdks:python:container:py310:docker',
             ':sdks:python:container:py311:docker',
             ':sdks:python:container:py312:docker',
             ':sdks:python:container:py313:docker',
